@@ -10,9 +10,12 @@ than --max-items are cut down to keep fixtures small; nothing else is edited.
 import argparse
 import asyncio
 import json
+import sys
 from pathlib import Path
 
-from app.http.client import PoliteClient
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app.http.client import PoliteClient  # noqa: E402
 
 OUT = Path(__file__).resolve().parent.parent / "tests" / "fixtures"
 
