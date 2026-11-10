@@ -191,3 +191,22 @@ def test_content_hash_ignores_whitespace_and_location_order():
         )
     )
     assert h1 == h2
+
+
+def test_late_description_puts_skipped_job_back_in_gemini_queue(session, setup):
+    _, a, _ = setup
+    ingest(session, a, res(raw(desc=None)), "incremental", T0)
+    [j] = jobs(session)
+    j.analysis_state = "skipped"  # Gemini found no text to read
+    ingest(session, a, res(raw()), "incremental", T0 + timedelta(minutes=30))
+    assert j.description_html == "<p>Build things</p>"
+    assert j.analysis_state == "pending"
+
+
+def test_changed_description_does_not_requeue_analysed_job(session, setup):
+    _, a, _ = setup
+    ingest(session, a, res(raw()), "incremental", T0)
+    [j] = jobs(session)
+    j.analysis_state = "done"
+    ingest(session, a, res(raw(desc="<p>New text</p>")), "incremental", T0 + timedelta(days=1))
+    assert j.analysis_state == "done"

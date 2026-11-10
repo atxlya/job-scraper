@@ -72,7 +72,17 @@ async def _run_source(ctx: Ctx, source_id: int, mode: RunKind) -> ScrapeRun:
         src = s.get(Source, source_id)
         adapter = ADAPTERS[src.adapter]()
         cfg = dict(src.config)
-        known = set(s.scalars(select(Job.external_id).where(Job.company_id == src.company_id)))
+        # Jobs stored without a description (detail page failed) count as unknown, so their
+        # details are retried on the next run.
+        known = set(
+            s.scalars(
+                select(Job.external_id).where(
+                    Job.company_id == src.company_id,
+                    Job.description_html.is_not(None),
+                    Job.description_html != "",
+                )
+            )
+        )
         targets: list[tuple[int, RawJob]] = []
         if mode == "tracked":
             tagged = set(

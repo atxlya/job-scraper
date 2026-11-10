@@ -33,6 +33,7 @@ Each line gives what changed from the plan, why, and what it costs if the decisi
   - *Cost:* an internship outside India is found up to 24 h late if the newest-anywhere search misses it.
 - **Eightfold** (Microsoft, Qualcomm, Morgan Stanley, PayPal, HSBC): none has an internship filter, so their 30-minute check searches for "intern". The nightly sweep still reads everything.
 - **Detail pages are fetched only for possible tech internships.** Otherwise the first nightly sweep would fetch about 40,000 pages for Accenture alone (about 28 h). Other jobs are stored from the listing, without a description. *Cost:* the dashboard's "all jobs" view needs to fetch those descriptions on demand (R2).
+- **A failed detail page is retried on the next run** (added 2026-11-11, after a network drop during the first real run left 6 internships without descriptions). Once the description arrives, a job that Gemini skipped for lack of text goes back in its queue. *Cost:* a site whose detail pages never have a description would be fetched again on every run; none does today.
 
 **Classification and Gemini**
 - Added a "maybe internship" word list (graduate, programme, early careers…) whose matches go to Gemini instead of being guessed.

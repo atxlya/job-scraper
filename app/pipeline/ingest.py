@@ -104,6 +104,10 @@ def ingest(
             if getattr(merged, field) != getattr(job, col)
         ]
         if changed:
+            if not job.description_html and merged.description_html:
+                # Gemini skipped it for lack of text; now there is some to read.
+                if job.analysis_state == "skipped":
+                    job.analysis_state = "pending"
             for field, (col, _) in TRACKED.items():
                 setattr(job, col, getattr(merged, field))
             job.content_hash = new_hash

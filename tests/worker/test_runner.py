@@ -2,6 +2,7 @@ import asyncio
 from collections import Counter
 from pathlib import Path
 
+import httpx
 import pytest
 from sqlalchemy import select
 
@@ -33,6 +34,8 @@ class FakeAdapter:
     async def fetch_detail(self, client, cfg, job):
         DETAIL_CALLS[cfg["name"]] += 1
         await asyncio.sleep(0)
+        if job.external_id in cfg.get("detail_down", []):
+            raise httpx.ConnectError("[Errno 8] nodename nor servname provided, or not known")
         if job.external_id in cfg.get("gone", []):
             return GONE
         return job.model_copy(update={"description_html": f"<p>{job.title}</p>"})
@@ -210,3 +213,18 @@ async def test_alert_step_crash_does_not_break_round(ctx):
     add_source(ctx, "y", jobs=[["2", "Data Intern"]])
     runs = await run_all(ctx, "incremental")
     assert [r.status for r in runs] == ["ok", "ok"]
+
+
+async def test_failed_detail_retried_next_run(ctx):
+    sid = add_source(ctx, "r", jobs=[["1", "Software Intern"]], detail_down=["1"])
+    await run_source(ctx, sid, "incremental")
+    with ctx.session_factory() as s:
+        assert s.scalars(select(Job)).one().description_html is None  # stored from the listing
+        src = s.get(Source, sid)
+        src.config = {**src.config, "detail_down": []}  # network back
+        s.commit()
+    await run_source(ctx, sid, "incremental")
+    with ctx.session_factory() as s:
+        assert s.scalars(select(Job)).one().description_html == "<p>Software Intern</p>"
+    await run_source(ctx, sid, "incremental")
+    assert DETAIL_CALLS["r"] == 2  # once it has a description, it is not fetched again
