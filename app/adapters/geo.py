@@ -1,15 +1,20 @@
 """Best-effort country detection from free-text locations.
 
-Career sites write locations as "Bengaluru, India", "IND-Bangalore", "US - Austin, TX"
-and so on. India gets extra city names because it drives alert priority.
+Career sites write locations as "Bengaluru, India", "IND-Bangalore", "US - Austin, TX",
+"KZ - Almaty, Kazakhstan" and so on. Country names come from ISO 3166 (pycountry)
+plus common aliases; India also gets city names because it drives alert priority.
 """
 
 import re
+from functools import cache
 
-_PATTERNS: dict[str, list[str]] = {
+import pycountry
+
+# Names that are also common place names elsewhere (US states, UK islands).
+_AMBIGUOUS = {"Georgia", "Jersey"}
+
+_ALIASES: dict[str, list[str]] = {
     "IN": [
-        r"india",
-        r"\bind\b",
         r"bengaluru",
         r"bangalore",
         r"pune",
@@ -20,7 +25,7 @@ _PATTERNS: dict[str, list[str]] = {
         r"gurgaon",
         r"noida",
         r"new delhi",
-        r"\bdelhi\b",
+        r"delhi",
         r"kolkata",
         r"ahmedabad",
         r"kochi",
@@ -34,28 +39,83 @@ _PATTERNS: dict[str, list[str]] = {
         r"chandigarh",
         r"vadodara",
     ],
-    "US": [r"united states", r"\busa?\b", r"\bu\.s\.", r", (ca|tx|wa|ny|ma|nc|ga|or|co|il|az)\b"],
-    "GB": [r"united kingdom", r"\buk\b", r"england", r"scotland", r"london", r"glasgow"],
-    "IE": [r"ireland", r"dublin"],
-    "DE": [r"germany", r"deutschland", r"munich", r"berlin", r"frankfurt"],
-    "FR": [r"france", r"paris"],
-    "NL": [r"netherlands", r"amsterdam"],
-    "PL": [r"poland", r"warsaw", r"krak[oó]w"],
-    "CA": [r"canada", r"toronto", r"vancouver", r"montreal"],
+    "US": [
+        r"united states",
+        r"usa?",
+        r"u\.s\.",
+        r"(?-i:, (CA|TX|WA|NY|MA|NC|GA|OR|CO|IL|AZ|VA|NJ|PA|FL|MN|UT|OH|MI))",
+    ],
+    "GB": [
+        r"united kingdom",
+        r"uk",
+        r"england",
+        r"scotland",
+        r"wales",
+        r"london",
+        r"glasgow",
+        r"edinburgh",
+        r"manchester",
+        r"belfast",
+    ],
+    "KR": [r"south korea", r"korea", r"seoul"],
+    "TW": [r"taiwan", r"taipei", r"hsinchu"],
+    "VN": [r"vietnam", r"hanoi", r"ho chi minh"],
+    "CZ": [r"czech republic", r"czechia", r"prague", r"brno"],
+    "RU": [r"russia"],
+    "TR": [r"turkey", r"türkiye", r"istanbul"],
+    "HK": [r"hong kong"],
+    "AE": [r"uae", r"dubai", r"abu dhabi"],
+    "IE": [r"dublin", r"cork"],
+    "DE": [r"munich", r"berlin", r"frankfurt", r"hamburg", r"stuttgart"],
+    "FR": [r"paris", r"sophia antipolis"],
+    "NL": [r"amsterdam", r"eindhoven"],
+    "PL": [r"warsaw", r"krak[oó]w", r"wroc[lł]aw"],
+    "CA": [r"toronto", r"vancouver", r"montreal", r"ottawa"],
     "SG": [r"singapore"],
-    "JP": [r"japan", r"tokyo"],
-    "CN": [r"china", r"shanghai", r"beijing", r"shenzhen"],
-    "TW": [r"taiwan", r"taipei"],
-    "KR": [r"korea", r"seoul"],
-    "IL": [r"israel", r"tel aviv", r"yokneam"],
-    "AU": [r"australia", r"sydney", r"melbourne"],
-    "AE": [r"united arab emirates", r"dubai", r"abu dhabi"],
-    "MX": [r"mexico"],
-    "BR": [r"brazil", r"s[aã]o paulo"],
+    "JP": [r"tokyo", r"osaka"],
+    "CN": [r"shanghai", r"beijing", r"shenzhen"],
+    "IL": [r"tel aviv", r"yokneam", r"haifa"],
+    "AU": [r"sydney", r"melbourne"],
+    "IT": [r"rome", r"roma", r"milan", r"milano", r"turin", r"torino"],
+    "ES": [r"madrid", r"barcelona"],
+    "RO": [r"bucharest"],
+    "PH": [r"manila", r"pasig", r"taguig"],
+    "EG": [r"cairo"],
+    "BR": [r"s[aã]o paulo"],
 }
-_COMPILED = {cc: re.compile("|".join(p), re.IGNORECASE) for cc, p in _PATTERNS.items()}
+
+
+@cache
+def _patterns() -> list[tuple[re.Pattern, str]]:
+    names: list[tuple[str, str]] = []
+    for c in pycountry.countries:
+        for attr in ("name", "common_name", "official_name"):
+            value = getattr(c, attr, None)
+            if value and value not in _AMBIGUOUS:
+                names.append((re.escape(value), c.alpha_2))
+    for code, aliases in _ALIASES.items():
+        names.extend((a, code) for a in aliases)
+    # Longest first, so "Papua New Guinea" wins over "Guinea".
+    names.sort(key=lambda x: len(x[0]), reverse=True)
+    return [(re.compile(rf"(?i)\b{p}\b"), code) for p, code in names]
+
+
+_PREFIX2 = re.compile(r"^([A-Z]{2}) - ")
+_PREFIX3 = re.compile(r"^([A-Z]{3})-")
 
 
 def country_codes(locations: list[str]) -> list[str]:
-    found = {cc for loc in locations for cc, rx in _COMPILED.items() if rx.search(loc)}
+    found: set[str] = set()
+    for loc in locations:
+        if m := _PREFIX2.match(loc):
+            if pycountry.countries.get(alpha_2=m.group(1)):
+                found.add(m.group(1))
+        elif m := _PREFIX3.match(loc):
+            if c := pycountry.countries.get(alpha_3=m.group(1)):
+                found.add(c.alpha_2)
+        rest = loc
+        for rx, code in _patterns():
+            if rx.search(rest):
+                found.add(code)
+                rest = rx.sub(" ", rest)
     return sorted(found)

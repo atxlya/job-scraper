@@ -26,6 +26,11 @@ def job(title, **flags):
         ("International Sales Director", (False, False)),
         ("IT Support Apprentice", (True, True)),
         ("Marketing Coordinator", (False, False)),
+        # Seen in the first live run: tech word plus non-tech word means "ask Gemini".
+        ("Intern _Sales Operations & Data Excellence F/H", (True, None)),
+        ("Substrates Materials Engineering Intern", (True, None)),
+        ("Intern-Customer Experience Analytics (Health Systems Strategy)", (True, None)),
+        ("Wireless Software Engineer_ Intern", (True, True)),
     ],
 )
 def test_classify_titles(title, expected):

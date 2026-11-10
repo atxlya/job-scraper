@@ -48,9 +48,12 @@ def classify(raw: RawJob, kw: Keywords) -> Classification:
     else:
         is_internship = False
 
-    if kw.tech.search(title):
+    tech, non_tech = bool(kw.tech.search(title)), bool(kw.non_tech.search(title))
+    if tech and non_tech:
+        is_tech = None  # e.g. "Sales Operations & Data": let Gemini read the posting
+    elif tech:
         is_tech = True
-    elif kw.non_tech.search(title):
+    elif non_tech:
         is_tech = False
     else:
         is_tech = None

@@ -33,6 +33,7 @@ maybe_internship:
   - campus
   - university
 
+# Strong tech words. A title with a tech word AND a non_tech word is unclear (Gemini decides).
 tech:
   - software
   - developers?
@@ -96,3 +97,16 @@ non_tech:
   - tax
   - procurement
   - facilities
+  - materials
+  - mechanical
+  - civil
+  - chemical
+  - construction
+  - manufacturing
+  - supply chain
+  - logistics
+  - mba
+  - strategy
+  - customer experience
+  - real estate
+  - investment banking
