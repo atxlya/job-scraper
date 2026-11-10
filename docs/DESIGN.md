@@ -104,6 +104,7 @@ Free-tier inputs may be used by Google to improve its products. This is acceptab
 - **"Add company" form:** see §3.
 - **Look:** chosen from 2–3 mockups before any UI code is written. Light and dark themes; works on phone and laptop.
 - **Access:** single-user password login (argon2 hash, HTTP-only session cookie), reachable over Tailscale. Nothing is exposed to the public internet.
+- **Built in R2:** the decisions made while building it (D1–D14: where added companies are stored, default filters, closed and dismissed jobs, and so on) are in the [R2 dashboard plan](superpowers/plans/2026-11-11-r2-dashboard.md#decisions-this-plan-makes-the-spec-is-silent-or-open), and the results are in [R2-notes.md](R2-notes.md).
 
 ## 8. Stack
 

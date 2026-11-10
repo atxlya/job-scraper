@@ -19,6 +19,18 @@ cp .env.example .env
 ```
 Then fill in `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` and `GEMINI_API_KEY`. Never commit `.env`.
 
+### Dashboard password
+Choose a password (at least 8 characters):
+```bash
+uv run python -m app.cli set-password
+```
+It prints one line starting `DASHBOARD_PASSWORD_HASH=`. Paste that whole line into `.env`, quotes included. Until it's there, the dashboard stays locked.
+
+Optionally, add where you'll open the dashboard. Telegram alerts then get a "Dashboard" link:
+```
+DASHBOARD_URL=http://<pi-tailscale-name>:8000
+```
+
 Both keys are optional:
 - **Without Telegram:** jobs are stored, and alerts wait until it is configured.
 - **Without Gemini:** jobs are stored and alerted, just without the eligibility check.
@@ -54,7 +66,7 @@ This starts four services:
 |---|---|
 | `migrate` | Prepares the database, then exits |
 | `worker` | Runs the schedule below |
-| `api` | Health check at `http://<host>:8000/healthz` |
+| `api` | The dashboard at `http://<host>:8000`, and the health check at `/healthz` |
 | `backup` | Nightly backup at 03:00 IST into `./backups`, keeping 30 days |
 
 The worker's schedule (all times IST):
@@ -90,6 +102,24 @@ The worker's schedule (all times IST):
    ```bash
    docker compose up -d --build
    ```
+
+### The dashboard
+Open `http://<pi-tailscale-name>:8000` from your laptop or phone (on Tailscale), or `http://localhost:8000` on the Mac, and sign in with your password.
+
+- **Default view:** open tech internships, newest first. Your last filters are remembered in that browser.
+- **Check needed:** the posting or its title has a restriction, such as PhD only or US enrolment.
+- **Not checked:** Gemini hasn't read it yet. It updates by itself.
+- **A job with no description** fetches it from the company's site when you open it.
+- **Add company:** paste a Workday, Eightfold or Oracle HCM careers URL. The site is test-fetched first, and the company is saved only if real jobs come back. The worker picks it up on its next run.
+
+To work on the dashboard on the Mac, run the API and the Vite dev server side by side:
+```bash
+uv run uvicorn app.api.main:create_app --factory --port 8000
+```
+```bash
+cd web && npm install && npm run dev
+```
+Then open `http://localhost:5173`. Before committing, run `cd web && npm run check`.
 
 ## 3. Weekly backup copy to the Mac
 
