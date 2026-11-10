@@ -159,3 +159,19 @@ it("says eligibility isn't checked for other jobs", async () => {
   show();
   expect(await screen.findByText("Eligibility is only checked for tech internships.")).toBeInTheDocument();
 });
+
+it("saves a half-typed note when you switch to another job", async () => {
+  serve();
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const { unmount } = render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter>
+        <JobDetail id={7} />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  await userEvent.type(await screen.findByLabelText("Note"), "call back Fri");
+  unmount(); // e.g. clicking the next job, well before the 800 ms save
+  expect(sent("/note")).toHaveLength(1);
+  expect(sent("/note")[0].json).toEqual({ note: "call back Fri" });
+});

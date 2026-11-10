@@ -303,6 +303,23 @@ function NoteBox({ id, initial }: { id: number; initial: string }) {
   const [text, setText] = useState(initial);
   const [status, setStatus] = useState<"" | "saving" | "saved" | "error">("");
   const saved = useRef(initial);
+  const latest = useRef(initial);
+  latest.current = text;
+
+  // Leaving the job (another card, closing the panel) before the debounce fires
+  // still saves what was typed. keepalive lets the request outlive the page.
+  useEffect(
+    () => () => {
+      if (latest.current !== saved.current) {
+        api(`/api/jobs/${id}/note`, {
+          method: "PUT",
+          json: { note: latest.current },
+          keepalive: true,
+        }).catch(() => undefined);
+      }
+    },
+    [id],
+  );
 
   useEffect(() => {
     if (text === saved.current) return;
