@@ -1,0 +1,334 @@
+# Company + source registry (docs/companies.md has the evidence for every entry).
+# Workday intern facet IDs were read from each site's live `facets` on 2026-11-10.
+#
+# Adapter config keys:
+#   workday:    host, tenant, site, intern_facets {facetParam: [ids]}, intern_search, split_facets
+#   eightfold:  host, domain, api (pcsx|apply_v2), filters, incremental_filters
+#   oracle_hcm: host, site, public_host
+#   google:     queries, incremental_queries (entries may set catch_all: true)
+#   barclays:   base, org_id, facets
+
+companies:
+  # ---------------------------------------------------------------- original three
+  - slug: google
+    name: Google
+    sources:
+      - key: google-interns
+        adapter: google
+        config:
+          incremental_queries:
+            - {target_level: INTERN_AND_APPRENTICE, location: India}
+            - {target_level: INTERN_AND_APPRENTICE, catch_all: true}
+          queries:
+            - {target_level: INTERN_AND_APPRENTICE, location: India}
+            - {target_level: INTERN_AND_APPRENTICE, location: United States}
+            - {target_level: INTERN_AND_APPRENTICE, location: United Kingdom}
+            - {target_level: INTERN_AND_APPRENTICE, location: Ireland}
+            - {target_level: INTERN_AND_APPRENTICE, location: Germany}
+            - {target_level: INTERN_AND_APPRENTICE, location: Switzerland}
+            - {target_level: INTERN_AND_APPRENTICE, location: Poland}
+            - {target_level: INTERN_AND_APPRENTICE, location: France}
+            - {target_level: INTERN_AND_APPRENTICE, location: Netherlands}
+            - {target_level: INTERN_AND_APPRENTICE, location: Israel}
+            - {target_level: INTERN_AND_APPRENTICE, location: Japan}
+            - {target_level: INTERN_AND_APPRENTICE, location: Singapore}
+            - {target_level: INTERN_AND_APPRENTICE, location: Taiwan}
+            - {target_level: INTERN_AND_APPRENTICE, location: Australia}
+            - {target_level: INTERN_AND_APPRENTICE, location: Canada}
+            - {target_level: INTERN_AND_APPRENTICE, location: Brazil}
+            - {target_level: INTERN_AND_APPRENTICE, location: Mexico}
+            - {target_level: INTERN_AND_APPRENTICE, catch_all: true}
+
+  - slug: nvidia
+    name: NVIDIA
+    sources:
+      - key: nvidia
+        adapter: eightfold
+        config:
+          host: jobs.nvidia.com
+          domain: nvidia.com
+          incremental_filters: {filter_job_category: univ employment}
+
+  - slug: barclays
+    name: Barclays
+    sources:
+      - key: barclays
+        adapter: barclays
+        config: {base: "https://search.jobs.barclays", org_id: 13015}
+
+  # ---------------------------------------------------------------- Workday (14)
+  - slug: vmware
+    name: VMware (Broadcom)
+    sources:
+      - key: broadcom
+        adapter: workday
+        config: {host: broadcom.wd1.myworkdayjobs.com, tenant: broadcom, site: External_Career,
+                 intern_search: intern}
+
+  - slug: accenture
+    name: Accenture
+    sources:
+      - key: accenture
+        adapter: workday
+        config: {host: accenture.wd103.myworkdayjobs.com, tenant: accenture,
+                 site: AccentureCareers, intern_search: intern,
+                 split_facets: [locationCountry, jobFamilyGroup, workerSubType]}
+
+  - slug: pwc
+    name: PwC
+    sources:
+      - key: pwc-experienced
+        adapter: workday
+        config:
+          host: pwc.wd3.myworkdayjobs.com
+          tenant: pwc
+          site: Global_Experienced_Careers
+          intern_facets: {workerSubType: [e57e6863118d01e8c8ee4356e52a5e2d,
+                                          e57e6863118d01ccc3941a45322bfba2]}
+      - key: pwc-campus
+        adapter: workday
+        config:
+          host: pwc.wd3.myworkdayjobs.com
+          tenant: pwc
+          site: Global_Campus_Careers
+          intern_facets: {workerSubType: [e57e6863118d01e8c8ee4356e52a5e2d,
+                                          e57e6863118d01ccc3941a45322bfba2]}
+
+  - slug: browserstack
+    name: BrowserStack
+    sources:
+      - key: browserstack
+        adapter: workday
+        config: {host: browserstack.wd3.myworkdayjobs.com, tenant: browserstack,
+                 site: External}
+
+  - slug: philips
+    name: Philips
+    sources:
+      - key: philips
+        adapter: workday
+        config:
+          host: philips.wd3.myworkdayjobs.com
+          tenant: philips
+          site: jobs-and-careers
+          intern_facets: {jobFamilyGroup: [c3f6a5a61d7f100163dbf8ad74690000]}
+
+  - slug: wells-fargo
+    name: Wells Fargo
+    sources:
+      - key: wells-fargo
+        adapter: workday
+        config:
+          host: wf.wd1.myworkdayjobs.com
+          tenant: wf
+          site: WellsFargoJobs
+          intern_facets: {workerSubType: [2d264dd4beb00100f05a7d60652a0000]}
+
+  - slug: deutsche-bank
+    name: Deutsche Bank
+    sources:
+      - key: deutsche-bank
+        adapter: workday
+        config:
+          host: db.wd3.myworkdayjobs.com
+          tenant: db
+          site: DBWebSite
+          intern_facets: {workerSubType: [645e861bc53a01f8c083feaefb3a1c09,
+                                          645e861bc53a018fc2809ac3fb3a9444,
+                                          645e861bc53a0145cdb4feaefb3a1d09]}
+
+  - slug: mastercard
+    name: Mastercard
+    sources:
+      - key: mastercard-corporate
+        adapter: workday
+        config:
+          host: mastercard.wd1.myworkdayjobs.com
+          tenant: mastercard
+          site: CorporateCareers
+          intern_facets: {workerSubType: [cfba33fac07f49c9b6d3d53336c6a291]}
+      - key: mastercard-campus
+        adapter: workday
+        config: {host: mastercard.wd1.myworkdayjobs.com, tenant: mastercard, site: Campus}
+
+  - slug: visa
+    name: Visa
+    sources:
+      - key: visa
+        adapter: workday
+        config:
+          host: visa.wd5.myworkdayjobs.com
+          tenant: visa
+          site: Visa
+          intern_facets: {jobFamily: [2745bc1368021016a99151158b7a3a64]}
+      - key: visa-early-careers
+        adapter: workday
+        config: {host: visa.wd5.myworkdayjobs.com, tenant: visa, site: Visa_Early_Careers}
+
+  - slug: samsung-rd-india
+    name: Samsung R&D Institute India
+    sources:
+      - key: samsung
+        adapter: workday
+        config:
+          host: sec.wd3.myworkdayjobs.com
+          tenant: sec
+          site: Samsung_Careers
+          intern_facets: {workerSubType: [189767dd6c920145d5c3e59c2c297819,
+                                          189767dd6c92017ca7ab47a42c298419]}
+
+  - slug: salesforce
+    name: Salesforce
+    sources:
+      - key: salesforce
+        adapter: workday
+        config:
+          host: salesforce.wd12.myworkdayjobs.com
+          tenant: salesforce
+          site: External_Career_Site
+          intern_facets: {workerSubType: [3a910852b2c31010f48d2cefdccd0000]}
+      - key: salesforce-futureforce
+        adapter: workday
+        config: {host: salesforce.wd12.myworkdayjobs.com, tenant: salesforce,
+                 site: Futureforce_Internships}
+
+  - slug: adobe
+    name: Adobe
+    sources:
+      - key: adobe
+        adapter: workday
+        config:
+          host: adobe.wd5.myworkdayjobs.com
+          tenant: adobe
+          site: external_experienced
+          intern_facets: {workerSubType: [3ba4ecdf4893100b2f8d08d56d8d6c8e]}
+
+  - slug: cisco
+    name: Cisco
+    sources:
+      - key: cisco
+        adapter: workday
+        config:
+          host: cisco.wd5.myworkdayjobs.com
+          tenant: cisco
+          site: Cisco_Careers
+          intern_facets: {jobFamilyGroup: [2101eee3ea96010675b0a474fc015c29]}
+
+  - slug: intel
+    name: Intel
+    sources:
+      - key: intel
+        adapter: workday
+        config:
+          host: intel.wd1.myworkdayjobs.com
+          tenant: intel
+          site: External
+          intern_facets: {workerSubType: [dc8bf79476611087dfde99931439ae75]}
+
+  # ---------------------------------------------------------------- Eightfold (5 more)
+  - slug: microsoft
+    name: Microsoft
+    sources:
+      - key: microsoft
+        adapter: eightfold
+        config: {host: apply.careers.microsoft.com, domain: microsoft.com,
+                 incremental_filters: {query: intern}}
+
+  - slug: qualcomm
+    name: Qualcomm
+    sources:
+      - key: qualcomm
+        adapter: eightfold
+        config: {host: careers.qualcomm.com, domain: qualcomm.com,
+                 incremental_filters: {query: intern}}
+
+  - slug: morgan-stanley
+    name: Morgan Stanley
+    sources:
+      - key: morgan-stanley
+        adapter: eightfold
+        config: {host: morganstanley.eightfold.ai, domain: morganstanley.com,
+                 incremental_filters: {query: intern}}
+
+  - slug: paypal
+    name: PayPal
+    sources:
+      - key: paypal
+        adapter: eightfold
+        config: {host: paypal.eightfold.ai, domain: paypal.com,
+                 incremental_filters: {query: intern}}
+
+  - slug: hsbc
+    name: HSBC
+    sources:
+      - key: hsbc
+        adapter: eightfold
+        config: {host: portal.careers.hsbc.com, domain: hsbc.com, api: apply_v2,
+                 incremental_filters: {query: intern}}
+
+  # ---------------------------------------------------------------- Oracle HCM (6)
+  - slug: american-express
+    name: American Express
+    sources:
+      - key: amex
+        adapter: oracle_hcm
+        config: {host: egug.fa.us2.oraclecloud.com, site: CX_1}
+
+  - slug: jpmorgan
+    name: JPMorgan Chase
+    sources:
+      - key: jpmorgan
+        adapter: oracle_hcm
+        config: {host: jpmc.fa.oraclecloud.com, site: CX_1001}
+
+  - slug: oracle
+    name: Oracle
+    sources:
+      - key: oracle
+        adapter: oracle_hcm
+        config: {host: eeho.fa.us2.oraclecloud.com, site: CX_45001}
+
+  - slug: dell
+    name: Dell Technologies
+    sources:
+      - key: dell
+        adapter: oracle_hcm
+        config: {host: enterpriseplatform.dell.com, site: CX_1001}
+
+  - slug: kpmg-india
+    name: KPMG India
+    sources:
+      - key: kpmg
+        adapter: oracle_hcm
+        config: {host: ejgk.fa.em2.oraclecloud.com, site: CX_3}
+
+  - slug: honeywell
+    name: Honeywell
+    sources:
+      - key: honeywell
+        adapter: oracle_hcm
+        config: {host: ibqbjb.fa.ocs.oraclecloud.com, site: CX_1}
+
+  # ---------------------------------------------------------------- not supported
+  - {slug: tcs, name: TCS, supported: false, reason: "Akamai bot protection (403)"}
+  - {slug: infosys, name: Infosys, supported: false,
+     reason: "Akamai bot protection (403, including robots.txt)"}
+  - {slug: bharatpe, name: BharatPe, supported: false,
+     reason: "Darwinbox API behind Cloudflare (403)"}
+  - {slug: unacademy, name: Unacademy, supported: false,
+     reason: "Darwinbox API behind Cloudflare (403)"}
+  - {slug: airtel, name: Airtel Digital, supported: false, reason: "Darwinbox behind Akamai"}
+  - {slug: flipkart, name: Flipkart, supported: false,
+     reason: "TurboHire robots.txt disallows all bots except Googlebot"}
+  - {slug: ola, name: Ola, supported: false,
+     reason: "TurboHire robots.txt disallows all bots except Googlebot"}
+  - {slug: ola-electric, name: Ola Electric, supported: false,
+     reason: "TurboHire robots.txt disallows all bots except Googlebot"}
+  - {slug: zomato, name: Zomato (Eternal), supported: false,
+     reason: "No job board; asks for referrals or email"}
+  - {slug: freshworks, name: Freshworks, supported: false,
+     reason: "SmartRecruiters API robots.txt allows only LinkedInBot"}
+  - {slug: bosch, name: Bosch, supported: false,
+     reason: "SmartRecruiters API robots.txt allows only LinkedInBot"}
+  - {slug: servicenow, name: ServiceNow, supported: false,
+     reason: "SmartRecruiters API robots.txt allows only LinkedInBot"}

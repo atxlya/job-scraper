@@ -106,3 +106,26 @@ async def test_google_gone_on_empty_ds0(client, mock):
     mock.get(url).mock(return_value=html("detail_missing"))
     job = RawJob(external_id="1", title="x", url=url)
     assert await GoogleAdapter().fetch_detail(client, {}, job) is GONE
+
+
+async def test_catch_all_query_not_counted_for_completeness(client, mock):
+    route = mock.get(RESULTS).mock(side_effect=by_location)
+    cfg = {
+        "queries": [*CFG["queries"], {"target_level": "INTERN_AND_APPRENTICE", "catch_all": True}]
+    }
+    res = await GoogleAdapter().list_jobs(client, cfg, "full")
+    assert "catch_all" not in str(route.calls.last.request.url)
+    assert res.complete is True  # the catch-all page (US fixture here) is not a coverage query
+    assert res.reported_total == 21
+
+
+async def test_incremental_queries_used_in_incremental(client, mock):
+    route = mock.get(RESULTS).mock(side_effect=by_location)
+    cfg = {
+        **CFG,
+        "incremental_queries": [{"target_level": "INTERN_AND_APPRENTICE", "location": "India"}],
+    }
+    await GoogleAdapter().list_jobs(client, cfg, "incremental")
+    assert route.call_count == 1
+    await GoogleAdapter().list_jobs(client, cfg, "full")
+    assert route.call_count == 3

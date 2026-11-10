@@ -30,7 +30,7 @@ class EightfoldAdapter:
         jobs: dict[str, RawJob] = {}
         start, pages, total = 0, 0, None
         while True:
-            positions, count = await self._page(client, cfg, start)
+            positions, count = await self._page(client, cfg, start, mode)
             total = count if total is None else total
             for p in positions:
                 job = self._to_raw(cfg, p)
@@ -42,12 +42,14 @@ class EightfoldAdapter:
         complete = mode == "full" and start >= (total or 0)
         return ListingResult(jobs=list(jobs.values()), reported_total=total, complete=complete)
 
-    async def _page(self, client, cfg, start) -> tuple[list[dict], int]:
+    async def _page(self, client, cfg, start, mode: Mode) -> tuple[list[dict], int]:
         v2 = cfg.get("api") == "apply_v2"
         path = "/api/apply/v2/jobs" if v2 else "/api/pcsx/search"
         params = {"domain": cfg["domain"], "start": start, "sort_by": "timestamp"}
         params |= {"num": PAGE} if v2 else {"query": "", "location": ""}
         params |= cfg.get("filters") or {}
+        if mode == "incremental":
+            params |= cfg.get("incremental_filters") or {}
         resp = await client.get(f"https://{cfg['host']}{path}", params=params)
         resp.raise_for_status()
         try:

@@ -67,7 +67,12 @@ class GoogleAdapter:
     async def list_jobs(self, client: PoliteClient, cfg: dict, mode: Mode) -> ListingResult:
         jobs: dict[str, RawJob] = {}
         total, fits = 0, True
-        for q in cfg["queries"]:
+        queries = cfg["queries"]
+        if mode == "incremental" and cfg.get("incremental_queries"):
+            queries = cfg["incremental_queries"]  # each page is ~1.2 MB; poll less often
+        for q in queries:
+            catch_all = bool(q.get("catch_all"))  # newest jobs anywhere; not a coverage query
+            q = {k: v for k, v in q.items() if k != "catch_all"}
             params = {"q": "", **q, "sort_by": "date"}
             resp = await client.get(RESULTS, params=params)
             resp.raise_for_status()
@@ -79,8 +84,9 @@ class GoogleAdapter:
             for row in rows:
                 job = _to_raw(row)
                 jobs.setdefault(job.external_id, job)
-            total += count
-            fits = fits and count <= page_size
+            if not catch_all:
+                total += count
+                fits = fits and count <= page_size
         complete = mode == "full" and fits
         return ListingResult(jobs=list(jobs.values()), reported_total=total, complete=complete)
 

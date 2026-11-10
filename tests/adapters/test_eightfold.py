@@ -129,3 +129,14 @@ async def test_apply_v2_detail(client, mock):
     )
     out = await EightfoldAdapter().fetch_detail(client, cfg, job)
     assert out.description_html and out.description_html.startswith("<div")
+
+
+async def test_incremental_filters_only_in_incremental(client, mock):
+    page1 = fx("nvidia_page1")
+    page1["data"]["count"] = 10
+    route = mock.get(SEARCH).mock(return_value=httpx.Response(200, json=page1))
+    cfg = {**CFG, "incremental_filters": {"query": "intern"}}
+    await EightfoldAdapter().list_jobs(client, cfg, "incremental")
+    assert route.calls.last.request.url.params["query"] == "intern"
+    await EightfoldAdapter().list_jobs(client, cfg, "full")
+    assert route.calls.last.request.url.params["query"] == ""
