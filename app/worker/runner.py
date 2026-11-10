@@ -22,7 +22,7 @@ from app.notify.alerts import process_new, refresh_after_analysis
 from app.notify.health import notify_round, record_run
 from app.pipeline.classify import Keywords, classify
 from app.pipeline.derived import refresh_derived
-from app.pipeline.ingest import ingest, job_key, mark_gone
+from app.pipeline.ingest import ingest, job_key, mark_gone, raw_from_job
 
 log = logging.getLogger(__name__)
 RunKind = Literal["incremental", "full", "tracked"]
@@ -44,17 +44,6 @@ class Ctx:
 
 def _now() -> datetime:
     return datetime.now(UTC)
-
-
-def _raw_from_job(job: Job) -> RawJob:
-    return RawJob(
-        external_id=job.external_id,
-        title=job.title,
-        url=job.url,
-        apply_url=job.apply_url,
-        locations=job.locations or [],
-        platform_flags=job.platform_flags or {},
-    )
 
 
 def _dash(ctx: Ctx) -> str | None:
@@ -99,7 +88,7 @@ async def _run_source(ctx: Ctx, source_id: int, mode: RunKind) -> ScrapeRun:
                 select(Job).where(Job.company_id == src.company_id, Job.state == "open")
             ):
                 if source_id in job.source_ids and (job.id in tagged or src.adapter == "google"):
-                    targets.append((job.id, _raw_from_job(job)))
+                    targets.append((job.id, raw_from_job(job)))
 
     status, error, result, gone_ids = "ok", None, None, []
     try:
@@ -193,7 +182,7 @@ async def _run_source(ctx: Ctx, source_id: int, mode: RunKind) -> ScrapeRun:
 def _classify_new(s: Session, kw: Keywords, job_ids: list[int]) -> None:
     for job_id in job_ids:
         job = s.get(Job, job_id)
-        c = classify(_raw_from_job(job), kw)
+        c = classify(raw_from_job(job), kw)
         job.is_internship, job.is_tech = c.is_internship, c.is_tech
         if c.is_internship is False or c.is_tech is False:
             job.analysis_state = "skipped"  # not a tech internship: no Gemini call needed

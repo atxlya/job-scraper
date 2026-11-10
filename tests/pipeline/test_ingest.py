@@ -210,3 +210,31 @@ def test_changed_description_does_not_requeue_analysed_job(session, setup):
     j.analysis_state = "done"
     ingest(session, a, res(raw(desc="<p>New text</p>")), "incremental", T0 + timedelta(days=1))
     assert j.analysis_state == "done"
+
+
+def test_apply_detail_requeues_skipped_analysis(session, setup):
+    from app.pipeline.derived import create_fts  # noqa: PLC0415
+    from app.pipeline.ingest import apply_detail  # noqa: PLC0415
+
+    create_fts(session.get_bind())
+    _, a, _ = setup
+    ingest(session, a, res(raw(desc=None)), "incremental", T0)
+    [j] = jobs(session)
+    j.analysis_state = "skipped"
+    changed = apply_detail(session, j, raw(desc="<p>Build things</p>"), T0 + timedelta(hours=1))
+    assert changed == ["description"]
+    assert j.description_html == "<p>Build things</p>" and j.analysis_state == "pending"
+    assert session.query(JobChange).count() == 1
+
+
+def test_raw_from_job_round_trip(session, setup):
+    from app.pipeline.ingest import raw_from_job  # noqa: PLC0415
+
+    _, a, _ = setup
+    ingest(session, a, res(raw()), "incremental", T0)
+    r = raw_from_job(jobs(session)[0])
+    assert (r.external_id, r.title, r.locations) == (
+        "JR1",
+        "Software Engineer Intern",
+        ["Bengaluru, India"],
+    )

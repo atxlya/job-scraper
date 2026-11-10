@@ -64,6 +64,49 @@ def _merged(raw: RawJob, job: Job) -> RawJob:
     return raw.model_copy(update=update)
 
 
+def _update_fields(session: Session, job: Job, raw: RawJob, now: datetime) -> list[str]:
+    """Copy changed tracked fields onto a stored job and log the change. Returns their names."""
+    merged = _merged(raw, job)
+    changed = [
+        name
+        for field, (col, name) in TRACKED.items()
+        if getattr(merged, field) != getattr(job, col)
+    ]
+    if changed:
+        if not job.description_html and merged.description_html:
+            # Gemini skipped it for lack of text; now there is some to read.
+            if job.analysis_state == "skipped":
+                job.analysis_state = "pending"
+        for field, (col, _) in TRACKED.items():
+            setattr(job, col, getattr(merged, field))
+        job.content_hash = content_hash(merged)
+        session.add(JobChange(job_id=job.id, changed_at=now, fields=changed))
+    return changed
+
+
+def raw_from_job(job: Job) -> RawJob:
+    """What an adapter needs to fetch a stored job's detail page again."""
+    return RawJob(
+        external_id=job.external_id,
+        title=job.title,
+        url=job.url,
+        apply_url=job.apply_url,
+        locations=job.locations or [],
+        platform_flags=job.platform_flags or {},
+    )
+
+
+def apply_detail(session: Session, job: Job, raw: RawJob, now: datetime) -> list[str]:
+    """Store a detail page fetched outside a scrape run (the dashboard's on-demand fetch)."""
+    from app.pipeline.derived import refresh_derived  # noqa: PLC0415 - avoids an import cycle
+
+    changed = _update_fields(session, job, raw, now)
+    if changed:
+        refresh_derived(session, [job.id])
+    session.flush()
+    return changed
+
+
 def ingest(
     session: Session, source: Source, result: ListingResult, mode: str, now: datetime
 ) -> IngestStats:
@@ -96,22 +139,7 @@ def ingest(
             job.state, job.closed_at = "open", None
             stats.reopened_ids.append(job.id)
 
-        merged = _merged(raw, job)
-        new_hash = content_hash(merged)
-        changed = [
-            name
-            for field, (col, name) in TRACKED.items()
-            if getattr(merged, field) != getattr(job, col)
-        ]
-        if changed:
-            if not job.description_html and merged.description_html:
-                # Gemini skipped it for lack of text; now there is some to read.
-                if job.analysis_state == "skipped":
-                    job.analysis_state = "pending"
-            for field, (col, _) in TRACKED.items():
-                setattr(job, col, getattr(merged, field))
-            job.content_hash = new_hash
-            session.add(JobChange(job_id=job.id, changed_at=now, fields=changed))
+        if _update_fields(session, job, raw, now):
             stats.updated_ids.append(job.id)
 
     if mode == "full" and result.complete:

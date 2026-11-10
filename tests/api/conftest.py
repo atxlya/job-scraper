@@ -132,3 +132,40 @@ def seed_job(
     refresh_derived(db, [j.id])
     db.commit()
     return j
+
+
+class FakeApiAdapter:
+    """Adapter "fake-api": each test sets what it returns through the fake_adapter fixture."""
+
+    name = "fake-api"
+    state = None  # set by the fixture
+
+    async def list_jobs(self, client, cfg, mode):
+        FakeApiAdapter.state.calls += 1
+        if isinstance(FakeApiAdapter.state.listing, Exception):
+            raise FakeApiAdapter.state.listing
+        return FakeApiAdapter.state.listing
+
+    async def fetch_detail(self, client, cfg, job):
+        FakeApiAdapter.state.calls += 1
+        d = FakeApiAdapter.state.detail
+        if isinstance(d, Exception):
+            raise d
+        return d if d is not None else job
+
+
+class _FakeState:
+    def __init__(self):
+        self.calls = 0
+        self.detail = None
+        self.listing = None
+
+
+@pytest.fixture
+def fake_adapter():
+    from app.adapters.base import ADAPTERS  # noqa: PLC0415
+
+    FakeApiAdapter.state = _FakeState()
+    ADAPTERS["fake-api"] = FakeApiAdapter
+    yield FakeApiAdapter.state
+    ADAPTERS.pop("fake-api", None)

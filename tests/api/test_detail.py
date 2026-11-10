@@ -139,3 +139,66 @@ def test_tag_body_must_be_json(client, db):
     r = client.put(f"/api/jobs/{j.id}/tag", data={"tag": "liked"})
     assert r.status_code == 422
     assert client.put(f"/api/jobs/{j.id}/tag", json={"tag": "loved"}).status_code == 422
+
+
+# --- description on demand (Task 6) ---------------------------------------------------
+
+import httpx  # noqa: E402
+
+from app.adapters.base import GONE, RawJob  # noqa: E402
+from app.http.client import RobotsDisallowed  # noqa: E402
+
+
+def fetch(client, j):
+    return client.post(f"/api/jobs/{j.id}/description")
+
+
+def test_fetch_description_stores_and_returns(client, db, fake_adapter):
+    j = seed_job(db, description=None, analysis=None)
+    fake_adapter.detail = RawJob(
+        external_id=j.external_id, title=j.title, url=j.url, description_html="<p>Kubernetes</p>"
+    )
+    r = fetch(client, j)
+    assert r.status_code == 200
+    d = r.json()
+    assert d["has_description"] and "Kubernetes" in d["description_html"]
+    assert d["changes"][-1]["fields"] == ["description"]
+    assert client.get("/api/jobs?q=kubernetes").json()["items"][0]["id"] == j.id
+
+
+def test_fetch_description_robots_409(client, db, fake_adapter):
+    j = seed_job(db, description=None)
+    fake_adapter.detail = RobotsDisallowed("https://jobs.example/1")
+    r = fetch(client, j)
+    assert r.status_code == 409 and "robots.txt" in r.json()["detail"]
+
+
+def test_fetch_description_site_down_502_mentions_host(client, db, fake_adapter):
+    j = seed_job(db, description=None)
+    fake_adapter.detail = httpx.ConnectError("[Errno 8] nodename nor servname provided")
+    r = fetch(client, j)
+    assert r.status_code == 502 and "jobs.example" in r.json()["detail"]
+
+
+def test_fetch_description_gone_closes_job(client, db, fake_adapter):
+    j = seed_job(db, description=None)
+    fake_adapter.detail = GONE
+    d = fetch(client, j).json()
+    assert d["closed"] is True and d["has_description"] is False
+
+
+def test_fetch_description_skips_when_present(client, db, fake_adapter):
+    j = seed_job(db, description="<p>already here</p>")
+    assert fetch(client, j).status_code == 200
+    assert fake_adapter.calls == 0
+
+
+def test_fetch_description_no_enabled_source_409(client, db, fake_adapter):
+    from app.core.models import Source  # noqa: PLC0415
+
+    j = seed_job(db, description=None)
+    for src in db.query(Source):
+        src.enabled = False
+    db.commit()
+    r = fetch(client, j)
+    assert r.status_code == 409 and fake_adapter.calls == 0

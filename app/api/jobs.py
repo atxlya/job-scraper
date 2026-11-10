@@ -3,10 +3,12 @@
 from collections import Counter
 from datetime import datetime, timedelta
 from typing import Annotated
+from urllib.parse import urlparse
 
+import httpx
 import nh3
 import pycountry
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import (
     Integer,
     Select,
@@ -24,6 +26,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
+import app.adapters  # noqa: F401  (registers adapters)
+from app.adapters.base import ADAPTERS, GONE, ParseError
 from app.api.deps import get_session, now, require_user
 from app.api.schemas import (
     Change,
@@ -45,10 +49,13 @@ from app.core.models import (
     JobAnalysis,
     JobChange,
     JobUserState,
+    Source,
     TagHistory,
     UTCDateTime,
 )
+from app.http.client import RobotsDisallowed
 from app.pipeline.derived import fts_query
+from app.pipeline.ingest import apply_detail, mark_gone, raw_from_job
 
 router = APIRouter(prefix="/api", dependencies=[Depends(require_user)])
 
@@ -333,3 +340,34 @@ def set_note(job_id: int, body: NoteBody, s: Sess) -> Response:
     us.note = body.note or None
     s.commit()
     return Response(status_code=204)
+
+
+@router.post("/jobs/{job_id}/description")
+async def fetch_description(job_id: int, request: Request, at: Now) -> JobDetail:
+    """Fetch a missing description now (plan D8). Never holds a DB write across the fetch."""
+    sf = request.app.state.session_factory
+    with sf() as s:
+        job = _load(s, job_id)[0]
+        if job.description_html:
+            return job_detail(s, job_id)
+        src = s.scalars(
+            select(Source).where(Source.id.in_(job.source_ids or []), Source.enabled.is_(True))
+        ).first()
+        if src is None or src.adapter not in ADAPTERS:
+            raise HTTPException(409, "This job's source is turned off, so it can't be fetched.")
+        adapter, cfg, raw = ADAPTERS[src.adapter](), dict(src.config), raw_from_job(job)
+        host = urlparse(job.url).hostname or "the site"
+    try:
+        detail = await adapter.fetch_detail(request.app.state.client, cfg, raw)
+    except RobotsDisallowed as e:
+        raise HTTPException(409, "This site's robots.txt doesn't allow fetching the page.") from e
+    except (httpx.HTTPError, ParseError) as e:
+        raise HTTPException(502, f"Couldn't reach {host}. Try again later.") from e
+    with sf() as s:
+        job = s.get(Job, job_id)
+        if detail is GONE:
+            mark_gone(s, job, at)
+        else:
+            apply_detail(s, job, detail, at)
+        s.commit()
+        return job_detail(s, job_id)
