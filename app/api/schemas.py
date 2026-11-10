@@ -95,3 +95,46 @@ class NoteBody(BaseModel):
 
 class MarkSeenBody(BaseModel):
     up_to: datetime
+
+
+class Stats(BaseModel):
+    new_today: int
+    open_tech: int
+    companies: int
+    liked: int
+    applied: int
+    last_applied_at: datetime | None
+
+
+class SourceHealth(BaseModel):
+    key: str
+    company: str
+    adapter: str
+    origin: str
+    enabled: bool
+    status: Literal["ok", "failing", "never_run"]
+    last_success_at: datetime | None
+    last_job_count: int | None
+    last_error: str | None
+    consecutive_failures: int
+
+
+class UrlBody(BaseModel):
+    url: str = Field(max_length=2000)
+
+
+class DetectedOut(BaseModel):
+    adapter: str
+    config: dict
+    key_hint: str
+
+
+class AddCompany(BaseModel):
+    company_name: str = Field(min_length=1, max_length=120)
+    url: str = Field(max_length=2000)
+
+
+class AddResult(BaseModel):
+    key: str
+    jobs_found: int
+    sample_titles: list[str]

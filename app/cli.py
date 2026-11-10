@@ -17,29 +17,15 @@ from pathlib import Path
 
 from sqlalchemy import select
 
-from app.adapters.base import ADAPTERS, ListingResult
+from app.adapters.base import ADAPTERS
 from app.core.models import Company, Source
 from app.core.registry import load_registry, sync_registry
 from app.core.settings import get_settings
-from app.worker.runner import _mismatch, run_all
+from app.sources.checks import evaluate
+from app.worker.runner import run_all
 from app.worker.scheduler import build_ctx
 
 ROOT = Path(__file__).resolve().parents[1]
-MISSING_LIMIT = 0.05
-
-
-def evaluate(result: ListingResult, mode: str) -> list[str]:
-    """Problems that make a live check fail. Empty list means healthy."""
-    problems = []
-    n = len(result.jobs)
-    if n == 0:
-        return ["0 jobs returned"]
-    if mode == "full" and _mismatch(n, result.reported_total):
-        problems.append(f"count mismatch: read {n}, site reports {result.reported_total}")
-    missing = sum(1 for j in result.jobs if not j.title or not j.url)
-    if missing / n > MISSING_LIMIT:
-        problems.append(f"{missing}/{n} jobs missing title or url")
-    return problems
 
 
 async def live_check(only: str | None, mode: str) -> int:

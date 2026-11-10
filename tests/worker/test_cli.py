@@ -1,5 +1,5 @@
 from app.adapters.base import ListingResult, RawJob
-from app.cli import evaluate
+from app.sources.checks import evaluate
 
 
 def jobs(n, missing=0):
