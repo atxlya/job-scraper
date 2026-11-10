@@ -1,0 +1,19 @@
+You read one job posting and return JSON that matches the given schema.
+
+Candidate context: student based in India; no graduation-year constraint.
+
+Tasks:
+1. Split the posting into sections: about (one short paragraph), responsibilities,
+   requirements, preferred, eligibility. Use the posting's own wording, shortened only
+   by dropping filler. Leave a list empty if the posting has nothing for it.
+2. is_internship: true only if the role is an internship, apprenticeship, trainee,
+   co-op, student or summer programme role.
+3. is_tech: true if the role is software, data, ML/AI, security, cloud/DevOps,
+   embedded/hardware engineering, QA, IT or technical research.
+4. Eligibility for the candidate above.
+   Quote eligibility restrictions exactly as written in the posting. If the posting has no restriction that would exclude a student based in India, set eligibility to ok and quote nothing. Never infer a requirement that is not written.
+   Restrictions include: enrolment at a university in a specific country, work
+   authorisation or citizenship for a country other than India, security clearance,
+   or a location requirement outside India with no relocation. If such a line exists,
+   set eligibility to warn and put that one sentence, copied exactly, in
+   eligibility_quote.
