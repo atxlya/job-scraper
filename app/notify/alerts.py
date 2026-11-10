@@ -80,7 +80,13 @@ def _analysis(session: Session, job_id: int) -> JobAnalysis | None:
 def _owed(session: Session, source: Source) -> list[Job]:
     alerted = select(Alert.job_id)
     jobs = session.scalars(
-        select(Job).where(Job.company_id == source.company_id, Job.id.not_in(alerted))
+        select(Job).where(
+            Job.company_id == source.company_id,
+            Job.is_internship.is_(True),
+            Job.is_tech.is_(True),
+            Job.state == "open",
+            Job.id.not_in(alerted),
+        )
     ).all()
     return [j for j in jobs if source.id in j.source_ids and _alertable(j)]
 

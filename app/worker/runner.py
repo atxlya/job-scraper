@@ -99,7 +99,10 @@ async def _run_source(ctx: Ctx, source_id: int, mode: RunKind) -> ScrapeRun:
                 result = result.model_copy(update={"complete": False})
             fresh: list[RawJob] = []
             for raw in result.jobs:
-                if job_key(raw) in known:
+                c = classify(raw, ctx.keywords)
+                if job_key(raw) in known or c.is_internship is False or c.is_tech is False:
+                    # Details only for possible tech internships: a first full sweep would
+                    # otherwise fetch tens of thousands of pages (Accenture alone ~40k).
                     fresh.append(raw)
                     continue
                 try:
@@ -160,9 +163,12 @@ async def _run_source(ctx: Ctx, source_id: int, mode: RunKind) -> ScrapeRun:
             new_ids = []
 
     if run.status != "failed" and mode != "tracked":
-        with ctx.session_factory() as s:
-            await process_new(s, ctx.channel, s.get(Source, source_id), new_ids, _now())
-            s.commit()
+        try:
+            with ctx.session_factory() as s:
+                await process_new(s, ctx.channel, s.get(Source, source_id), new_ids, _now())
+                s.commit()
+        except Exception:  # noqa: BLE001 - owed alerts are retried next run
+            log.exception("%s: alert step failed", source_id)
     return run
 
 
@@ -191,10 +197,13 @@ async def run_all(ctx: Ctx, mode: RunKind, only: str | None = None) -> list[Scra
             return await run_source(ctx, sid, mode)
 
     runs = await asyncio.gather(*(one(sid) for sid in ids))
-    with ctx.session_factory() as s:
-        attached = [s.get(ScrapeRun, r.id) for r in runs]
-        await notify_round(s, ctx.channel, attached, _now())
-        s.commit()
+    try:
+        with ctx.session_factory() as s:
+            attached = [s.get(ScrapeRun, r.id) for r in runs]
+            await notify_round(s, ctx.channel, attached, _now())
+            s.commit()
+    except Exception:  # noqa: BLE001 - health messages must not break the schedule
+        log.exception("health notifications failed")
     return list(runs)
 
 

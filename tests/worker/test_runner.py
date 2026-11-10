@@ -180,3 +180,33 @@ def test_scheduler_jobs_registered(ctx):
     assert str(jobs["full"].trigger.timezone) == "Asia/Kolkata"
     assert "hour='2'" in str(jobs["full"].trigger) and "hour='4'" in str(jobs["tracked"].trigger)
     assert jobs["incremental"].max_instances == 1 and jobs["incremental"].coalesce is True
+
+
+async def test_details_skipped_for_non_candidates(ctx):
+    sid = add_source(
+        ctx,
+        "nc",
+        jobs=[
+            ["1", "Senior Software Engineer"],
+            ["2", "HR Intern"],
+            ["3", "Software Intern"],
+            ["4", "Graduate Programme"],
+        ],
+    )
+    await run_source(ctx, sid, "incremental")
+    assert DETAIL_CALLS["nc"] == 2  # only the intern and the unclear one need details
+    with ctx.session_factory() as s:
+        assert len(s.scalars(select(Job)).all()) == 4  # everything is still stored
+
+
+class BrokenChannel(SlowChannel):
+    async def send(self, html):
+        raise RuntimeError("unexpected")
+
+
+async def test_alert_step_crash_does_not_break_round(ctx):
+    ctx.channel = BrokenChannel()
+    add_source(ctx, "x", jobs=[["1", "Software Intern"]])
+    add_source(ctx, "y", jobs=[["2", "Data Intern"]])
+    runs = await run_all(ctx, "incremental")
+    assert [r.status for r in runs] == ["ok", "ok"]

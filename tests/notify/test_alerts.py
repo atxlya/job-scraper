@@ -286,3 +286,23 @@ async def test_all_sources_failing_sends_one_message(session, tg, channel):
         )
     texts = sent_texts(tg)
     assert len(texts) == 1 and "28 of 28 sources failing" in texts[0]
+
+
+async def test_owed_query_filters_in_sql(session, tg, channel):
+    from sqlalchemy import event
+
+    c, s = make_source(session)
+    for i in range(50):
+        make_job(session, s, f"x{i}", title="Senior Engineer", intern=False)
+    make_job(session, s, "1")
+    statements: list[str] = []
+    event.listen(
+        session.bind,
+        "before_cursor_execute",
+        lambda conn, cur, stmt, params, ctx, many: statements.append(stmt),
+    )
+    await process_new(session, channel, s, [], T0)
+    owed_query = next(q for q in statements if "FROM jobs" in q and "alerts" in q)
+    where = owed_query.split("WHERE", 1)[1]
+    assert "is_internship" in where and "is_tech" in where and "state" in where
+    assert tg.send.call_count == 1
