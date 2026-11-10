@@ -109,10 +109,17 @@ class PoliteClient:
 
     async def _fetch_robots(self, base: str) -> Robots:
         """RFC 9309: 4xx means no rules; 5xx or network failure means stop for now."""
-        try:
-            resp = await self._http.get(f"{base}/robots.txt")
-        except httpx.HTTPError as e:
-            raise RobotsDisallowed(f"robots.txt unreachable for {base}: {e}") from e
+        resp = None
+        for attempt in range(3):
+            try:
+                resp = await self._http.get(f"{base}/robots.txt")
+                break
+            except httpx.HTTPError as e:
+                if attempt == 2:
+                    raise RobotsDisallowed(
+                        f"robots.txt unreachable for {base}: {type(e).__name__} {e}".strip()
+                    ) from e
+                await self._sleep(2.0 * (attempt + 1))
         if resp.status_code >= 500:
             raise RobotsDisallowed(f"robots.txt returned {resp.status_code} for {base}")
         if resp.status_code >= 400 or "text/html" in resp.headers.get("content-type", ""):

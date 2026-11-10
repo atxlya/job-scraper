@@ -153,3 +153,20 @@ async def test_client_uses_longest_match(client):
     route = respx.get("https://a.com/api/pcsx/search").mock(return_value=httpx.Response(200))
     await client.get("https://a.com/api/pcsx/search", params={"domain": "x"})
     assert route.call_count == 1
+
+
+@respx.mock
+async def test_robots_transient_error_retried(client):
+    respx.get("https://a.com/robots.txt").mock(
+        side_effect=[httpx.ReadTimeout(""), httpx.Response(200, text="User-agent: *\n")]
+    )
+    route = respx.get("https://a.com/x").mock(return_value=httpx.Response(200))
+    await client.get("https://a.com/x")
+    assert route.call_count == 1
+
+
+@respx.mock
+async def test_robots_unreachable_message_names_error(client):
+    respx.get("https://a.com/robots.txt").mock(side_effect=httpx.ReadTimeout(""))
+    with pytest.raises(RobotsDisallowed, match="ReadTimeout"):
+        await client.get("https://a.com/x")
