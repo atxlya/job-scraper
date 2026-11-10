@@ -4,6 +4,7 @@ python -m app.cli sync-registry
 python -m app.cli live-check [--source KEY] [--mode incremental|full]
 python -m app.cli run-once --mode incremental|full|tracked [--source KEY]
 python -m app.cli analyze-one --job-id N
+python -m app.cli reindex
 """
 
 import argparse
@@ -124,6 +125,21 @@ def sync() -> int:
     return 0
 
 
+def reindex() -> int:
+    """Fill the search index and degree flags for every job (safe to re-run)."""
+    from app.core.models import Job  # noqa: PLC0415
+    from app.pipeline.derived import refresh_derived  # noqa: PLC0415
+
+    ctx = build_ctx(get_settings())
+    with ctx.session_factory() as s:
+        ids = list(s.scalars(select(Job.id).order_by(Job.id)))
+        for i in range(0, len(ids), 500):
+            refresh_derived(s, ids[i : i + 500])
+            s.commit()
+    print(f"reindexed {len(ids)} jobs")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m app.cli")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -136,7 +152,10 @@ def main(argv: list[str] | None = None) -> int:
     ro.add_argument("--source")
     ao = sub.add_parser("analyze-one")
     ao.add_argument("--job-id", type=int, required=True)
+    sub.add_parser("reindex")
     a = ap.parse_args(argv)
+    if a.cmd == "reindex":
+        return reindex()
     if a.cmd == "sync-registry":
         return sync()
     if a.cmd == "live-check":

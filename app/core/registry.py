@@ -39,7 +39,8 @@ def load_registry(path: str | Path) -> list[CompanySpec]:
 
 
 def sync_registry(session: Session, specs: list[CompanySpec]) -> None:
-    """Upsert companies and sources. Sources missing from the YAML are disabled, not deleted."""
+    """Upsert companies and sources. Sources missing from the YAML are disabled, not deleted,
+    except ones added from the dashboard (origin "dashboard")."""
     wanted: set[str] = set()
     for spec in specs:
         company = session.scalars(select(Company).where(Company.slug == spec.slug)).first()
@@ -57,10 +58,11 @@ def sync_registry(session: Session, specs: list[CompanySpec]) -> None:
                 row = Source(key=s.key, company_id=company.id, adapter=s.adapter)
                 session.add(row)
             row.company_id = company.id
+            row.origin = "registry"
             row.adapter = s.adapter
             row.config = s.config
             row.enabled = s.enabled and spec.supported
     for row in session.scalars(select(Source)):
-        if row.key not in wanted:
+        if row.key not in wanted and row.origin != "dashboard":
             row.enabled = False
     session.flush()

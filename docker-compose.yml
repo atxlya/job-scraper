@@ -14,7 +14,7 @@ services:
   migrate:
     <<: *app
     restart: "no"
-    command: ["sh", "-c", "alembic upgrade head && python -m app.cli sync-registry"]
+    command: ["sh", "-c", "alembic upgrade head && python -m app.cli sync-registry && python -m app.cli reindex"]
 
   worker:
     <<: *app

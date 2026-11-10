@@ -35,6 +35,7 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+extend-exclude = ["docs"]  # keep ruff away from code snippets in markdown
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "ASYNC"]

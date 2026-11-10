@@ -11,6 +11,7 @@ from app.core.db import make_engine, make_session_factory
 from app.core.models import Alert, Base, Company, Job, JobUserState, ScrapeRun, Source
 from app.http.client import PoliteClient
 from app.pipeline.classify import load_keywords
+from app.pipeline.derived import create_fts
 from app.worker.runner import Ctx, run_all, run_source
 from app.worker.scheduler import build_scheduler
 
@@ -58,6 +59,7 @@ class SlowChannel:
 def ctx(tmp_path):
     eng = make_engine(f"sqlite:///{tmp_path / 'jobs.db'}")
     Base.metadata.create_all(eng)
+    create_fts(eng)
     sf = make_session_factory(eng)
     DETAIL_CALLS.clear()
     return Ctx(
@@ -228,3 +230,15 @@ async def test_failed_detail_retried_next_run(ctx):
         assert s.scalars(select(Job)).one().description_html == "<p>Software Intern</p>"
     await run_source(ctx, sid, "incremental")
     assert DETAIL_CALLS["r"] == 2  # once it has a description, it is not fetched again
+
+
+async def test_scraped_jobs_are_searchable_and_degree_flagged(ctx):
+    from sqlalchemy import text  # noqa: PLC0415
+
+    sid = add_source(ctx, "fts", jobs=[["1", "Compiler PhD Intern"]])
+    await run_source(ctx, sid, "incremental")
+    with ctx.session_factory() as s:
+        hits = s.execute(text("SELECT rowid FROM jobs_fts WHERE jobs_fts MATCH '\"compiler\"*'"))
+        job = s.scalars(select(Job)).one()
+        assert [r[0] for r in hits] == [job.id]
+        assert job.degree_only == "PhD"

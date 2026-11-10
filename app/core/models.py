@@ -63,6 +63,7 @@ class Source(Base):
     last_job_count: Mapped[int | None]
     last_warned_at: Mapped[datetime | None]
     warning_active: Mapped[bool] = mapped_column(Boolean, default=False)
+    origin: Mapped[str] = mapped_column(String(20), default="registry", server_default="registry")
 
 
 class Job(Base):
@@ -85,6 +86,7 @@ class Job(Base):
     content_hash: Mapped[str] = mapped_column(String(64))
     is_internship: Mapped[bool | None] = mapped_column(Boolean)
     is_tech: Mapped[bool | None] = mapped_column(Boolean)
+    degree_only: Mapped[str | None] = mapped_column(String(40))  # "PhD", "Master's"… from title
     analysis_state: Mapped[str] = mapped_column(String(20), default="pending")
     state: Mapped[str] = mapped_column(String(10), default="open", index=True)
     missed_sweeps: Mapped[int] = mapped_column(Integer, default=0)

@@ -21,6 +21,7 @@ from app.llm.queue import run_analysis_batch
 from app.notify.alerts import process_new, refresh_after_analysis
 from app.notify.health import notify_round, record_run
 from app.pipeline.classify import Keywords, classify
+from app.pipeline.derived import refresh_derived
 from app.pipeline.ingest import ingest, job_key, mark_gone
 
 log = logging.getLogger(__name__)
@@ -144,6 +145,7 @@ async def _run_source(ctx: Ctx, source_id: int, mode: RunKind) -> ScrapeRun:
                 else:
                     stats = ingest(s, src, result, mode, now)
                     _classify_new(s, ctx.keywords, stats.new_ids)
+                    refresh_derived(s, stats.new_ids + stats.updated_ids)
                     new_ids = stats.new_ids
                     run.jobs_found = stats.seen
                     run.reported_total = result.reported_total
