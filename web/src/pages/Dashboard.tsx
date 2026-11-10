@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router";
 import { api, ApiError } from "../api";
 import { FilterPanel } from "../components/FilterPanel";
 import { Header } from "../components/Header";
+import { JobDetail } from "../components/JobDetail";
 import { JobList } from "../components/JobList";
 import { StatsStrip } from "../components/StatsStrip";
 import { Button } from "../components/ui";
@@ -14,17 +15,15 @@ import type { JobPage } from "../types";
 const PAGE = 50;
 
 type Props = {
-  /** Task 10: the selected job's detail, shown as a third column on wide screens. */
-  detail?: (id: number | null) => ReactNode;
   /** Task 11: health card under the filters. */
   health?: ReactNode;
   /** Task 11: "Add company" dialog. */
   addCompany?: (open: boolean, close: () => void) => ReactNode;
 };
 
-export function Dashboard({ detail, health, addCompany }: Props) {
+export function Dashboard({ health, addCompany }: Props) {
   const [f, set] = useFilters();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const wide = useMedia(WIDE);
   const [showFilters, setShowFilters] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -106,7 +105,24 @@ export function Dashboard({ detail, health, addCompany }: Props) {
               onClear={() => set({ ...DEFAULTS, view: f.view })}
             />
           </div>
-          {wide && detail && <div className="min-w-0 flex-1 lg:sticky lg:top-4">{detail(selected)}</div>}
+          {wide && (
+            <div className="min-w-0 flex-1 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+              {selected ? (
+                <JobDetail
+                  id={selected}
+                  onClose={() => {
+                    const p = new URLSearchParams(params);
+                    p.delete("job");
+                    setParams(p, { replace: true });
+                  }}
+                />
+              ) : (
+                <div className="rounded-xl border border-dashed border-line px-6 py-16 text-center text-muted">
+                  Pick a job to see its details here.
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
       {addCompany?.(adding, () => setAdding(false))}

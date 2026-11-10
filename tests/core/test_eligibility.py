@@ -8,8 +8,8 @@ from app.core.models import Job, JobAnalysis
 T0 = datetime(2026, 11, 10, tzinfo=UTC)
 
 
-def job(title="Software Intern", state="pending"):
-    return Job(title=title, analysis_state=state)
+def job(title="Software Intern", state="pending", intern=True, tech=True):
+    return Job(title=title, analysis_state=state, is_internship=intern, is_tech=tech)
 
 
 def analysis(e, quote=None):
@@ -36,6 +36,10 @@ def analysis(e, quote=None):
             Eligibility("warn", "PhD", None, False, False),
         ),
         (job("MBA Intern"), None, Eligibility("warn", "MBA", None, True, False)),
+        # Gemini only reads possible tech internships, so nothing is coming for these.
+        (job(intern=False), None, Eligibility("pending", None, None, False, False)),
+        (job(tech=False), None, Eligibility("pending", None, None, False, False)),
+        (job(intern=None, tech=None), None, Eligibility("pending", None, None, True, False)),
     ],
 )
 def test_eligibility(j, a, expected):

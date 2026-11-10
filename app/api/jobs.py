@@ -260,6 +260,7 @@ def job_detail(s: Session, job_id: int) -> JobDetail:
         quote=e.quote,
         checking=e.checking,
         unclear=e.unclear,
+        tech_internship=job.is_tech is True and job.is_internship is True,
         sections=sections,
         description_html=sanitise(job.description_html)
         if sections is None and job.description_html

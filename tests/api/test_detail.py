@@ -43,6 +43,9 @@ def test_detail_fields(client, db):
     assert d["eligibility"] == "warn" and d["degree"] == "PhD" and d["quote"] == "US only"
     assert d["url"] == f"https://jobs.example/{j.id}" and d["external_id"] == j.external_id
     assert d["checking"] is False and d["unclear"] is False and d["note"] is None
+    assert d["tech_internship"] is True
+    other = detail(client, seed_job(db, title="Payments Associate", intern=False))
+    assert other["tech_internship"] is False and other["checking"] is False
 
 
 def test_no_description(client, db):

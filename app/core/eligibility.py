@@ -17,9 +17,10 @@ class Eligibility(NamedTuple):
 def eligibility(job: Job, analysis: JobAnalysis | None) -> Eligibility:
     degree = degree_only(job.title)
     if analysis is None:
-        return Eligibility(
-            "warn" if degree else "pending", degree, None, job.analysis_state == "pending", False
-        )
+        # Gemini only reads jobs that may be tech internships (app/llm/queue.py next_jobs).
+        may_be_candidate = job.is_internship is not False and job.is_tech is not False
+        checking = job.analysis_state == "pending" and may_be_candidate
+        return Eligibility("warn" if degree else "pending", degree, None, checking, False)
     if analysis.eligibility == "warn" and analysis.eligibility_quote:
         return Eligibility("warn", degree, analysis.eligibility_quote, False, False)
     if analysis.eligibility == "ok":
