@@ -1,11 +1,12 @@
-"""Job list, filters and (Task 5+) job detail and tagging."""
+"""Job list, filters, job detail, tags, notes and "seen"."""
 
 from collections import Counter
 from datetime import datetime, timedelta
 from typing import Annotated
 
+import nh3
 import pycountry
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import (
     Integer,
     Select,
@@ -14,17 +15,39 @@ from sqlalchemy import (
     column,
     false,
     func,
+    literal,
     or_,
     select,
     text,
     type_coerce,
 )
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_session, now, require_user
-from app.api.schemas import FilterOptions, JobCard, JobFilters, JobPage, Option
+from app.api.schemas import (
+    Change,
+    FilterOptions,
+    JobCard,
+    JobDetail,
+    JobFilters,
+    JobPage,
+    MarkSeenBody,
+    NoteBody,
+    Option,
+    TagBody,
+    TagEvent,
+)
 from app.core.eligibility import eligibility
-from app.core.models import Company, Job, JobAnalysis, JobUserState, UTCDateTime
+from app.core.models import (
+    Company,
+    Job,
+    JobAnalysis,
+    JobChange,
+    JobUserState,
+    TagHistory,
+    UTCDateTime,
+)
 from app.pipeline.derived import fts_query
 
 router = APIRouter(prefix="/api", dependencies=[Depends(require_user)])
@@ -174,3 +197,139 @@ def filter_options(s: Sess, view: Annotated[str, Query(pattern="^(tech|all)$")] 
             for code, n in sorted(countries.items(), key=lambda x: (-x[1], x[0]))
         ],
     )
+
+
+# --- detail -----------------------------------------------------------------------------
+
+ALLOWED_TAGS = {
+    "p", "br", "ul", "ol", "li", "b", "strong", "i", "em", "h2", "h3", "h4", "a",
+    "table", "tr", "td", "th", "thead", "tbody",
+}  # fmt: skip
+
+
+def sanitise(html: str) -> str:
+    """Posting HTML is third-party: keep structure, drop scripts, handlers and odd links."""
+    return nh3.clean(
+        html,
+        tags=ALLOWED_TAGS,
+        attributes={"a": {"href"}},
+        url_schemes={"http", "https", "mailto"},
+        link_rel="noopener noreferrer nofollow",
+    )
+
+
+def _load(s: Session, job_id: int):
+    row = s.execute(
+        select(Job, Company, JobAnalysis, JobUserState)
+        .join(Company, Company.id == Job.company_id)
+        .outerjoin(JobAnalysis, JobAnalysis.job_id == Job.id)
+        .outerjoin(JobUserState, JobUserState.job_id == Job.id)
+        .where(Job.id == job_id)
+    ).first()
+    if row is None:
+        raise HTTPException(404, "Job not found")
+    return row
+
+
+def job_detail(s: Session, job_id: int) -> JobDetail:
+    job, company, analysis, us = _load(s, job_id)
+    e = eligibility(job, analysis)
+    sections = analysis.sections if analysis and any(analysis.sections.values()) else None
+    changes = s.scalars(
+        select(JobChange).where(JobChange.job_id == job_id).order_by(JobChange.changed_at)
+    )
+    history = s.scalars(
+        select(TagHistory).where(TagHistory.job_id == job_id).order_by(TagHistory.id)
+    )
+    return JobDetail(
+        **card(job, company, analysis, us).model_dump(),
+        external_id=job.external_id,
+        locations=job.locations or [],
+        employment_type=job.employment_type,
+        remote_type=job.remote_type,
+        url=job.url,
+        apply_url=job.apply_url,
+        degree=e.degree,
+        quote=e.quote,
+        checking=e.checking,
+        unclear=e.unclear,
+        sections=sections,
+        description_html=sanitise(job.description_html)
+        if sections is None and job.description_html
+        else None,
+        has_description=bool(job.description_html),
+        note=us.note if us else None,
+        changes=[Change(at=c.changed_at, fields=c.fields) for c in changes],
+        tag_history=[
+            TagEvent(
+                at=h.at, from_tag=h.from_tag, to_tag=h.to_tag, event_date=h.event_date, note=h.note
+            )
+            for h in history
+        ],
+    )
+
+
+def _user_state(s: Session, job_id: int) -> JobUserState:
+    _load(s, job_id)  # 404 for unknown jobs
+    us = s.get(JobUserState, job_id)
+    if us is None:
+        us = JobUserState(job_id=job_id)
+        s.add(us)
+    return us
+
+
+@router.post("/jobs/mark-seen")
+def mark_all_seen(body: MarkSeenBody, s: Sess, at: Now) -> dict:
+    """Marks jobs first seen up to `up_to` (when the list was loaded), sparing later ones (D7)."""
+    stmt = sqlite_insert(JobUserState).from_select(
+        ["job_id", "seen_at"],
+        select(Job.id, literal(at, UTCDateTime)).where(Job.first_seen_at <= body.up_to),
+    )
+    stmt = stmt.on_conflict_do_update(
+        index_elements=["job_id"],
+        set_={"seen_at": stmt.excluded.seen_at},
+        where=JobUserState.seen_at.is_(None),
+    )
+    marked = s.execute(stmt).rowcount
+    s.commit()
+    return {"marked": marked}
+
+
+@router.get("/jobs/{job_id}")
+def get_job(job_id: int, s: Sess) -> JobDetail:
+    return job_detail(s, job_id)
+
+
+@router.post("/jobs/{job_id}/seen", status_code=204)
+def mark_seen(job_id: int, s: Sess, at: Now) -> Response:
+    us = _user_state(s, job_id)
+    us.seen_at = us.seen_at or at
+    s.commit()
+    return Response(status_code=204)
+
+
+@router.put("/jobs/{job_id}/tag")
+def set_tag(job_id: int, body: TagBody, s: Sess, at: Now) -> JobDetail:
+    us = _user_state(s, job_id)
+    if us.tag != body.tag:
+        s.add(
+            TagHistory(
+                job_id=job_id,
+                from_tag=us.tag,
+                to_tag=body.tag,
+                at=at,
+                event_date=body.event_date,
+                note=body.note,
+            )
+        )
+        us.tag = body.tag
+    s.commit()
+    return job_detail(s, job_id)
+
+
+@router.put("/jobs/{job_id}/note", status_code=204)
+def set_note(job_id: int, body: NoteBody, s: Sess) -> Response:
+    us = _user_state(s, job_id)
+    us.note = body.note or None
+    s.commit()
+    return Response(status_code=204)

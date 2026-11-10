@@ -1,6 +1,6 @@
 """Request and response shapes for the dashboard API (mirrored in web/src/types.ts)."""
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -49,3 +49,49 @@ class Option(BaseModel):
 class FilterOptions(BaseModel):
     companies: list[Option]
     countries: list[Option]
+
+
+class Change(BaseModel):
+    at: datetime
+    fields: list[str]
+
+
+class TagEvent(BaseModel):
+    at: datetime
+    from_tag: str | None
+    to_tag: str | None
+    event_date: date | None
+    note: str | None
+
+
+class JobDetail(JobCard):
+    external_id: str
+    locations: list[str]
+    employment_type: str | None
+    remote_type: str | None
+    url: str
+    apply_url: str | None
+    degree: str | None
+    quote: str | None
+    checking: bool
+    unclear: bool
+    sections: dict | None
+    description_html: str | None  # sanitised; only when there are no sections
+    has_description: bool
+    note: str | None
+    changes: list[Change]  # oldest first
+    tag_history: list[TagEvent]  # oldest first
+
+
+class TagBody(BaseModel):
+    tag: Tag | None
+    event_date: date | None = None
+    note: str | None = Field(None, max_length=2000)
+
+
+class NoteBody(BaseModel):
+    note: str = Field(max_length=5000)
+
+
+class MarkSeenBody(BaseModel):
+    up_to: datetime
