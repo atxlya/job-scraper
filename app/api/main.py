@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request
 from sqlalchemy import func, select, text
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.api import auth
+from app.api import auth, jobs
 from app.api.auth import LoginThrottle
 from app.core.db import make_engine, make_session_factory
 from app.core.models import ScrapeRun
@@ -43,6 +43,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.include_router(auth.router)
     app.include_router(auth.private)
+    app.include_router(jobs.router)
 
     @app.get("/healthz")
     def healthz(request: Request) -> dict:
