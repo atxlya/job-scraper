@@ -45,7 +45,8 @@ def content_hash(raw: RawJob) -> str:
     return hashlib.sha256("\x1f".join(parts).encode()).hexdigest()
 
 
-def _key(raw: RawJob) -> str:
+def job_key(raw: RawJob) -> str:
+    """The unique key a job is stored under for its company."""
     if raw.external_id:
         return raw.external_id
     if raw.url:
@@ -71,7 +72,7 @@ def ingest(
     seen_ids: set[int] = set()
 
     for raw in result.jobs:
-        key = _key(raw)
+        key = job_key(raw)
         job = session.scalars(
             select(Job).where(Job.company_id == source.company_id, Job.external_id == key)
         ).one_or_none()

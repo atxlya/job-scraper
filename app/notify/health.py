@@ -94,20 +94,26 @@ async def notify_round(
         return  # per-source warnings would only repeat the same news
 
     today = now.astimezone(IST).date()
+    outbox: list[tuple[Source, str, bool]] = []  # (source, text, is_recovery)
     for run in runs:
         source = session.get(Source, run.source_id)
         if source is None:
             continue
         if run.status == "ok" and source.warning_active:
-            if await _send(channel, f"✅ {source.key} recovered"):
-                source.warning_active = False
+            outbox.append((source, f"✅ {source.key} recovered", True))
             continue
         problem = _problem(session, source, run)
         if problem is None:
             continue
         if source.last_warned_at and source.last_warned_at.astimezone(IST).date() == today:
             continue
-        if await _send(channel, problem):
-            source.last_warned_at = now
-            source.warning_active = True
+        outbox.append((source, problem, False))
+    results = [await _send(channel, text) for _, text, _ in outbox]
+    for (source, _, recovery), ok in zip(outbox, results, strict=True):
+        if not ok:
+            continue
+        if recovery:
+            source.warning_active = False
+        else:
+            source.last_warned_at, source.warning_active = now, True
     session.flush()

@@ -51,20 +51,22 @@ class Pacer:
         if self._pause_until and now < self._pause_until:
             await self._sleep((self._pause_until - now).total_seconds())
             now = self._clock()
+        while self._recent and now - self._recent[0] >= timedelta(seconds=60):
+            self._recent.popleft()
+        if len(self._recent) >= self.rpm:
+            wait = (self._recent[0] + timedelta(seconds=60) - now).total_seconds()
+            await self._sleep(wait)
+            now = self._clock()
+            self._recent.popleft()
+        # No awaits below: the usage row is read, checked and committed in one go.
         with self._sf() as s:
             row = self._usage(s, self._day(now))
             if row.requests >= self._cap(s, row):
+                s.commit()
                 return False
-            while self._recent and now - self._recent[0] >= timedelta(seconds=60):
-                self._recent.popleft()
-            if len(self._recent) >= self.rpm:
-                wait = (self._recent[0] + timedelta(seconds=60) - now).total_seconds()
-                await self._sleep(wait)
-                now = self._clock()
-                self._recent.popleft()
-            self._recent.append(now)
             row.requests += 1
             s.commit()
+        self._recent.append(now)
         return True
 
     def on_rate_limited(self) -> None:

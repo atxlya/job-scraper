@@ -141,3 +141,21 @@ async def test_unexpected_shape_raises_parse_error(client, mock):
     )
     with pytest.raises(ParseError):
         await WorkdayAdapter().list_jobs(client, CFG, "full")
+
+
+async def test_incomplete_postings_skipped(client, mock):
+    page = fx("visa_page1")
+    # Shape seen live on Accenture: some postings carry only bulletFields.
+    page["jobPostings"][0] = {"bulletFields": ["R00351141", "Bratislava"]}
+    page["jobPostings"][1] = {"bulletFields": ["R00358078", "Amsterdam"]}
+    mock.post(LIST_URL).mock(return_value=httpx.Response(200, json=page))
+    res = await WorkdayAdapter().list_jobs(client, CFG, "incremental")
+    assert len(res.jobs) == len(page["jobPostings"]) - 2
+
+
+async def test_all_postings_incomplete_is_parse_error(client, mock):
+    page = fx("visa_page1")
+    page["jobPostings"] = [{"bulletFields": ["X"]} for _ in page["jobPostings"]]
+    mock.post(LIST_URL).mock(return_value=httpx.Response(200, json=page))
+    with pytest.raises(ParseError):
+        await WorkdayAdapter().list_jobs(client, CFG, "incremental")

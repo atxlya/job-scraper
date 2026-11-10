@@ -114,18 +114,20 @@ async def process_new(
     owed = _owed(session, source)
     if not owed:
         return
+    sent: list[tuple[int, int, bool]] = []  # (job_id, message_id, grouped)
     try:
         if len(owed) > BURST:
             message_id = await channel.send(format_group([(j, company) for j in owed]))
-            for j in owed:
-                session.add(Alert(job_id=j.id, message_id=message_id, grouped=True, sent_at=now))
+            sent = [(j.id, message_id, True) for j in owed]
         else:
             for j in owed:
                 message_id = await channel.send(format_alert(j, company, _analysis(session, j.id)))
-                session.add(Alert(job_id=j.id, message_id=message_id, grouped=False, sent_at=now))
-                session.flush()
+                sent.append((j.id, message_id, False))
     except TelegramError as e:
         log.warning("telegram send failed for %s: %s (will retry)", source.key, e)
+    # Written only after all sends: never hold a database write across a network wait.
+    for job_id, message_id, grouped in sent:
+        session.add(Alert(job_id=job_id, message_id=message_id, grouped=grouped, sent_at=now))
     session.flush()
 
 

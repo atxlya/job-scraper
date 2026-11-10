@@ -48,13 +48,13 @@ class WorkdayAdapter:
     async def _pages(self, client, cfg, applied, search, max_pages, first=None):
         data = first or await self._post(client, cfg, applied, search, 0)
         total = int(data["total"])  # only page 1 carries the real total
-        jobs = [self._to_raw(cfg, p) for p in data["jobPostings"]]
+        jobs = self._postings(cfg, data)
         offset, pages = PAGE, 1
         while offset < total and (max_pages is None or pages < max_pages):
             data = await self._post(client, cfg, applied, search, offset)
             if not data["jobPostings"]:
                 break
-            jobs.extend(self._to_raw(cfg, p) for p in data["jobPostings"])
+            jobs.extend(self._postings(cfg, data))
             offset += PAGE
             pages += 1
         unique = list({j.external_id: j for j in jobs}.values())  # listings shift between pages
@@ -73,10 +73,17 @@ class WorkdayAdapter:
             raise ParseError(f"workday {cfg['tenant']}: unexpected shape")
         return data
 
+    def _postings(self, cfg: dict, data: dict) -> list[RawJob]:
+        """Workday sometimes lists postings with only bulletFields (no title or link).
+        Those are skipped; a page where every posting is like that is a format change."""
+        postings = data["jobPostings"]
+        usable = [p for p in postings if p.get("externalPath") and p.get("title")]
+        if postings and not usable:
+            raise ParseError(f"workday {cfg['tenant']}: no posting has a path/title")
+        return [self._to_raw(cfg, p) for p in usable]
+
     def _to_raw(self, cfg: dict, p: dict) -> RawJob:
-        path = p.get("externalPath")
-        if not path or not p.get("title"):
-            raise ParseError(f"workday {cfg['tenant']}: posting without path/title")
+        path = p["externalPath"]
         bullets = p.get("bulletFields") or []
         locations = [p["locationsText"]] if p.get("locationsText") else []
         return RawJob(
