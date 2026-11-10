@@ -1,0 +1,98 @@
+# Title keywords for the rule classifier (app/pipeline/classify.py).
+# Each entry is a regex fragment matched on word boundaries, case-insensitive,
+# except the *_case_sensitive lists. Edit freely; no code change needed.
+
+internship:
+  - interns?
+  - internships?
+  - trainees?
+  - apprentice(ship)?s?
+  - co-?op
+  - summer (analyst|associate|intern)s?
+  - industrial placement
+  - placement year
+  - students?
+  - working student
+  - werkstudent
+
+# Words that look like "intern" but are not.
+not_internship:
+  - internal
+  - international
+  - internist
+
+# Unclear on their own: send to Gemini instead of guessing.
+maybe_internship:
+  - graduate
+  - grad
+  - programme
+  - program
+  - early careers?
+  - entry[- ]level
+  - freshers?
+  - campus
+  - university
+
+tech:
+  - software
+  - developers?
+  - engineer(ing)?
+  - data
+  - machine learning
+  - ml
+  - ai
+  - artificial intelligence
+  - deep learning
+  - research(er)?
+  - cyber
+  - security
+  - cloud
+  - devops
+  - sre
+  - site reliability
+  - firmware
+  - embedded
+  - gpu
+  - cuda
+  - technology
+  - tech
+  - compiler
+  - verification
+  - silicon
+  - hardware
+  - asic
+  - systems?
+  - network(ing)?
+  - backend
+  - frontend
+  - full[- ]?stack
+  - qa
+  - test(ing)?
+  - automation
+  - platform
+  - infrastructure
+  - computer science
+  - programmer
+  - analytics
+
+tech_case_sensitive:
+  - IT
+
+non_tech:
+  - hr
+  - human resources
+  - finance
+  - financial
+  - accounting
+  - accountant
+  - marketing
+  - sales
+  - legal
+  - operations
+  - recruit(ing|er|ment)
+  - talent
+  - communications
+  - audit
+  - tax
+  - procurement
+  - facilities
