@@ -38,6 +38,7 @@ class JobPage(BaseModel):
     total: int
     items: list[JobCard]
     loaded_at: datetime
+    max_id: int  # newest committed job when the list loaded; "Mark all as seen" stops here (D7)
 
 
 class Option(BaseModel):
@@ -95,7 +96,10 @@ class NoteBody(BaseModel):
 
 
 class MarkSeenBody(BaseModel):
-    up_to: datetime
+    # A job number, not a time: the worker stamps first_seen_at before it commits, so a
+    # time cut-off could mark jobs that weren't on screen yet. SQLite has one writer, so
+    # anything committed after the list loaded has a larger id.
+    up_to_id: int = Field(ge=0)
 
 
 class Stats(BaseModel):

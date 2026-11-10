@@ -21,6 +21,7 @@ export interface JobPage {
   total: number;
   items: JobCard[];
   loaded_at: string;
+  max_id: number;
 }
 
 export interface Option {

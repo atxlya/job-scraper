@@ -6,8 +6,9 @@ What was built, what was checked, and where the build differed from the [plan](s
 
 | Check | Result |
 |---|---|
-| Backend tests (`uv run pytest`) | 290 passing |
-| Web tests (`cd web && npm run check`) | 38 passing; type-check clean |
+| Backend tests (`uv run pytest`) | 295 passing |
+| Web tests (`cd web && npm run check`) | 39 passing; type-check clean |
+| Independent review of the whole branch | "With fixes": four fixed (below), the rest listed under "Left for later" |
 | Real data, on a copy of `data/jobs.db` | Login, filters, search, job detail, Like/unlike, on-demand description (Accenture, fetched live), "Add company" detection, sources page, Mark all as seen (1,356 marked), phone and laptop widths, light and dark |
 | Speed on 1,359 jobs | Every API call under 25 ms |
 | Docker image | Builds with the dashboard inside (628 MB, was 555 MB) |
@@ -44,6 +45,18 @@ Each line gives the change from the plan, why, and what it costs if wrong. The p
 - **The sources page hides old errors on healthy sources.** The worker keeps the last error after a later success; JPMorgan showed its robots.txt timeout next to "OK".
 - **The theme is one shared setting**, applied on every page, so the login page follows your system theme too.
 
+## Fixed after the review
+- **A down site said "robots.txt doesn't allow fetching".** An unreachable robots.txt now raises its own error, and the job page says "Couldn't reach {site}".
+- **An unexpected page from a site could crash the description fetch.** It now shows "Couldn't read the page" instead.
+- **A note typed in the last 0.8 seconds before switching jobs was lost.** It's now saved when you leave.
+- **"Mark all as seen" could mark jobs that arrived while you were reading.** The worker stamps a job's time before it saves, so a time cut-off can miss new jobs. It now marks up to the newest job number the list had when it loaded.
+
 ## Left for later (minor)
+- The API docs (`/docs`, `/openapi.json`) open without login. They show the API's shape, not your data. Every `/api` route is locked, router by router, rather than locked by default.
+- Logging out ends the session only in that browser. Changing the password doesn't sign out other devices.
+- "Add company": pressing save twice at once gives an error on the second, and the same careers site added under two names is scraped twice.
+- `docker compose up` rebuilds the search index every time. That's quick now, slower at about 40,000 jobs.
+- Links inside descriptions open in the same tab, and relative links point at the dashboard.
+- Fetching a description from a slow site can take a minute or two before it gives up.
 - `/api/filters` counts companies and countries in Python. That's fine at 1,359 jobs (16 ms), but it should be re-measured after the first full Accenture sweep.
 - The browser preview tool couldn't use this repo's launch config (it looks in a different folder), so checks ran against a server started by hand.

@@ -1,5 +1,3 @@
-from datetime import UTC, datetime
-
 from app.api.deps import now
 from app.core.models import JobChange
 
@@ -115,17 +113,29 @@ def test_mark_all_seen_spares_jobs_after_up_to(client, app, db):
     seed_job(db, first_seen=T0 - HOUR, seen=True)  # already seen: not counted again
     page = client.get("/api/jobs").json()
     late = seed_job(db, first_seen=T0 + HOUR)  # arrives while reading
-    r = client.post("/api/jobs/mark-seen", json={"up_to": page["loaded_at"]})
+    r = client.post("/api/jobs/mark-seen", json={"up_to_id": page["max_id"]})
     assert r.json() == {"marked": 1}
     new = {j["id"]: j["is_new"] for j in client.get("/api/jobs").json()["items"]}
     assert new[old.id] is False and new[late.id] is True
 
 
-def test_mark_all_seen_exact_boundary(client, db):
-    j = seed_job(db, first_seen=datetime(2026, 11, 10, 8, 0, 0, 500000, tzinfo=UTC))
-    r = client.post("/api/jobs/mark-seen", json={"up_to": "2026-11-10T08:00:00.500000Z"})
-    assert r.json() == {"marked": 1}
-    assert client.get("/api/jobs").json()["items"][0]["id"] == j.id
+def test_mark_all_seen_spares_jobs_committed_after_load(client, app, db):
+    """The worker stamps first_seen_at before its commit, so a job can be committed after
+    the list loaded with a first_seen_at from before it. It was never on screen: keep it new."""
+    app.dependency_overrides[now] = lambda: T0 + 30 * MIN
+    seed_job(db, first_seen=T0)
+    page = client.get("/api/jobs").json()
+    unseen = seed_job(db, first_seen=T0 + 10 * MIN)  # stamped before load, committed after
+    client.post("/api/jobs/mark-seen", json={"up_to_id": page["max_id"]})
+    new = {j["id"]: j["is_new"] for j in client.get("/api/jobs").json()["items"]}
+    assert new[unseen.id] is True
+
+
+def test_max_id_is_the_newest_job_even_outside_the_filter(client, db):
+    a = seed_job(db)
+    b = seed_job(db, title="HR Intern", tech=False)
+    page = client.get("/api/jobs").json()
+    assert [i["id"] for i in page["items"]] == [a.id] and page["max_id"] == b.id
 
 
 def test_unknown_job_404(client):

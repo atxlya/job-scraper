@@ -41,7 +41,8 @@ export function Dashboard() {
     mutationFn: () =>
       api<{ marked: number }>("/api/jobs/mark-seen", {
         method: "POST",
-        json: { up_to: jobs.data?.pages[0]?.loaded_at ?? new Date().toISOString() },
+        // Only jobs up to the newest one when the list loaded (plan D7).
+        json: { up_to_id: jobs.data?.pages[0]?.max_id ?? 0 },
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["jobs"] });

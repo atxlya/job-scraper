@@ -178,7 +178,8 @@ def list_jobs(
     stmt = _filtered(f, at)
     total = s.scalar(select(func.count()).select_from(stmt.order_by(None).subquery()))
     rows = s.execute(stmt.order_by(_newest().desc(), Job.id.desc()).offset(offset).limit(limit))
-    return JobPage(total=total or 0, items=[card(*r) for r in rows], loaded_at=at)
+    max_id = s.scalar(select(func.max(Job.id))) or 0
+    return JobPage(total=total or 0, items=[card(*r) for r in rows], loaded_at=at, max_id=max_id)
 
 
 def _country_name(code: str) -> str:
@@ -290,10 +291,10 @@ def _user_state(s: Session, job_id: int) -> JobUserState:
 
 @router.post("/jobs/mark-seen")
 def mark_all_seen(body: MarkSeenBody, s: Sess, at: Now) -> dict:
-    """Marks jobs first seen up to `up_to` (when the list was loaded), sparing later ones (D7)."""
+    """Marks every job up to the list's max_id as seen, sparing ones that came later (D7)."""
     stmt = sqlite_insert(JobUserState).from_select(
         ["job_id", "seen_at"],
-        select(Job.id, literal(at, UTCDateTime)).where(Job.first_seen_at <= body.up_to),
+        select(Job.id, literal(at, UTCDateTime)).where(Job.id <= body.up_to_id),
     )
     stmt = stmt.on_conflict_do_update(
         index_elements=["job_id"],
