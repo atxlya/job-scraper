@@ -1,0 +1,43 @@
+# Same file on the Mac and the Pi:  docker compose up -d --build
+x-app: &app
+  build: .
+  image: job-scraper:local
+  env_file:
+    - path: .env
+      required: false   # without it: no alerts, no Gemini (see RUNBOOK)
+  restart: unless-stopped
+  volumes:
+    - ./data:/app/data
+    - ./backups:/app/backups
+
+services:
+  migrate:
+    <<: *app
+    restart: "no"
+    command: ["sh", "-c", "alembic upgrade head && python -m app.cli sync-registry"]
+
+  worker:
+    <<: *app
+    command: ["python", "-m", "app.worker.scheduler"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+
+  api:
+    <<: *app
+    command: ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports: ["8000:8000"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
+  backup:
+    <<: *app
+    command: ["python", "scripts/backup.py", "/app/data/jobs.db", "/app/backups",
+              "--loop", "--at", "03:00"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
