@@ -88,6 +88,7 @@ class Job(Base):
     analysis_state: Mapped[str] = mapped_column(String(20), default="pending")
     state: Mapped[str] = mapped_column(String(10), default="open", index=True)
     missed_sweeps: Mapped[int] = mapped_column(Integer, default=0)
+    missed_by_source: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     first_seen_at: Mapped[datetime] = mapped_column(index=True)
     last_seen_at: Mapped[datetime]
     closed_at: Mapped[datetime | None]
