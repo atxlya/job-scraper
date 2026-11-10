@@ -1,0 +1,78 @@
+VMware 
+TCS
+Infosys
+Wipro
+HCLTech
+Tech Mahindra
+LTIMindtree
+Cognizant
+Accenture
+Capgemini
+Deloitte
+PwC
+EY
+KPMG
+Zoho
+Freshworks
+Razorpay
+PhonePe
+Paytm 
+Flipkart
+Myntra
+Meesho
+Swiggy
+Zomato
+Ola
+Ola Electric
+CRED
+Groww
+Zerodha
+BharatPe
+ShareChat
+InMobi
+BrowserStack
+Unacademy
+Urban Company
+Jio Platforms
+Airtel Digital
+Reliance Industries (Digital)
+Tata Elxsi
+DRDO
+ISRO
+CDAC
+BARC
+Philips
+Honeywell
+Bosch
+Wells Fargo
+Siemens 
+Deutsche Bank 
+HSBC
+Barclays
+Mastercard
+Visa
+American Express
+Morgan Stanley
+Goldman Sachs
+JPMorgan Chase
+vPayPal 
+Uber 
+Atlassian
+ServiceNow
+Samsung R&D Institute India
+AMD
+Dell Technologies
+SAP
+Salesforce
+Adobe
+Cisco
+Oracle
+IBM
+Qualcomm
+Intel
+NVIDIA 
+Meta 
+Apple 
+Amazon
+Google
+Microsoft 
