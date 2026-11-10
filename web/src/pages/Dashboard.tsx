@@ -1,8 +1,10 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { type ReactNode, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { useSearchParams } from "react-router";
 import { api, ApiError } from "../api";
+import { AddCompanyDialog } from "../components/AddCompanyDialog";
 import { FilterPanel } from "../components/FilterPanel";
+import { HealthPanel } from "../components/HealthPanel";
 import { Header } from "../components/Header";
 import { JobDetail } from "../components/JobDetail";
 import { JobList } from "../components/JobList";
@@ -14,14 +16,7 @@ import type { JobPage } from "../types";
 
 const PAGE = 50;
 
-type Props = {
-  /** Task 11: health card under the filters. */
-  health?: ReactNode;
-  /** Task 11: "Add company" dialog. */
-  addCompany?: (open: boolean, close: () => void) => ReactNode;
-};
-
-export function Dashboard({ health, addCompany }: Props) {
+export function Dashboard() {
   const [f, set] = useFilters();
   const [params, setParams] = useSearchParams();
   const wide = useMedia(WIDE);
@@ -74,7 +69,7 @@ export function Dashboard({ health, addCompany }: Props) {
         onSearch={onSearch}
         onMarkAllSeen={() => markSeen.mutate()}
         markingSeen={markSeen.isPending}
-        onAddCompany={addCompany ? () => setAdding(true) : undefined}
+        onAddCompany={() => setAdding(true)}
       />
       <main className="mx-auto flex max-w-[1360px] flex-col gap-5 px-4 pt-5 pb-10 lg:px-6">
         <StatsStrip />
@@ -87,7 +82,7 @@ export function Dashboard({ health, addCompany }: Props) {
           {(wide || showFilters) && (
             <div className="lg:w-[240px] lg:shrink-0">
               <FilterPanel f={f} set={set}>
-                {health}
+                <HealthPanel />
               </FilterPanel>
             </div>
           )}
@@ -125,7 +120,7 @@ export function Dashboard({ health, addCompany }: Props) {
           )}
         </div>
       </main>
-      {addCompany?.(adding, () => setAdding(false))}
+      <AddCompanyDialog open={adding} onClose={() => setAdding(false)} />
     </div>
   );
 }
