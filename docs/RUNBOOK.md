@@ -121,9 +121,7 @@ docker compose restart migrate worker
 
 ## R1 verification
 
-Results from 2026-11-10, on the Mac:
+See [R1-notes.md](R1-notes.md) for the full results and the decisions made during the build. In short:
 
-- **Unit and integration tests:** `uv run pytest`, all passing.
-- **`live-check --mode incremental`:** 32/32 sources OK. Accenture was fixed during the check: it lists postings with no title.
-- **`run-once --mode incremental`:** first full end-to-end run into a scratch database. Results are in the R1 summary.
-- **Still to do, needs your Telegram + Gemini keys:** `analyze-one` against a real job, and 24 h of `docker compose up` with a test Telegram chat.
+- **Tests:** 172 pass. **Live check:** all 32 sources return real jobs. **Real runs:** 1,351 jobs on the first run, with no duplicates on the second.
+- **Still to do, needs your Telegram + Gemini keys:** run `uv run python -m app.cli analyze-one --job-id <id>` against a real job, then leave `docker compose up -d` running for 24 h with a test Telegram chat.
