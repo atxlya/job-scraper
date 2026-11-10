@@ -26,12 +26,22 @@ Both keys are optional:
 ## 2. Run it
 
 ### On the Mac (testing)
+Install the dependencies and prepare the database:
 ```bash
 uv sync
-uv run alembic upgrade head
-uv run python -m app.cli live-check --mode incremental   # every source returns real jobs?
-uv run python -m app.cli run-once --mode incremental     # one real run into data/jobs.db
 ```
+```bash
+uv run alembic upgrade head
+```
+Check that every source returns real jobs:
+```bash
+uv run python -m app.cli live-check --mode incremental
+```
+Do one real run into `data/jobs.db`:
+```bash
+uv run python -m app.cli run-once --mode incremental
+```
+On the first run, each company's existing internships are stored without individual alerts. You get one Telegram summary per company instead, e.g. "Loaded 12 existing internships from Google". After that, you get one alert per new internship.
 
 ### With Docker (Mac or Pi)
 ```bash
