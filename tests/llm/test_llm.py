@@ -238,3 +238,11 @@ async def test_unclear_job_gets_classification_from_analysis(sf):
     with sf() as s:
         job = s.get(Job, j.id)
         assert job.is_internship is True and job.is_tech is True
+
+
+def test_prompt_flags_degree_level_for_a_bachelors_student():
+    from app.llm.gemini import PROMPT  # noqa: PLC0415
+    from app.llm.queue import PROMPT_VERSION  # noqa: PLC0415
+
+    assert "Bachelor's" in PROMPT and "PhD or Master's" in PROMPT
+    assert PROMPT_VERSION == "2"

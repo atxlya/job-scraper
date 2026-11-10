@@ -43,6 +43,10 @@ Each line gives what changed from the plan, why, and what it costs if the decisi
   - a second one on the same day stops for that day and sets a lower daily cap (60% of that day's usage) for later days.
 - Known non-tech or non-internship jobs never cost a Gemini call.
 - An eligibility warning that comes without a quote becomes "unclear".
+- **Degree level** (added 2026-11-11, prompt version 2): a role only for PhD, Master's or MBA students gets a warning, since you are a Bachelor's student. It is caught two ways:
+  - by the title (e.g. "PhD Intern"), with no Gemini call needed. On the test-run data this flagged 29 of 239 tech internships, all correctly;
+  - by Gemini reading the posting, which quotes the line (e.g. "Pursuing a PhD program…").
+  - A title or line that also accepts Bachelor's students ("BS/MS") is not flagged. The alert is still sent, so nothing is hidden. *Cost:* a role whose degree rule appears only in an unusual wording may slip through as "Eligible".
 
 **Alerts and health**
 - **No skipped or double alerts:** each job gets one alert record once handled. A source's first load records its jobs silently. Jobs without a record are retried every run, which covers Telegram outages and jobs Gemini classifies later.

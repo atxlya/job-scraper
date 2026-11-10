@@ -58,3 +58,28 @@ def classify(raw: RawJob, kw: Keywords) -> Classification:
     else:
         is_tech = None
     return Classification(is_internship, is_tech)
+
+
+# Degree levels a Bachelor's student does not have. "MS"/"BS" count only in capitals.
+_HIGHER_DEGREES = [
+    ("PhD", re.compile(r"(?i:\bph\.?\s?d\b|\bdoctoral\b|\bdoctorate\b)")),
+    (
+        "Master's",
+        re.compile(r"(?i:\bmaster(?:'s|’s|s)\b|\bmaster of\b|\bm\.?\s?tech\b)|\bMS\b|\bM\.S\."),
+    ),
+    ("MBA", re.compile(r"(?i:\bmba\b)")),
+]
+_BACHELORS = re.compile(
+    r"(?i:\bbachelor|\bundergrad|\bb\.?\s?tech\b)|\bBS\b|\bB\.S\.|\bBE\b|\bB\.E\."
+)
+
+
+def degree_only(title: str) -> str | None:
+    """'PhD', "Master's" or 'MBA' when the title limits the role to those students.
+
+    A title that also names a Bachelor's degree (e.g. "BS/MS") is open to undergraduates.
+    """
+    if _BACHELORS.search(title):
+        return None
+    found = [label for label, rx in _HIGHER_DEGREES if rx.search(title)]
+    return " or ".join(found) or None

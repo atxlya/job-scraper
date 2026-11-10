@@ -306,3 +306,32 @@ async def test_owed_query_filters_in_sql(session, tg, channel):
     where = owed_query.split("WHERE", 1)[1]
     assert "is_internship" in where and "is_tech" in where and "state" in where
     assert tg.send.call_count == 1
+
+
+def test_degree_only_title_warns_even_when_analysis_says_ok(session):
+    c, s = make_source(session)
+    j = make_job(session, s, "1", title="Software Engineering PhD Intern, Summer 2027")
+    ok = JobAnalysis(
+        job_id=j.id, model="m", prompt_version="2", sections={}, eligibility="ok", created_at=T0
+    )
+    for analysis in (None, ok):
+        text = format_alert(j, c, analysis)
+        assert "⚠️ For PhD students only (from the title)" in text
+        assert "✅ Eligible" not in text
+
+
+def test_degree_only_title_keeps_the_posting_quote(session):
+    c, s = make_source(session)
+    j = make_job(session, s, "1", title="Data Science Intern - Masters")
+    warn = JobAnalysis(
+        job_id=j.id,
+        model="m",
+        prompt_version="2",
+        sections={},
+        eligibility="warn",
+        eligibility_quote="Must be enrolled at a US university",
+        created_at=T0,
+    )
+    text = format_alert(j, c, warn)
+    assert "⚠️ For Master's students only (from the title)" in text
+    assert "⚠️ Check: “Must be enrolled at a US university”" in text

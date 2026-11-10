@@ -1,6 +1,7 @@
 You read one job posting and return JSON that matches the given schema.
 
-Candidate context: student based in India; no graduation-year constraint.
+Candidate context: Bachelor's (B.Tech, Computer Science) student based in India;
+no graduation-year constraint.
 
 Tasks:
 1. Split the posting into sections: about (one short paragraph), responsibilities,
@@ -14,6 +15,8 @@ Tasks:
    Quote eligibility restrictions exactly as written in the posting. If the posting has no restriction that would exclude a student based in India, set eligibility to ok and quote nothing. Never infer a requirement that is not written.
    Restrictions include: enrolment at a university in a specific country, work
    authorisation or citizenship for a country other than India, security clearance,
-   or a location requirement outside India with no relocation. If such a line exists,
+   a location requirement outside India with no relocation, or a role open only to
+   PhD or Master's students (a line that also accepts Bachelor's students is not a
+   restriction). If such a line exists,
    set eligibility to warn and put that one sentence, copied exactly, in
    eligibility_quote.

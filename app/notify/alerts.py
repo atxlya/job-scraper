@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.core.models import Alert, Company, Job, JobAnalysis, Source
 from app.notify.telegram import TelegramChannel, TelegramError
+from app.pipeline.classify import degree_only
 
 log = logging.getLogger(__name__)
 IST = ZoneInfo("Asia/Kolkata")
@@ -42,6 +43,17 @@ def _eligibility_line(job: Job, analysis: JobAnalysis | None) -> str:
     return "❔ Eligibility unclear — read the posting"
 
 
+def _eligibility_lines(job: Job, analysis: JobAnalysis | None) -> list[str]:
+    degree = degree_only(job.title)
+    if degree is None:
+        return [_eligibility_line(job, analysis)]
+    # The title alone rules out a Bachelor's student, whatever the analysis says.
+    lines = [f"⚠️ For {degree} students only (from the title)"]
+    if analysis is not None and analysis.eligibility == "warn" and analysis.eligibility_quote:
+        lines.append(f"⚠️ Check: “{_e(analysis.eligibility_quote)}”")
+    return lines
+
+
 def format_alert(job: Job, company: Company, analysis: JobAnalysis | None) -> str:
     locs = job.locations or []
     where = ", ".join(locs[:3]) + (f" +{len(locs) - 3}" if len(locs) > 3 else "")
@@ -54,7 +66,7 @@ def format_alert(job: Job, company: Company, analysis: JobAnalysis | None) -> st
         f"<b>{_e(company.name)}</b> · {_e(job.title)}",
         f"📍 {_e(where) or 'Location not given'}",
         f"🗓 {posted}",
-        _eligibility_line(job, analysis),
+        *_eligibility_lines(job, analysis),
         f'<a href="{_e(job.apply_url or job.url)}">Apply</a>',
     ]
     return "\n".join(lines)

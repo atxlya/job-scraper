@@ -12,7 +12,7 @@ from app.llm.pacer import Pacer
 from app.llm.provider import LlmProvider, RateLimited, validate_quotes
 
 log = logging.getLogger(__name__)
-PROMPT_VERSION = "1"
+PROMPT_VERSION = "2"
 
 
 def html_to_text(html: str | None) -> str:
