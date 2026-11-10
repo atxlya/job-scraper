@@ -23,6 +23,14 @@ class RobotsDisallowed(Exception):
     """robots.txt does not allow this URL (or robots.txt could not be read)."""
 
 
+class RobotsUnavailable(RobotsDisallowed):
+    """robots.txt couldn't be read (network error or 5xx), so nothing is fetched for now.
+
+    A subclass, so code that stops on RobotsDisallowed still stops; the dashboard
+    uses it to say "couldn't reach the site" instead of "robots.txt doesn't allow it".
+    """
+
+
 class PoliteClient:
     def __init__(
         self,
@@ -116,12 +124,12 @@ class PoliteClient:
                 break
             except httpx.HTTPError as e:
                 if attempt == 2:
-                    raise RobotsDisallowed(
+                    raise RobotsUnavailable(
                         f"robots.txt unreachable for {base}: {type(e).__name__} {e}".strip()
                     ) from e
                 await self._sleep(2.0 * (attempt + 1))
         if resp.status_code >= 500:
-            raise RobotsDisallowed(f"robots.txt returned {resp.status_code} for {base}")
+            raise RobotsUnavailable(f"robots.txt returned {resp.status_code} for {base}")
         if resp.status_code >= 400 or "text/html" in resp.headers.get("content-type", ""):
             return Robots.parse("")
         return Robots.parse(resp.text)

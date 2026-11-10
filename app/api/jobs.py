@@ -1,5 +1,6 @@
 """Job list, filters, job detail, tags, notes and "seen"."""
 
+import logging
 from collections import Counter
 from datetime import datetime, timedelta
 from typing import Annotated
@@ -27,7 +28,7 @@ from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
 import app.adapters  # noqa: F401  (registers adapters)
-from app.adapters.base import ADAPTERS, GONE, ParseError
+from app.adapters.base import ADAPTERS, GONE
 from app.api.deps import get_session, now, require_user
 from app.api.schemas import (
     Change,
@@ -53,11 +54,12 @@ from app.core.models import (
     TagHistory,
     UTCDateTime,
 )
-from app.http.client import RobotsDisallowed
+from app.http.client import RobotsDisallowed, RobotsUnavailable
 from app.pipeline.derived import fts_query
 from app.pipeline.ingest import apply_detail, mark_gone, raw_from_job
 
 router = APIRouter(prefix="/api", dependencies=[Depends(require_user)])
+log = logging.getLogger(__name__)
 
 POSTED = {"1d": timedelta(days=1), "7d": timedelta(days=7), "30d": timedelta(days=30)}
 Sess = Annotated[Session, Depends(get_session)]
@@ -360,10 +362,13 @@ async def fetch_description(job_id: int, request: Request, at: Now) -> JobDetail
         host = urlparse(job.url).hostname or "the site"
     try:
         detail = await adapter.fetch_detail(request.app.state.client, cfg, raw)
+    except (RobotsUnavailable, httpx.HTTPError) as e:
+        raise HTTPException(502, f"Couldn't reach {host}. Try again later.") from e
     except RobotsDisallowed as e:
         raise HTTPException(409, "This site's robots.txt doesn't allow fetching the page.") from e
-    except (httpx.HTTPError, ParseError) as e:
-        raise HTTPException(502, f"Couldn't reach {host}. Try again later.") from e
+    except Exception as e:  # ParseError, or an adapter tripping on an unexpected page
+        log.warning("on-demand fetch for job %s failed: %r", job_id, e)
+        raise HTTPException(502, f"Couldn't read the page from {host}. Try again later.") from e
     with sf() as s:
         job = s.get(Job, job_id)
         if detail is GONE:

@@ -149,6 +149,9 @@ class FakeApiAdapter:
     async def fetch_detail(self, client, cfg, job):
         FakeApiAdapter.state.calls += 1
         d = FakeApiAdapter.state.detail
+        if d == "via_client":  # go through the real PoliteClient, like a real adapter
+            resp = await client.get(job.url)
+            return job.model_copy(update={"description_html": resp.text})
         if isinstance(d, Exception):
             raise d
         return d if d is not None else job

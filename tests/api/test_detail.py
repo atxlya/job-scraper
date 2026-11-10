@@ -205,3 +205,53 @@ def test_fetch_description_no_enabled_source_409(client, db, fake_adapter):
     db.commit()
     r = fetch(client, j)
     assert r.status_code == 409 and fake_adapter.calls == 0
+
+
+def _polite(app, handler):
+    """Swap the app's HTTP client for a real PoliteClient talking to a fake network."""
+    from app.http.client import PoliteClient  # noqa: PLC0415
+
+    async def no_sleep(_s):
+        return None
+
+    app.state.client = PoliteClient(
+        min_interval_s=0, sleep=no_sleep, transport=httpx.MockTransport(handler)
+    )
+
+
+def test_fetch_description_site_down_says_unreachable_not_robots(client, app, db, fake_adapter):
+    j = seed_job(db, description=None)
+    fake_adapter.detail = "via_client"
+
+    def down(request):
+        raise httpx.ConnectError("[Errno 8] nodename nor servname provided")
+
+    _polite(app, down)
+    r = fetch(client, j)
+    assert r.status_code == 502
+    assert "jobs.example" in r.json()["detail"] and "robots" not in r.json()["detail"]
+
+
+def test_fetch_description_robots_5xx_says_unreachable(client, app, db, fake_adapter):
+    j = seed_job(db, description=None)
+    fake_adapter.detail = "via_client"
+    _polite(app, lambda request: httpx.Response(503))
+    r = fetch(client, j)
+    assert r.status_code == 502 and "robots" not in r.json()["detail"]
+
+
+def test_fetch_description_real_robots_refusal_still_409(client, app, db, fake_adapter):
+    j = seed_job(db, description=None)
+    fake_adapter.detail = "via_client"
+    _polite(app, lambda request: httpx.Response(200, text="User-agent: *\nDisallow: /\n"))
+    r = fetch(client, j)
+    assert r.status_code == 409 and "robots.txt" in r.json()["detail"]
+
+
+def test_fetch_description_unexpected_page_502_not_500(client, db, fake_adapter):
+    j = seed_job(db, description=None)
+    fake_adapter.detail = ValueError("Expecting value: line 1 column 1 (char 0)")
+    r = fetch(client, j)
+    assert r.status_code == 502 and "jobs.example" in r.json()["detail"]
+    fake_adapter.detail = IndexError("list index out of range")
+    assert fetch(client, j).status_code == 502
