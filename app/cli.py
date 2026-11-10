@@ -5,6 +5,7 @@ python -m app.cli live-check [--source KEY] [--mode incremental|full]
 python -m app.cli run-once --mode incremental|full|tracked [--source KEY]
 python -m app.cli analyze-one --job-id N
 python -m app.cli reindex
+python -m app.cli set-password
 """
 
 import argparse
@@ -140,6 +141,25 @@ def reindex() -> int:
     return 0
 
 
+def set_password() -> int:
+    """Ask for the dashboard password and print the line to put in .env."""
+    import getpass  # noqa: PLC0415
+
+    from app.core.secrets import hash_password  # noqa: PLC0415
+
+    pw = getpass.getpass("Dashboard password: ")
+    if len(pw) < 8:
+        print("Use at least 8 characters.", file=sys.stderr)
+        return 1
+    if getpass.getpass("Again: ") != pw:
+        print("The two passwords don't match.", file=sys.stderr)
+        return 1
+    print("Add this line to .env, then restart the api:")
+    # Single quotes stop .env loaders from treating the hash's "$" as variables.
+    print(f"DASHBOARD_PASSWORD_HASH='{hash_password(pw)}'")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m app.cli")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -153,7 +173,10 @@ def main(argv: list[str] | None = None) -> int:
     ao = sub.add_parser("analyze-one")
     ao.add_argument("--job-id", type=int, required=True)
     sub.add_parser("reindex")
+    sub.add_parser("set-password")
     a = ap.parse_args(argv)
+    if a.cmd == "set-password":
+        return set_password()
     if a.cmd == "reindex":
         return reindex()
     if a.cmd == "sync-registry":

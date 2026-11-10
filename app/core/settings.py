@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     http_min_interval_s: float = 2.5
     tz: str = "Asia/Kolkata"
     backup_push_target: str | None = None
+    dashboard_password_hash: str | None = None
+    dashboard_url: str | None = None  # e.g. http://pi:8000; adds a link to Telegram alerts
 
 
 def get_settings() -> Settings:
