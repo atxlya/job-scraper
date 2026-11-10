@@ -145,3 +145,11 @@ async def test_robots_server_error_blocks(client):
     with pytest.raises(RobotsDisallowed):
         await client.get("https://a.com/x")
     assert route.call_count == 0
+
+
+@respx.mock
+async def test_client_uses_longest_match(client):
+    robots(respx, "a.com", "User-agent: *\nDisallow: /\nAllow: /api/pcsx\n")
+    route = respx.get("https://a.com/api/pcsx/search").mock(return_value=httpx.Response(200))
+    await client.get("https://a.com/api/pcsx/search", params={"domain": "x"})
+    assert route.call_count == 1

@@ -1,0 +1,224 @@
+{
+ "id": 563774612097430,
+ "name": "Python, LLM, GenAI/Senior Consultant Specialist",
+ "posting_name": "Python, LLM, GenAI/Senior Consultant Specialist",
+ "location": "Pune, Maharashtra, India",
+ "locations": [
+  "Pune, Maharashtra, India",
+  "Hyderabad, Telangana, India"
+ ],
+ "hot": 1,
+ "department": "Technology",
+ "business_unit": "GCIO",
+ "t_update": 1794287746,
+ "t_create": 1786436463,
+ "ats_job_id": "55592",
+ "display_job_id": "55592",
+ "type": "ATS",
+ "job_description": "<div id=\"tor__fextListingLayout_readOnlyDiv\"><div id=\"tor__fextListingLayout_content\"><div id=\"tor__flistingLayout_readOnlyDiv\"><div id=\"tor__flistingLayout_content\"><div id=\"tor__flistingLayout_readOnlyDiv\"><div id=\"tor__flistingLayout_content\"><p>Some careers shine brighter than others.</p><p>If you’re looking for a career that will help you stand out, join HSBC and fulfil your potential. Whether you want a career that could take you to the top, or simply take you in an exciting new direction, HSBC offers opportunities, support and rewards that will take you further.</p><p>HSBC is one of the largest banking and financial services organisations in the world, with operations in 64 countries and territories. We aim to be where the growth is, enabling businesses to thrive and economies to prosper, and, ultimately, helping people to fulfil their hopes and realise their ambitions.</p><p>We are currently seeking an experienced professional to join our team in the role of Senior Consultant Specialist </p><p> In this role, you will:</p><ul style=\"list-style-type: disc;\"><li>Build LLM application services in Python, covering prompt strategies, tool/function calling, and workflow orchestration (e.g., LangChain/LangGraph).</li><li>Design and implement RAG, including document/artefact ingestion (metric definitions, dimensional models, lineage, report examples).</li><li>Implement RAG retrieval foundations: chunking, metadata strategy, embeddings, indexing, retrieval and re-ranking.</li><li>Define grounding approaches to minimise hallucinations and ensure Finance-approved definitions are consistently applied.</li><li>Deliver deterministic query generation aligned to the semantic layer, including constraint-driven SQL/query DSL, schema validation and guardrails.</li><li>Implement query execution patterns such as caching, robust error handling, and safe fallback behaviours.</li><li>Build and maintain API layers (REST/gRPC) for UI and platform integration, including authentication/authorisation and request auditing.</li><li>Establish evaluation and operational practices: test harnesses (golden datasets, accuracy/retrieval metrics, regression tests, prompt/model versioning), LLMOps (CI/CD, config management, promotion, observability, incident runbooks), collaboration with data/platform teams, and compliance with security/privacy requirements.</li></ul><p>To be successful in this role, you should meet the following requirements:</p><ul style=\"list-style-type: disc;\"><li>Strong Python engineering capability, including clean architecture, testing, packaging, and performance optimisation.</li><li>Proven experience delivering production LLM apps (or advanced PoCs) using major LLM APIs/hosted models (e.g., Claude, GPT, Gemini, open-weight models).</li><li>Hands-on RAG implementation experience.</li><li>Practical prompt engineering and tool/function calling to enable reliable LLM behaviours.</li><li>Experience building agents/workflows and using orchestration frameworks like LangChain and/or LangGraph (or equivalents).</li><li>Solid ML fundamentals: embeddings, vector search, evaluation methods, and awareness of common failure modes.</li><li>API engineering skills (FastAPI/Flask), including async patterns and integration-focused design.</li><li>Cloud-native delivery (GCP preferred): containers, serverless/Kubernetes, CI/CD, observability, plus secure engineering practices and LLM security mitigations (prompt injection, jailbreaks, data leakage).</li></ul><p>You’ll achieve more when you join HSBC.</p><p><a href=\"https://www.hsbc.com/careers\">www.hsbc.com/careers</a></p><p>HSBC is committed to building a culture where all employees are valued, respected and opinions count. We take pride in providing a workplace that fosters continuous professional development, flexible working and opportunities to grow within an inclusive and diverse environment. Personal data held by the Bank relating to employment applications will be used in accordance with our Privacy Statement, which is available on our website.</p><p>Issued by – HSBC Software Development India</p></div></div></div></div></div></div>",
+ "id_locale": "55592-en_GB",
+ "locale": "en_GB",
+ "stars": 0,
+ "medallionProgram": null,
+ "location_flexibility": null,
+ "work_location_option": null,
+ "canonicalPositionUrl": "https://portal.careers.hsbc.com/careers/job/563774612097430",
+ "isPrivate": false,
+ "urls": {
+  "links": {
+   "blogs": [
+    {
+     "url": "https://www.hsbc.com/news-and-views/news/hsbc-news-archive/hsbc-global-investment-summit-focuses-on-world-shaping-trends",
+     "type": "article",
+     "title": "HSBC Global Investment Summit focuses on world-shaping trends | HSBC News",
+     "description": "HSBC’s inaugural Global Investment Summit in Hong Kong brought together more than 3,000 industry leaders at the three-day event. ",
+     "image": "https://www.hsbc.com/-/files/hsbc/news-and-insight/2024/og-images/240408-hsbc-global-investment-summit-focuses-on-world-shaping-trends-560x315.jpg?as=0&dmc=0&iar=0&thn=0&udi=0&sc_lang=en-gb&hash=E8B30B6C9213E48F246A7D35BEFB173B",
+     "site_name": "HSBC",
+     "data_json": {},
+     "error": 0,
+     "timestamp": 1794291344,
+     "author": null,
+     "published_ts": 0,
+     "tags": null,
+     "id": 2397960
+    },
+    {
+     "url": "https://www.hsbc.com/news-and-views/news/hsbc-news-archive/our-inaugural-global-investment-summit",
+     "type": "article",
+     "title": "HSBC Global Investment Summit | HSBC news | HSBC Holdings plc",
+     "description": "The HSBC Global Investment Summit is bringing together more than 2,500 delegates to discuss the trends and topics shaping the global economy.",
+     "image": "https://www.hsbc.com/-/files/hsbc/news-and-insight/2024/og-images/240325-hsbc-global-investment-summit-image-banner-560x315.jpg?as=0&dmc=0&iar=0&thn=0&udi=0&sc_lang=en-gb&hash=459571194ED55FFAFCAD585A92E5D87D",
+     "site_name": "HSBC",
+     "data_json": {},
+     "error": 0,
+     "timestamp": 1794291344,
+     "author": null,
+     "published_ts": 0,
+     "tags": null,
+     "id": 2397961
+    },
+    {
+     "url": "https://www.hsbc.com/news-and-views/news/hsbc-news-archive/our-record-breaking-life-insurance-policy",
+     "type": "article",
+     "title": "Our record-breaking life insurance policy | HSBC news",
+     "description": "We’ve set a new Guinness World Record for the most valuable life insurance policy ever sold, with a policy worth US$250million.",
+     "image": "https://www.hsbc.com/-/files/hsbc/news-and-insight/2023/og-images/240228-our-record-breaking-insurance-policy-560x315.jpg?as=0&dmc=0&iar=0&thn=0&udi=0&sc_lang=en-gb&hash=AA88F78EA848E0923A5F92B4349AEF41",
+     "site_name": "HSBC",
+     "data_json": {},
+     "error": 0,
+     "timestamp": 1794291345,
+     "author": null,
+     "published_ts": 0,
+     "tags": null,
+     "id": 2397962
+    }
+   ],
+   "videos": [
+    {
+     "url": "https://www.youtube.com/embed/iDAg46ydxF4?si=WcKlYF5Qxk0QtL7E",
+     "type": null,
+     "title": "What's in a name?",
+     "description": "When your business spans the world, it’s no surprise that the workforce that keeps it running is made up of people from different regions, backgrounds...",
+     "image": null,
+     "site_name": null,
+     "data_json": {
+      "video_id": "iDAg46ydxF4"
+     },
+     "error": 0,
+     "timestamp": 1793874240,
+     "author": null,
+     "published_ts": 0,
+     "tags": null,
+     "id": 2397963
+    },
+    {
+     "url": "https://www.youtube.com/embed/iLH-v7fGqH4?si=7q74c4NrZfvUcPNU",
+     "type": null,
+     "title": "Mit Stolz vorangehen – Leighs Geschichte",
+     "description": "Leighs Geschichte ist einzigartig – und doch hat sie etwas mit so vielen unserer Mitarbeitenden bei HSBC gemeinsam: Menschen, die ein Problem erkennen...",
+     "image": null,
+     "site_name": null,
+     "data_json": {
+      "video_id": "iLH-v7fGqH4"
+     },
+     "error": 0,
+     "timestamp": 1793874243,
+     "author": null,
+     "published_ts": 0,
+     "tags": null,
+     "id": 2397964
+    },
+    {
+     "url": "https://www.youtube.com/embed/6HD1sZJs9QM?si=hPtaGlDxoCd2-a4U",
+     "type": null,
+     "title": "Warum ich tue, was ich tue – International",
+     "description": "Was HSBC ausmacht, ist unsere internationale Präsenz – untermauert durch unsere lokale Expertise und unseren persönlichen Service.\n\nFünf unserer Kolle...",
+     "image": null,
+     "site_name": null,
+     "data_json": {
+      "video_id": "6HD1sZJs9QM"
+     },
+     "error": 0,
+     "timestamp": 1793874244,
+     "author": null,
+     "published_ts": 0,
+     "tags": null,
+     "id": 2397965
+    },
+    {
+     "url": "https://www.youtube.com/embed/7CFL7JGsiCA?si=04iwhK8RBFeaaqGk",
+     "type": null,
+     "title": "History of technology at HSBC",
+     "description": "HSBC was a worldwide bank long before the World Wide Web was a thing.\n\nSee how we’ve evolved from deploying telegrams, to PIN codes, to biometrics to ...",
+     "image": null,
+     "site_name": null,
+     "data_json": {
+      "video_id": "7CFL7JGsiCA"
+     },
+     "error": 0,
+     "timestamp": 1793874245,
+     "author": null,
+     "published_ts": 0,
+     "tags": null,
+     "id": 2397966
+    }
+   ]
+  },
+  "blogsSetting": {
+   "blogTitleClamp": true,
+   "blogDescriptionClamp": true
+  }
+ },
+ "apply_redirect_url": "https://career2.successfactors.eu/careers?company=hsbcholdin&career_ns=job_application&src=Eightfold&career_job_req_id=55592&lang=en_GB",
+ "preApplyInfoBanner": {},
+ "custom_JD": {
+  "data_fields": {
+   "jobid": [
+    "55592"
+   ],
+   "department": [
+    "Technology"
+   ],
+   "jobType": [
+    "Full Time"
+   ],
+   "brand": [
+    "HSBC"
+   ],
+   "workStyle": [
+    "Hybrid Worker"
+   ],
+   "postingStartDate": [
+    "09 November 2026"
+   ],
+   "postingEndDate": [
+    "10 November 2026"
+   ],
+   "numberopenings": [],
+   "minSalUSA": [],
+   "maxSalUSA": [],
+   "minSalFormatted": [],
+   "maxSalFormatted": []
+  },
+  "display": [
+   {
+    "label": "Job ID",
+    "value": "jobid"
+   },
+   {
+    "label": "Work Style",
+    "value": "workStyle"
+   },
+   {
+    "label": "Brand",
+    "value": "brand"
+   },
+   {
+    "label": "Department",
+    "value": "department"
+   },
+   {
+    "label": "Job Type",
+    "value": "jobType"
+   },
+   {
+    "label": "Date Posted",
+    "value": "postingStartDate"
+   },
+   {
+    "label": "Apply By",
+    "value": "postingEndDate"
+   },
+   {
+    "label": "Min Salary",
+    "value": "minSalFormatted"
+   },
+   {
+    "label": "Max Salary",
+    "value": "maxSalFormatted"
+   }
+  ],
+  "enable": true
+ },
+ "hideUploadResumeOption": false
+}

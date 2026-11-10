@@ -6,9 +6,10 @@ import random
 import time
 from collections.abc import Awaitable, Callable
 from urllib.parse import urlsplit
-from urllib.robotparser import RobotFileParser
 
 import httpx
+
+from app.http.robots import Robots
 
 log = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ class PoliteClient:
             follow_redirects=True,
             transport=transport,
         )
-        self._robots: dict[str, tuple[float, RobotFileParser]] = {}
+        self._robots: dict[str, tuple[float, Robots]] = {}
         self._locks: dict[str, asyncio.Lock] = {}
         self._last: dict[str, float] = {}
 
@@ -100,12 +101,14 @@ class PoliteClient:
             parser = await self._fetch_robots(base)
             self._robots[base] = (self._clock(), parser)
             cached = self._robots[base]
-        if not cached[1].can_fetch(self.user_agent, url):
+        path = parts.path or "/"
+        if parts.query:
+            path += "?" + parts.query
+        if not cached[1].allowed(self.user_agent, path):
             raise RobotsDisallowed(url)
 
-    async def _fetch_robots(self, base: str) -> RobotFileParser:
+    async def _fetch_robots(self, base: str) -> Robots:
         """RFC 9309: 4xx means no rules; 5xx or network failure means stop for now."""
-        parser = RobotFileParser()
         try:
             resp = await self._http.get(f"{base}/robots.txt")
         except httpx.HTTPError as e:
@@ -113,7 +116,5 @@ class PoliteClient:
         if resp.status_code >= 500:
             raise RobotsDisallowed(f"robots.txt returned {resp.status_code} for {base}")
         if resp.status_code >= 400 or "text/html" in resp.headers.get("content-type", ""):
-            parser.parse([])
-        else:
-            parser.parse(resp.text.splitlines())
-        return parser
+            return Robots.parse("")
+        return Robots.parse(resp.text)

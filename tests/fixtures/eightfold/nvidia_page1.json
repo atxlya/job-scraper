@@ -1,0 +1,545 @@
+{
+ "status": 200,
+ "error": {
+  "message": "",
+  "body": ""
+ },
+ "data": {
+  "positions": [
+   {
+    "id": 893398640580,
+    "displayJobId": "JR2029372",
+    "name": "AI Computing Software Developer - New College Graduate 2027",
+    "locations": [
+     "Taiwan, Taipei"
+    ],
+    "standardizedLocations": [
+     "Taipei City,TW"
+    ],
+    "postedTs": 1794268800,
+    "solrScore": null,
+    "stars": 0,
+    "department": "Architect",
+    "creationTs": 1793750400,
+    "isHot": 0,
+    "workLocationOption": "onsite",
+    "locationFlexibility": null,
+    "atsJobId": "JR2029372",
+    "positionUrl": "/careers/job/893398640580"
+   },
+   {
+    "id": 893398640576,
+    "displayJobId": "JR2028765",
+    "name": "HR Specialist - New College Grad",
+    "locations": [
+     "Taiwan, Taipei",
+     "Taiwan, Hsinchu"
+    ],
+    "standardizedLocations": [
+     "Taipei City,TW",
+     "Hsinchu, Hsinchu City, TW"
+    ],
+    "postedTs": 1794268800,
+    "solrScore": null,
+    "stars": 0,
+    "department": "Specialist, HR THRIVE Rotation",
+    "creationTs": 1792800000,
+    "isHot": 0,
+    "workLocationOption": "onsite",
+    "locationFlexibility": null,
+    "atsJobId": "JR2028765",
+    "positionUrl": "/careers/job/893398640576"
+   },
+   {
+    "id": 893398445730,
+    "displayJobId": "JR2028826",
+    "name": "Software Engineer, AI Infrastructure",
+    "locations": [
+     "Israel, Tel Aviv"
+    ],
+    "standardizedLocations": [
+     "Tel Aviv-Yafo, Tel Aviv District, IL"
+    ],
+    "postedTs": 1794268800,
+    "solrScore": null,
+    "stars": 0,
+    "department": "Engineer, Sys SW",
+    "creationTs": 1792972800,
+    "isHot": 0,
+    "workLocationOption": "onsite",
+    "locationFlexibility": null,
+    "atsJobId": "JR2028826",
+    "positionUrl": "/careers/job/893398445730"
+   },
+   {
+    "id": 893397643317,
+    "displayJobId": "JR2024804",
+    "name": "Software Developer - Networking",
+    "locations": [
+     "Israel, Yokneam",
+     "Israel, Tel Aviv"
+    ],
+    "standardizedLocations": [
+     "Yokne'am Illit, North District, IL",
+     "Tel Aviv-Yafo, Tel Aviv District, IL"
+    ],
+    "postedTs": 1794268800,
+    "solrScore": null,
+    "stars": 0,
+    "department": "Engineer, Sys SW",
+    "creationTs": 1788048000,
+    "isHot": 0,
+    "workLocationOption": "onsite",
+    "locationFlexibility": null,
+    "atsJobId": "JR2024804",
+    "positionUrl": "/careers/job/893397643317"
+   },
+   {
+    "id": 893397234845,
+    "displayJobId": "JR2024110",
+    "name": "NVIDIA 2027 New College Graduate: Hardware ASIC Engineering - China",
+    "locations": [
+     "China, Shanghai"
+    ],
+    "standardizedLocations": [
+     "Shanghai, Shanghai, CN"
+    ],
+    "postedTs": 1794268800,
+    "solrScore": null,
+    "stars": 0,
+    "department": "Engineer, ASIC",
+    "creationTs": 1787184000,
+    "isHot": 0,
+    "workLocationOption": "onsite",
+    "locationFlexibility": null,
+    "atsJobId": "JR2024110",
+    "positionUrl": "/careers/job/893397234845"
+   },
+   {
+    "id": 893397627134,
+    "displayJobId": "JR2025270",
+    "name": "Senior Software Engineer, Chip Design",
+    "locations": [
+     "Israel, Yokneam",
+     "Israel, Tel Aviv"
+    ],
+    "standardizedLocations": [
+     "Yokne'am Illit, North District, IL",
+     "Tel Aviv-Yafo, Tel Aviv District, IL"
+    ],
+    "postedTs": 1794268800,
+    "solrScore": null,
+    "stars": 0,
+    "department": "Engineer, ASIC",
+    "creationTs": 1788652800,
+    "isHot": 0,
+    "workLocationOption": "onsite",
+    "locationFlexibility": null,
+    "atsJobId": "JR2025270",
+    "positionUrl": "/careers/job/893397627134"
+   },
+   {
+    "id": 893395478487,
+    "displayJobId": "JR2019125",
+    "name": "IC Reliability Practical Engineer",
+    "locations": [
+     "Israel, Yokneam"
+    ],
+    "standardizedLocations": [
+     "Yokne'am Illit, North District, IL"
+    ],
+    "postedTs": 1794268800,
+    "solrScore": null,
+    "stars": 0,
+    "department": "Sys Admin, Network",
+    "creationTs": 1780185600,
+    "isHot": 0,
+    "workLocationOption": "onsite",
+    "locationFlexibility": null,
+    "atsJobId": "JR2019125",
+    "positionUrl": "/careers/job/893395478487"
+   },
+   {
+    "id": 893395878376,
+    "displayJobId": "JR2020234",
+    "name": "Senior Systems Software Engineer, Kubernetes Scale - DGX Cloud",
+    "locations": [
+     "Remote - Spain",
+     "Remote - Germany",
+     "Remote - Poland"
+    ],
+    "standardizedLocations": [
+     "ES",
+     "DE",
+     "PL"
+    ],
+    "postedTs": 1794268800,
+    "solrScore": null,
+    "stars": 0,
+    "department": "Engineer, Sys SW",
+    "creationTs": 1782259200,
+    "isHot": 0,
+    "workLocationOption": "remote_local",
+    "locationFlexibility": null,
+    "atsJobId": "JR2020234",
+    "positionUrl": "/careers/job/893395878376"
+   },
+   {
+    "id": 893398286109,
+    "displayJobId": "JR2028307",
+    "name": "Software Automation Specialist",
+    "locations": [
+     "Israel, Yokneam",
+     "Israel, Tel Aviv"
+    ],
+    "standardizedLocations": [
+     "Yokne'am Illit, North District, IL",
+     "Tel Aviv-Yafo, Tel Aviv District, IL"
+    ],
+    "postedTs": 1794268800,
+    "solrScore": null,
+    "stars": 0,
+    "department": "Engineer, Sys SW",
+    "creationTs": 1792368000,
+    "isHot": 0,
+    "workLocationOption": "onsite",
+    "locationFlexibility": null,
+    "atsJobId": "JR2028307",
+    "positionUrl": "/careers/job/893398286109"
+   },
+   {
+    "id": 893398651569,
+    "displayJobId": "JR2029119",
+    "name": "AI Operations Intern, AI Clouds - Summer 2027",
+    "locations": [
+     "US, CA, Santa Clara"
+    ],
+    "standardizedLocations": [
+     "Santa Clara, CA, US"
+    ],
+    "postedTs": 1794268800,
+    "solrScore": null,
+    "stars": 0,
+    "department": "Intern",
+    "creationTs": 1793232000,
+    "isHot": 0,
+    "workLocationOption": "onsite",
+    "locationFlexibility": null,
+    "atsJobId": "JR2029119",
+    "positionUrl": "/careers/job/893398651569"
+   }
+  ],
+  "filterDef": {
+   "facets": {
+    "locations": [
+     [
+      "Santa Clara, CA, United States",
+      1354
+     ],
+     [
+      "Yokne'am Illit, North District, Israel",
+      304
+     ],
+     [
+      "CA, United States",
+      257
+     ],
+     [
+      "Tel Aviv-Yafo, Tel Aviv District, Israel",
+      224
+     ],
+     [
+      "Shanghai, China",
+      219
+     ],
+     [
+      "Bengaluru, KA, India",
+      198
+     ],
+     [
+      "Austin, TX, United States",
+      176
+     ],
+     [
+      "United States",
+      117
+     ],
+     [
+      "Taipei City, Taiwan",
+      102
+     ],
+     [
+      "Ra'anana, Center District, Israel",
+      101
+     ]
+    ]
+   },
+   "smartFilters": [
+    {
+     "type": "partial_multi_select_suggest",
+     "filterName": "hiring_title",
+     "title": "Job Title",
+     "options": [
+      {
+       "label": "Senior Chip Design Verification Engineer",
+       "value": "senior chip design verification engineer"
+      },
+      {
+       "label": "Senior Mixed Signal Design Engineer",
+       "value": "senior mixed signal design engineer"
+      },
+      {
+       "label": "Senior Mask Design Engineer - Hardware",
+       "value": "senior mask design engineer - hardware"
+      },
+      {
+       "label": "Senior Physical Design Engineer",
+       "value": "senior physical design engineer"
+      },
+      {
+       "label": "Asic Verification Engineer",
+       "value": "asic verification engineer"
+      },
+      {
+       "label": "Senior Asic Verification Engineer",
+       "value": "senior asic verification engineer"
+      },
+      {
+       "label": "Senior Chip Design Engineer",
+       "value": "senior chip design engineer"
+      },
+      {
+       "label": "Senior System Software Engineer",
+       "value": "senior system software engineer"
+      },
+      {
+       "label": "Senior Software And System Architect",
+       "value": "senior software and system architect"
+      },
+      {
+       "label": "Senior Verification Engineer, Pcie",
+       "value": "senior verification engineer, pcie"
+      }
+     ],
+     "tooltip": null,
+     "extraData": {},
+     "displayCount": 10,
+     "translateOptions": false,
+     "allowFreeText": false
+    },
+    {
+     "type": "multi_select_facet_search",
+     "filterName": "job_category",
+     "title": "Job Category",
+     "options": [
+      {
+       "label": "Engineering",
+       "value": "engineering"
+      },
+      {
+       "label": "Sales",
+       "value": "sales"
+      },
+      {
+       "label": "Univ Employment",
+       "value": "univ employment"
+      },
+      {
+       "label": "Program Manager",
+       "value": "program manager"
+      },
+      {
+       "label": "Operations",
+       "value": "operations"
+      },
+      {
+       "label": "Marketing",
+       "value": "marketing"
+      },
+      {
+       "label": "It - Information Technology",
+       "value": "it - information technology"
+      },
+      {
+       "label": "Research",
+       "value": "research"
+      },
+      {
+       "label": "Finance",
+       "value": "finance"
+      },
+      {
+       "label": "Professional Services",
+       "value": "professional services"
+      },
+      {
+       "label": "Human Resources",
+       "value": "human resources"
+      },
+      {
+       "label": "Business Development",
+       "value": "business development"
+      },
+      {
+       "label": "Facilities",
+       "value": "facilities"
+      },
+      {
+       "label": "Legal",
+       "value": "legal"
+      },
+      {
+       "label": "Administration",
+       "value": "administration"
+      }
+     ],
+     "tooltip": null,
+     "extraData": {},
+     "displayCount": 100,
+     "translateOptions": false,
+     "allowFreeText": false
+    },
+    {
+     "type": "multi_select",
+     "filterName": "work_location_option",
+     "title": "Location Type",
+     "options": [
+      {
+       "label": "Office",
+       "value": "office"
+      },
+      {
+       "label": "Remote",
+       "value": "remote"
+      }
+     ],
+     "tooltip": null,
+     "extraData": {},
+     "displayCount": 10,
+     "translateOptions": false,
+     "allowFreeText": false
+    }
+   ],
+   "allFilters": [
+    {
+     "type": "multi_select",
+     "filterName": "job_type",
+     "title": "Job Type",
+     "options": [
+      {
+       "label": "Regular Employee",
+       "value": "regular employee"
+      },
+      {
+       "label": "Intern (Fixed Term)",
+       "value": "intern (fixed term)"
+      },
+      {
+       "label": "Management",
+       "value": "management"
+      },
+      {
+       "label": "New College Graduate",
+       "value": "new college graduate"
+      },
+      {
+       "label": "Regular Employee (Fixed Term)",
+       "value": "regular employee (fixed term)"
+      },
+      {
+       "label": "Academic (Fixed Term)",
+       "value": "academic (fixed term)"
+      }
+     ],
+     "tooltip": null,
+     "extraData": {},
+     "displayCount": 10,
+     "translateOptions": false,
+     "allowFreeText": false
+    },
+    {
+     "type": "multi_select_suggest",
+     "filterName": "skills",
+     "title": "Skills",
+     "options": [
+      {
+       "label": "Artificial Intelligence",
+       "value": "Artificial Intelligence"
+      },
+      {
+       "label": "Python",
+       "value": "Python"
+      },
+      {
+       "label": "Teamwork",
+       "value": "Teamwork"
+      },
+      {
+       "label": "Debugging",
+       "value": "Debugging"
+      },
+      {
+       "label": "Algorithms",
+       "value": "Algorithms"
+      },
+      {
+       "label": "Deployments",
+       "value": "Deployments"
+      },
+      {
+       "label": "Simulations",
+       "value": "Simulations"
+      },
+      {
+       "label": "Computer Science",
+       "value": "Computer Science"
+      },
+      {
+       "label": "Linux",
+       "value": "Linux"
+      },
+      {
+       "label": "Architecture",
+       "value": "Architecture"
+      }
+     ],
+     "tooltip": null,
+     "extraData": {},
+     "displayCount": 10,
+     "translateOptions": false,
+     "allowFreeText": true
+    },
+    {
+     "type": "multi_select",
+     "filterName": "time_type",
+     "title": "Time Type",
+     "options": [
+      {
+       "label": "Full Time",
+       "value": "full time"
+      },
+      {
+       "label": "Part Time",
+       "value": "part time"
+      }
+     ],
+     "tooltip": null,
+     "extraData": {},
+     "displayCount": 10,
+     "translateOptions": false,
+     "allowFreeText": false
+    }
+   ]
+  },
+  "count": 2796,
+  "sortBy": "timestamp",
+  "appliedFilters": {},
+  "debug": {},
+  "savedSearchMetadata": {},
+  "resultsMetaData": {
+   "usedFuzzSearch": false,
+   "mocTitle": null
+  }
+ },
+ "metadata": null
+}

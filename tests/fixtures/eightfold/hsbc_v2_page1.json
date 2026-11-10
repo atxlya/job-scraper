@@ -1,0 +1,326 @@
+{
+ "positions": [
+  {
+   "id": 563774612097430,
+   "name": "Python, LLM, GenAI/Senior Consultant Specialist",
+   "posting_name": "Python, LLM, GenAI/Senior Consultant Specialist",
+   "location": "Pune, Maharashtra, India",
+   "locations": [
+    "Pune, Maharashtra, India",
+    "Hyderabad, Telangana, India"
+   ],
+   "hot": 1,
+   "department": "Technology",
+   "business_unit": "GCIO",
+   "t_update": 1794287746,
+   "t_create": 1786436463,
+   "ats_job_id": "55592",
+   "display_job_id": "55592",
+   "type": "ATS",
+   "id_locale": "55592-en_GB",
+   "job_description": "",
+   "locale": "en_GB",
+   "stars": 0.0,
+   "medallionProgram": null,
+   "location_flexibility": "flexible_within_country",
+   "work_location_option": "hybrid",
+   "canonicalPositionUrl": "https://portal.careers.hsbc.com/careers/job/563774612097430",
+   "isPrivate": false,
+   "latlongs": "18.5246091,73.8786239",
+   "custom_data": {
+    "location": "Pune, Maharashtra, India",
+    "brand": "HSBC",
+    "postedDate": null
+   }
+  },
+  {
+   "id": 563774612613190,
+   "name": "AVP PREMIER RELATIONSHIP MANAGER(Rajkot)",
+   "posting_name": "AVP PREMIER RELATIONSHIP MANAGER(Rajkot)",
+   "location": "Mumbai, Maharashtra, India",
+   "locations": [
+    "Mumbai, Maharashtra, India"
+   ],
+   "hot": 0,
+   "department": "Branch and Retail Banking",
+   "business_unit": "Intl Wealth & Premier Banking",
+   "t_update": 1794291184,
+   "t_create": 1794208240,
+   "ats_job_id": "66413",
+   "display_job_id": "66413",
+   "type": "ATS",
+   "id_locale": "66413-en_GB",
+   "job_description": "",
+   "locale": "en_GB",
+   "stars": 0.0,
+   "medallionProgram": null,
+   "location_flexibility": "flexible_within_country",
+   "work_location_option": "onsite",
+   "canonicalPositionUrl": "https://portal.careers.hsbc.com/careers/job/563774612613190",
+   "isPrivate": false,
+   "latlongs": "18.9582347,72.8319514",
+   "custom_data": {
+    "location": "Mumbai, Maharashtra, India",
+    "brand": "HSBC",
+    "postedDate": null
+   }
+  },
+  {
+   "id": 563774612603163,
+   "name": "Associate Director, Software Engineering Specialist",
+   "posting_name": "Associate Director, Software Engineering Specialist",
+   "location": "Pune, Maharashtra, India",
+   "locations": [
+    "Pune, Maharashtra, India"
+   ],
+   "hot": 0,
+   "department": "Technology",
+   "business_unit": "GCIO",
+   "t_update": 1794287744,
+   "t_create": 1793975924,
+   "ats_job_id": "66300",
+   "display_job_id": "66300",
+   "type": "ATS",
+   "id_locale": "66300-en_GB",
+   "job_description": "",
+   "locale": "en_GB",
+   "stars": 0.0,
+   "medallionProgram": null,
+   "location_flexibility": "flexible_within_country",
+   "work_location_option": "hybrid",
+   "canonicalPositionUrl": "https://portal.careers.hsbc.com/careers/job/563774612603163",
+   "isPrivate": false,
+   "latlongs": "18.5246091,73.8786239",
+   "custom_data": {
+    "location": "Pune, Maharashtra, India",
+    "brand": "HSBC",
+    "postedDate": null
+   }
+  },
+  {
+   "id": 563774612600314,
+   "name": "Vice President",
+   "posting_name": "Vice President",
+   "location": "Mumbai, Maharashtra, India",
+   "locations": [
+    "Mumbai, Maharashtra, India"
+   ],
+   "hot": 0,
+   "department": "Commercial Banking",
+   "business_unit": "Corp & Inst Banking",
+   "t_update": 1794114911,
+   "t_create": 1793958929,
+   "ats_job_id": "66277",
+   "display_job_id": "66277",
+   "type": "ATS",
+   "id_locale": "66277-en_GB",
+   "job_description": "",
+   "locale": "en_GB",
+   "stars": 0.0,
+   "medallionProgram": null,
+   "location_flexibility": null,
+   "work_location_option": "onsite",
+   "canonicalPositionUrl": "https://portal.careers.hsbc.com/careers/job/563774612600314",
+   "isPrivate": false,
+   "latlongs": "18.9582347,72.8319514",
+   "custom_data": {
+    "location": "Mumbai, Maharashtra, India",
+    "brand": "HSBC",
+    "postedDate": null
+   }
+  },
+  {
+   "id": 563774612597981,
+   "name": "Assistant Manager Sales and Distribution - Apprentice (12 Months)",
+   "posting_name": "Assistant Manager Sales and Distribution - Apprentice (12 Months)",
+   "location": "Mumbai, Maharashtra, India",
+   "locations": [
+    "Mumbai, Maharashtra, India"
+   ],
+   "hot": 0,
+   "department": "Asset and Wealth Management",
+   "business_unit": "Intl Wealth & Premier Banking",
+   "t_update": 1794198353,
+   "t_create": 1793910650,
+   "ats_job_id": "66160",
+   "display_job_id": "66160",
+   "type": "ATS",
+   "id_locale": "66160-en_GB",
+   "job_description": "",
+   "locale": "en_GB",
+   "stars": 0.0,
+   "medallionProgram": null,
+   "location_flexibility": null,
+   "work_location_option": "onsite",
+   "canonicalPositionUrl": "https://portal.careers.hsbc.com/careers/job/563774612597981",
+   "isPrivate": false,
+   "latlongs": "18.9582347,72.8319514",
+   "custom_data": {
+    "location": "Mumbai, Maharashtra, India",
+    "brand": "HSBC",
+    "postedDate": null
+   }
+  },
+  {
+   "id": 563774612597982,
+   "name": "Customer Service - Apprentice (12 Months)",
+   "posting_name": "Customer Service - Apprentice (12 Months)",
+   "location": "New Delhi, National Capital Territory, India",
+   "locations": [
+    "New Delhi, National Capital Territory, India"
+   ],
+   "hot": 0,
+   "department": "Asset and Wealth Management",
+   "business_unit": "Intl Wealth & Premier Banking",
+   "t_update": 1794197736,
+   "t_create": 1793909998,
+   "ats_job_id": "66158",
+   "display_job_id": "66158",
+   "type": "ATS",
+   "id_locale": "66158-en_GB",
+   "job_description": "",
+   "locale": "en_GB",
+   "stars": 0.0,
+   "medallionProgram": null,
+   "location_flexibility": null,
+   "work_location_option": "onsite",
+   "canonicalPositionUrl": "https://portal.careers.hsbc.com/careers/job/563774612597982",
+   "isPrivate": false,
+   "latlongs": "28.6139298,77.2088282",
+   "custom_data": {
+    "location": "New Delhi, National Capital Territory, India",
+    "brand": "HSBC",
+    "postedDate": null
+   }
+  },
+  {
+   "id": 563774612597980,
+   "name": "Manager Sales and Distribution",
+   "posting_name": "Manager Sales and Distribution",
+   "location": "Jalandhar, Punjab, India",
+   "locations": [
+    "Jalandhar, Punjab, India"
+   ],
+   "hot": 0,
+   "department": "Asset and Wealth Management",
+   "business_unit": "Intl Wealth & Premier Banking",
+   "t_update": 1794028513,
+   "t_create": 1793909320,
+   "ats_job_id": "66157",
+   "display_job_id": "66157",
+   "type": "ATS",
+   "id_locale": "66157-en_GB",
+   "job_description": "",
+   "locale": "en_GB",
+   "stars": 0.0,
+   "medallionProgram": null,
+   "location_flexibility": null,
+   "work_location_option": "onsite",
+   "canonicalPositionUrl": "https://portal.careers.hsbc.com/careers/job/563774612597980",
+   "isPrivate": false,
+   "latlongs": "31.3260152,75.57618289999999",
+   "custom_data": {
+    "location": "Jalandhar, Punjab, India",
+    "brand": "HSBC",
+    "postedDate": null
+   }
+  },
+  {
+   "id": 563774612597688,
+   "name": "Senior VP Business Development NRI",
+   "posting_name": "Senior VP Business Development NRI",
+   "location": "Mumbai, Maharashtra, India",
+   "locations": [
+    "Mumbai, Maharashtra, India"
+   ],
+   "hot": 0,
+   "department": "Branch and Retail Banking",
+   "business_unit": "Intl Wealth & Premier Banking",
+   "t_update": 1794028640,
+   "t_create": 1793901745,
+   "ats_job_id": "66153",
+   "display_job_id": "66153",
+   "type": "ATS",
+   "id_locale": "66153-en_GB",
+   "job_description": "",
+   "locale": "en_GB",
+   "stars": 0.0,
+   "medallionProgram": null,
+   "location_flexibility": null,
+   "work_location_option": "onsite",
+   "canonicalPositionUrl": "https://portal.careers.hsbc.com/careers/job/563774612597688",
+   "isPrivate": false,
+   "latlongs": "18.9582347,72.8319514",
+   "custom_data": {
+    "location": "Mumbai, Maharashtra, India",
+    "brand": "HSBC",
+    "postedDate": null
+   }
+  },
+  {
+   "id": 563774612597477,
+   "name": "CA Industrial Trainee",
+   "posting_name": "CA Industrial Trainee",
+   "location": "Mumbai, Maharashtra, India",
+   "locations": [
+    "Mumbai, Maharashtra, India"
+   ],
+   "hot": 0,
+   "department": null,
+   "business_unit": "Corp & Inst Banking",
+   "t_update": 1793942197,
+   "t_create": 1793895489,
+   "ats_job_id": "66149",
+   "display_job_id": "66149",
+   "type": "ATS",
+   "id_locale": "66149-en_GB",
+   "job_description": "",
+   "locale": "en_GB",
+   "stars": 0.0,
+   "medallionProgram": null,
+   "location_flexibility": null,
+   "work_location_option": "onsite",
+   "canonicalPositionUrl": "https://portal.careers.hsbc.com/careers/job/563774612597477",
+   "isPrivate": false,
+   "latlongs": "18.9582347,72.8319514",
+   "custom_data": {
+    "location": "Mumbai, Maharashtra, India",
+    "brand": "HSBC",
+    "postedDate": null
+   }
+  },
+  {
+   "id": 563774612596033,
+   "name": "Tech Production Support/Senior Consultant Specialist",
+   "posting_name": "Tech Production Support/Senior Consultant Specialist",
+   "location": "Pune, Maharashtra, India",
+   "locations": [
+    "Pune, Maharashtra, India"
+   ],
+   "hot": 0,
+   "department": "Technology",
+   "business_unit": "GCIO",
+   "t_update": 1794201332,
+   "t_create": 1793872789,
+   "ats_job_id": "66114",
+   "display_job_id": "66114",
+   "type": "ATS",
+   "id_locale": "66114-en_GB",
+   "job_description": "",
+   "locale": "en_GB",
+   "stars": 0.0,
+   "medallionProgram": null,
+   "location_flexibility": "flexible_within_country",
+   "work_location_option": "onsite",
+   "canonicalPositionUrl": "https://portal.careers.hsbc.com/careers/job/563774612596033",
+   "isPrivate": false,
+   "latlongs": "18.5246091,73.8786239",
+   "custom_data": {
+    "location": "Pune, Maharashtra, India",
+    "brand": "HSBC",
+    "postedDate": null
+   }
+  }
+ ],
+ "count": 1360
+}
