@@ -335,3 +335,18 @@ def test_degree_only_title_keeps_the_posting_quote(session):
     text = format_alert(j, c, warn)
     assert "⚠️ For Master's students only (from the title)" in text
     assert "⚠️ Check: “Must be enrolled at a US university”" in text
+
+
+def test_dashboard_link_when_configured(session):
+    c, s = make_source(session)
+    j = make_job(session, s, "1")
+    text = format_alert(j, c, None, dashboard_url="http://pi:8000/")
+    assert f'<a href="http://pi:8000/jobs/{j.id}">Dashboard</a>' in text
+    assert "Dashboard" not in format_alert(j, c, None)
+
+
+async def test_process_new_passes_dashboard_link(session, tg, channel):
+    c, s = make_source(session)
+    j = make_job(session, s, "1")
+    await process_new(session, channel, s, [j.id], T0, dashboard_url="http://pi:8000")
+    assert f"/jobs/{j.id}" in sent_texts(tg)[0]

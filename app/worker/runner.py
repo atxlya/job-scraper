@@ -57,6 +57,10 @@ def _raw_from_job(job: Job) -> RawJob:
     )
 
 
+def _dash(ctx: Ctx) -> str | None:
+    return getattr(ctx.settings, "dashboard_url", None)  # tests run with settings=None
+
+
 def _mismatch(found: int, total: int | None) -> bool:
     return total is not None and abs(found - total) > max(2, COUNT_TOLERANCE * total)
 
@@ -177,7 +181,9 @@ async def _run_source(ctx: Ctx, source_id: int, mode: RunKind) -> ScrapeRun:
     if run.status != "failed" and mode != "tracked":
         try:
             with ctx.session_factory() as s:
-                await process_new(s, ctx.channel, s.get(Source, source_id), new_ids, _now())
+                await process_new(
+                    s, ctx.channel, s.get(Source, source_id), new_ids, _now(), _dash(ctx)
+                )
                 s.commit()
         except Exception:  # noqa: BLE001 - owed alerts are retried next run
             log.exception("%s: alert step failed", source_id)
@@ -233,6 +239,6 @@ async def analysis_tick(ctx: Ctx) -> list[int]:
     )
     for job_id in ids:
         with ctx.session_factory() as s:
-            await refresh_after_analysis(s, ctx.channel, job_id, _now())
+            await refresh_after_analysis(s, ctx.channel, job_id, _now(), _dash(ctx))
             s.commit()
     return ids

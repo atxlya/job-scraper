@@ -1,0 +1,42 @@
+from datetime import UTC, datetime
+
+import pytest
+
+from app.core.eligibility import Eligibility, eligibility
+from app.core.models import Job, JobAnalysis
+
+T0 = datetime(2026, 11, 10, tzinfo=UTC)
+
+
+def job(title="Software Intern", state="pending"):
+    return Job(title=title, analysis_state=state)
+
+
+def analysis(e, quote=None):
+    return JobAnalysis(eligibility=e, eligibility_quote=quote, sections={}, created_at=T0)
+
+
+@pytest.mark.parametrize(
+    ("j", "a", "expected"),
+    [
+        (job(state="done"), analysis("ok"), Eligibility("ok", None, None, False, False)),
+        (
+            job(state="done"),
+            analysis("warn", "US students only"),
+            Eligibility("warn", None, "US students only", False, False),
+        ),
+        # A warning without its quote is not trusted (R1 rule): unclear, not a warning.
+        (job(state="done"), analysis("warn"), Eligibility("pending", None, None, False, True)),
+        (job(state="done"), analysis("unknown"), Eligibility("pending", None, None, False, True)),
+        (job(), None, Eligibility("pending", None, None, True, False)),
+        (job(state="failed"), None, Eligibility("pending", None, None, False, False)),
+        (
+            job("Software PhD Intern", "done"),
+            analysis("ok"),
+            Eligibility("warn", "PhD", None, False, False),
+        ),
+        (job("MBA Intern"), None, Eligibility("warn", "MBA", None, True, False)),
+    ],
+)
+def test_eligibility(j, a, expected):
+    assert eligibility(j, a) == expected

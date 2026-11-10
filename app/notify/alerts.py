@@ -13,9 +13,9 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.eligibility import eligibility
 from app.core.models import Alert, Company, Job, JobAnalysis, Source
 from app.notify.telegram import TelegramChannel, TelegramError
-from app.pipeline.classify import degree_only
 
 log = logging.getLogger(__name__)
 IST = ZoneInfo("Asia/Kolkata")
@@ -31,30 +31,27 @@ def _alertable(job: Job) -> bool:
     return job.is_internship is True and job.is_tech is True and job.state == "open"
 
 
-def _eligibility_line(job: Job, analysis: JobAnalysis | None) -> str:
-    if analysis is None:
-        if job.analysis_state == "pending":
-            return "🔍 Checking eligibility…"
-        return "❔ Eligibility not checked yet"
-    if analysis.eligibility == "ok":
-        return "✅ Eligible — nothing in the posting rules you out"
-    if analysis.eligibility == "warn" and analysis.eligibility_quote:
-        return f"⚠️ Check: “{_e(analysis.eligibility_quote)}”"
-    return "❔ Eligibility unclear — read the posting"
-
-
 def _eligibility_lines(job: Job, analysis: JobAnalysis | None) -> list[str]:
-    degree = degree_only(job.title)
-    if degree is None:
-        return [_eligibility_line(job, analysis)]
-    # The title alone rules out a Bachelor's student, whatever the analysis says.
-    lines = [f"⚠️ For {degree} students only (from the title)"]
-    if analysis is not None and analysis.eligibility == "warn" and analysis.eligibility_quote:
-        lines.append(f"⚠️ Check: “{_e(analysis.eligibility_quote)}”")
-    return lines
+    e = eligibility(job, analysis)
+    lines = []
+    if e.degree:
+        lines.append(f"⚠️ For {e.degree} students only (from the title)")
+    if e.quote:
+        lines.append(f"⚠️ Check: “{_e(e.quote)}”")
+    if lines:
+        return lines
+    if e.status == "ok":
+        return ["✅ Eligible — nothing in the posting rules you out"]
+    if e.checking:
+        return ["🔍 Checking eligibility…"]
+    if not e.unclear:
+        return ["❔ Eligibility not checked yet"]
+    return ["❔ Eligibility unclear — read the posting"]
 
 
-def format_alert(job: Job, company: Company, analysis: JobAnalysis | None) -> str:
+def format_alert(
+    job: Job, company: Company, analysis: JobAnalysis | None, dashboard_url: str | None = None
+) -> str:
     locs = job.locations or []
     where = ", ".join(locs[:3]) + (f" +{len(locs) - 3}" if len(locs) > 3 else "")
     if job.posted_at:
@@ -67,9 +64,16 @@ def format_alert(job: Job, company: Company, analysis: JobAnalysis | None) -> st
         f"📍 {_e(where) or 'Location not given'}",
         f"🗓 {posted}",
         *_eligibility_lines(job, analysis),
-        f'<a href="{_e(job.apply_url or job.url)}">Apply</a>',
+        _links(job, dashboard_url),
     ]
     return "\n".join(lines)
+
+
+def _links(job: Job, dashboard_url: str | None) -> str:
+    apply = f'<a href="{_e(job.apply_url or job.url)}">Apply</a>'
+    if not dashboard_url:
+        return apply
+    return f'{apply} · <a href="{_e(dashboard_url.rstrip("/"))}/jobs/{job.id}">Dashboard</a>'
 
 
 def format_group(rows: list[tuple[Job, Company]]) -> str:
@@ -109,6 +113,7 @@ async def process_new(
     source: Source,
     new_job_ids: list[int],
     now: datetime,
+    dashboard_url: str | None = None,
 ) -> None:
     company = session.get(Company, source.company_id)
     if not source.initial_load_done:
@@ -139,7 +144,8 @@ async def process_new(
             sent = [(j.id, message_id, True) for j in owed]
         else:
             for j in owed:
-                message_id = await channel.send(format_alert(j, company, _analysis(session, j.id)))
+                text = format_alert(j, company, _analysis(session, j.id), dashboard_url)
+                message_id = await channel.send(text)
                 sent.append((j.id, message_id, False))
     except TelegramError as e:
         log.warning("telegram send failed for %s: %s (will retry)", source.key, e)
@@ -150,7 +156,11 @@ async def process_new(
 
 
 async def refresh_after_analysis(
-    session: Session, channel: TelegramChannel | None, job_id: int, now: datetime
+    session: Session,
+    channel: TelegramChannel | None,
+    job_id: int,
+    now: datetime,
+    dashboard_url: str | None = None,
 ) -> None:
     if channel is None:
         return
@@ -159,7 +169,7 @@ async def refresh_after_analysis(
         return
     company = session.get(Company, job.company_id)
     alert = session.scalars(select(Alert).where(Alert.job_id == job_id)).first()
-    text = format_alert(job, company, _analysis(session, job_id))
+    text = format_alert(job, company, _analysis(session, job_id), dashboard_url)
     try:
         if alert is None:
             if _alertable(job):  # classified as a tech internship only after analysis
