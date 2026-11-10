@@ -8,3 +8,5 @@ __pycache__/
 .superpowers/
 .DS_Store
 backups/
+web/node_modules/
+web/dist/

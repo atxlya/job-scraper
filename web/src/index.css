@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Mockup A tokens, with dark equivalents (plan Global Constraints). */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --line: #e4e7ec;
+  --ink: #111827;
+  --muted: #5b6472;
+  --accent: #2f5bea;
+  --accent-hover: #1e3fb0;
+  --on-accent: #ffffff;
+  --ok-fg: #1e3fb0;
+  --ok-bg: #eef2fe;
+  --ok-bd: #b7c6f7;
+  --warn-fg: #8a3b00;
+  --warn-bg: #fff4e5;
+  --warn-bd: #f5c98b;
+  --chip: #f1f3f5;
+  --ring: #dce4fd;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0f1115;
+  --surface: #171a21;
+  --line: #2a2f3a;
+  --ink: #e6e8ec;
+  --muted: #9aa3b2;
+  --accent: #6e8ef5;
+  --accent-hover: #9db2f8;
+  --on-accent: #0f1115;
+  --ok-fg: #b7c6f7;
+  --ok-bg: #1b2442;
+  --ok-bd: #33467f;
+  --warn-fg: #f5c98b;
+  --warn-bg: #3a2610;
+  --warn-bd: #6b4518;
+  --chip: #222733;
+  --ring: #2b3a6b;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-ok-fg: var(--ok-fg);
+  --color-ok-bg: var(--ok-bg);
+  --color-ok-bd: var(--ok-bd);
+  --color-warn-fg: var(--warn-fg);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-bd: var(--warn-bd);
+  --color-chip: var(--chip);
+  --color-ring: var(--ring);
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* Sanitised posting HTML (plan D9). */
+.prose-posting p,
+.prose-posting ul,
+.prose-posting ol {
+  margin: 0 0 0.6em;
+}
+.prose-posting ul,
+.prose-posting ol {
+  padding-left: 1.2em;
+}
+.prose-posting ul {
+  list-style: disc;
+}
+.prose-posting ol {
+  list-style: decimal;
+}
+.prose-posting h2,
+.prose-posting h3,
+.prose-posting h4 {
+  font-weight: 600;
+  margin: 0.8em 0 0.3em;
+}
+.prose-posting a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.prose-posting table {
+  border-collapse: collapse;
+}
+.prose-posting td,
+.prose-posting th {
+  border: 1px solid var(--line);
+  padding: 4px 6px;
+}

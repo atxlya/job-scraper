@@ -1,8 +1,10 @@
 """HTTP API and dashboard. Start with: uvicorn app.api.main:create_app --factory"""
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse
 from sqlalchemy import func, select, text
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -15,9 +17,10 @@ from app.core.settings import Settings, get_settings
 from app.http.client import PoliteClient
 
 SESSION_DAYS = 30
+WEB_DIST = Path(__file__).resolve().parents[2] / "web" / "dist"
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None, web_dist: Path = WEB_DIST) -> FastAPI:
     settings = settings or get_settings()
     sf = make_session_factory(make_engine(settings.database_url))
     with sf() as s:
@@ -53,4 +56,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             last = s.scalar(select(func.max(ScrapeRun.finished_at)))
         return {"db": "ok", "last_run_at": last.isoformat() if last else None}
 
+    if (web_dist / "index.html").is_file():
+        _serve_web(app, web_dist.resolve())
     return app
+
+
+def _serve_web(app: FastAPI, dist: Path) -> None:
+    """The built React app: hashed assets cached forever, every other page gets index.html."""
+    index = dist / "index.html"
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def web(path: str) -> FileResponse:
+        if path == "api" or path.startswith("api/"):
+            raise HTTPException(404, "Not Found")
+        f = (dist / path).resolve()
+        if path and f.is_file() and f.is_relative_to(dist):
+            immutable = path.startswith("assets/")
+            cache = "public, max-age=31536000, immutable" if immutable else "no-cache"
+            return FileResponse(f, headers={"Cache-Control": cache})
+        if path.startswith("assets/"):
+            raise HTTPException(404, "Not Found")
+        return FileResponse(index, headers={"Cache-Control": "no-cache"})
