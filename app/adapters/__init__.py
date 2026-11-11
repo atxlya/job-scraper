@@ -4,6 +4,7 @@ from app.adapters import (  # noqa: F401
     eightfold,
     greenhouse,
     lever,
+    notice_page,
     oracle_hcm,
     rss,
     sitemap_partial,
