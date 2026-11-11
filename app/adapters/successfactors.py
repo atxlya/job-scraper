@@ -7,6 +7,7 @@ import re
 from datetime import UTC, datetime
 from urllib.parse import urljoin, urlsplit
 
+import httpx
 import pycountry
 from selectolax.lexbor import LexborHTMLParser as HTMLParser
 
@@ -16,6 +17,7 @@ from app.adapters.sitemap import read_urlset
 from app.adapters.text import slug_title
 from app.http.client import PoliteClient
 
+_MAX_HOPS = 5
 _ALPHA2 = re.compile(r"^[A-Z]{2}$")
 
 
@@ -45,12 +47,17 @@ class SuccessFactorsAdapter:
         return ListingResult(jobs=list(jobs.values()), reported_total=None, complete=mode == "full")
 
     async def fetch_detail(self, client: PoliteClient, cfg: dict, job: RawJob) -> RawJob | Gone:
-        resp = await client.get(job.url, follow_redirects=False)
-        if 300 <= resp.status_code < 400:
+        url = job.url
+        for _ in range(_MAX_HOPS + 1):
+            resp = await client.get(url, follow_redirects=False)
+            if not 300 <= resp.status_code < 400:
+                break
             location = resp.headers.get("Location", "")
             if urlsplit(location).path.startswith("/errorpage"):
                 return GONE
-            resp = await client.get(urljoin(job.url, location))
+            url = urljoin(url, location)
+        else:
+            raise httpx.TooManyRedirects(f"more than {_MAX_HOPS} redirects", request=resp.request)
         if resp.status_code in (404, 410):
             return GONE
         resp.raise_for_status()
@@ -75,9 +82,7 @@ def _parse(job: RawJob, html: str) -> RawJob:
         update={
             "title": title,
             "title_from_url": False,
-            "description_html": desc_node.html and desc_node.child.html
-            if False
-            else _inner(desc_node),
+            "description_html": _inner(desc_node),
             "posted_at": _posted(tree),
             "locations": locations,
             "country_codes": sorted(codes),

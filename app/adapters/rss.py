@@ -56,7 +56,7 @@ def _to_raw(item: ElementTree.Element) -> RawJob:
     if not f.get("title") or not f.get("link"):
         raise ParseError("rss: item without title or link")
     link = f["link"].split("?", 1)[0]
-    description = html.unescape(f.get("description", "")) if False else f.get("description", "")
+    description = f.get("description", "")
     m = _LOCATION.search(description)
     locations = [m.group(1).strip()] if m and m.group(1).strip() else []
     span = LexborHTMLParser(description).css_first("span#spandesc")

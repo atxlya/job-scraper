@@ -157,6 +157,30 @@ async def test_missing_job_is_gone_without_fetching_error_page(client, mock):
     assert not err.called
 
 
+async def test_second_hop_to_error_page_is_gone_without_fetching_it(client, mock):
+    old = "https://careers.wipro.com/job/Gone-Job/999/"
+    mid = "https://careers.wipro.com/job/Gone-Job/999-en_US/"
+    mock.get(old).mock(
+        return_value=httpx.Response(302, headers={"Location": "/job/Gone-Job/999-en_US/"})
+    )
+    mock.get(mid).mock(
+        return_value=httpx.Response(302, headers={"Location": "/errorpage/?errortype=Exception"})
+    )
+    err = mock.get(url__regex=r"https://careers\.wipro\.com/errorpage/.*").mock(
+        return_value=httpx.Response(200, text="error")
+    )
+    out = await SuccessFactorsAdapter().fetch_detail(client, {}, listed("", old))
+    assert out is GONE
+    assert not err.called
+
+
+async def test_endless_redirects_raise(client, mock):
+    url = "https://careers.wipro.com/job/Loop/999/"
+    mock.get(url).mock(return_value=httpx.Response(302, headers={"Location": url}))
+    with pytest.raises(httpx.TooManyRedirects):
+        await SuccessFactorsAdapter().fetch_detail(client, {}, listed("", url))
+
+
 @pytest.mark.parametrize("status", [404, 410])
 async def test_404_and_410_are_gone(client, mock, status):
     url = "https://careers.wipro.com/job/Gone-Job/999/"

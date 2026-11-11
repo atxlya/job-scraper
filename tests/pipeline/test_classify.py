@@ -37,6 +37,13 @@ def test_classify_titles(title, expected):
     assert classify(job(title), KW) == Classification(*expected)
 
 
+def test_notice_with_engg_abbreviation_is_tech():
+    title = (
+        "DGRE, Chandigarh invites application for Paid Internship for Engg/Science UG/PG Students"
+    )
+    assert classify(job(title, notice=True), KW) == Classification(True, True)
+
+
 def test_platform_intern_flag():
     c = classify(job("Associate – Payments", intern=True), KW)
     assert c.is_internship is True and c.is_tech is None

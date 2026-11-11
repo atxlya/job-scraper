@@ -88,6 +88,17 @@ async def test_missing_redirect_is_gone(client, mock):
     assert not home.called
 
 
+async def test_other_redirect_is_followed(client, mock):
+    old = f"{BASE}/old-slug"
+    mock.get(old).mock(
+        return_value=httpx.Response(302, headers={"Location": f"{BASE}/java-developer"})
+    )
+    mock.get(f"{BASE}/java-developer").mock(return_value=html("job"))
+    listed = RawJob(external_id="old-slug", title="x", url=old)
+    job = await TataElxsiAdapter().fetch_detail(client, {}, listed)
+    assert job.title == "JAVA Developer"
+
+
 async def test_home_page_raises_parse_error(client, mock):
     mock.get(BASE, params={"page": "1"}).mock(return_value=html("home"))
     with pytest.raises(ParseError):

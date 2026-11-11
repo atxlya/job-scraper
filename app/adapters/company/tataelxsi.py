@@ -1,9 +1,10 @@
 """Tata Elxsi: an HTML job board, 8 cards a page, newest first. A missing job answers with a
-redirect to the home page.
+redirect to the home page; any other redirect is followed.
 """
 
 import re
 from datetime import UTC, datetime
+from urllib.parse import urljoin, urlsplit
 
 from selectolax.lexbor import LexborHTMLParser as HTMLParser
 
@@ -32,7 +33,10 @@ class TataElxsiAdapter:
     async def fetch_detail(self, client: PoliteClient, cfg: dict, job: RawJob) -> RawJob | Gone:
         resp = await client.get(job.url, follow_redirects=False)
         if 300 <= resp.status_code < 400:
-            return GONE
+            location = urljoin(job.url, resp.headers.get("Location", ""))
+            if urlsplit(location).path in ("", "/"):
+                return GONE
+            resp = await client.get(location)
         resp.raise_for_status()
         tree = HTMLParser(resp.text)
         if tree.css_first("div.jbpam") is None:
