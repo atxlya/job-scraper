@@ -218,11 +218,57 @@ def _cdac_title(link, text: str) -> str:
     return text
 
 
-LIST_URL: dict[str, str] = {"drdo": DRDO_URL, "isro": ISRO_URL, "cdac": CDAC_URL}
+# ---- BARC ----
+
+BARC_URL = "https://www.barc.gov.in/careers/recruitment.html"
+_BARC_HEAD = ["Advertisement No.", "Title", "Last Date", "Details"]
+
+
+def parse_barc(page: str) -> list[RawJob]:
+    tree = HTMLParser(page)
+    table = next(
+        (t for t in tree.css("table") if [_clean(h.text()) for h in t.css("th")] == _BARC_HEAD),
+        None,
+    )
+    if table is None:
+        raise ParseError("notice_page barc: no vacancy table")
+    jobs = []
+    for row in table.css("tbody tr"):
+        cells = row.css("td")
+        link = cells[3].css_first("a[href]") if len(cells) == 4 else None
+        title = _barc_title(cells[1]) if link else ""
+        if not title:
+            raise ParseError("notice_page barc: incomplete vacancy row")
+        url = urljoin(BARC_URL, link.attributes["href"])
+        jobs.append(
+            _notice(
+                external_id=urlsplit(url).path.rsplit("/", 1)[-1],
+                title=title,
+                url=url,
+                apply_url=url,
+                advert_no=_node_text(cells[0]),
+                last_date=_node_text(cells[2]),
+            )
+        )
+    return jobs
+
+
+def _barc_title(cell) -> str:
+    """The cell's text up to the first <br> or <b>; what follows is the form download link."""
+    parts = []
+    node = cell.child
+    while node is not None and node.tag not in ("br", "b"):
+        parts.append(node.text())
+        node = node.next
+    return _clean("".join(parts))
+
+
+LIST_URL: dict[str, str] = {"drdo": DRDO_URL, "isro": ISRO_URL, "cdac": CDAC_URL, "barc": BARC_URL}
 PARSERS: dict[str, Callable[[str], list[RawJob]]] = {
     "drdo": parse_drdo,
     "isro": parse_isro,
     "cdac": parse_cdac,
+    "barc": parse_barc,
 }
 # Sites whose detail page is fetched. CDAC and BARC link the PDF in the list.
 DETAILS: dict[str, Callable[[RawJob, str], RawJob | Gone]] = {

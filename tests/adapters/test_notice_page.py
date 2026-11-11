@@ -166,3 +166,31 @@ async def test_cdac_detail_makes_no_request(client, mock):
 async def test_cdac_missing_marker_raises_parse_error(client, mock):
     with pytest.raises(ParseError):
         await listing(client, mock, "cdac", "barc_list")
+
+
+# ---- BARC ----
+
+
+async def test_barc_parses_table(client, mock):
+    res = await listing(client, mock, "barc", "barc_list")
+    assert [j.external_id for j in res.jobs] == [f"vacancy{n}.pdf" for n in range(24, 29)]
+    job = next(j for j in res.jobs if j.external_id == "vacancy27.pdf")
+    assert job.title == "Walk-in-Interview for the post of Radiographer"
+    assert job.url == job.apply_url == "https://www.barc.gov.in/careers/vacancy27.pdf"
+    assert "MD" in job.description_html
+    assert "16-Nov-2026" in job.description_html
+    assert job.platform_flags == {"notice": True}
+    assert all("vacancyform" not in j.url for j in res.jobs)
+
+
+async def test_barc_detail_makes_no_request(client, mock):
+    res = await listing(client, mock, "barc", "barc_list")
+    mock.reset()
+    out = await NoticePageAdapter().fetch_detail(client, {"site": "barc"}, res.jobs[0])
+    assert out == res.jobs[0]
+    assert mock.calls.call_count == 0
+
+
+async def test_barc_missing_table_raises_parse_error(client, mock):
+    with pytest.raises(ParseError):
+        await listing(client, mock, "barc", "cdac_list")
