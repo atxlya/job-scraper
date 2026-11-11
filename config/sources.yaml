@@ -11,7 +11,9 @@
 #   amazon:     queries (search.json params)   apple: locale, team
 #   amd:        intern_category            capgemini: country_code
 #   zerodha:    allow_empty (any source may set it: 0 jobs is then healthy)
-#   atlassian, ibm, phonepe, swiggy: no keys
+#   successfactors: host       rss: url       notice_page: site (drdo|isro|cdac|barc)
+#   sitemap_partial: sitemap, job_url (regex with `id` and `slug` groups)
+#   atlassian, ibm, phonepe, swiggy, tataelxsi: no keys
 
 companies:
   # ---------------------------------------------------------------- original three
@@ -372,6 +374,55 @@ companies:
     name: Zerodha
     sources: [{key: zerodha, adapter: zerodha, config: {allow_empty: true}}]
 
+  - slug: wipro
+    name: Wipro
+    sources: [{key: wipro, adapter: successfactors, config: {host: careers.wipro.com}}]
+  - slug: hcltech
+    name: HCLTech
+    sources: [{key: hcltech, adapter: successfactors, config: {host: careers.hcltech.com}}]
+  - slug: ey
+    name: EY
+    sources: [{key: ey, adapter: successfactors, config: {host: careers.ey.com}}]
+  - slug: deloitte-india
+    name: Deloitte India
+    sources:
+      - {key: deloitte-india, adapter: successfactors, config: {host: southasiacareers.deloitte.com}}
+  - slug: zoho
+    name: Zoho
+    sources:
+      - {key: zoho, adapter: rss, config: {url: "https://careers.zohocorp.com/jobs/Careers/rss"}}
+  - slug: tataelxsi
+    name: Tata Elxsi
+    sources: [{key: tataelxsi, adapter: tataelxsi, config: {}}]
+  - slug: drdo
+    name: DRDO
+    sources: [{key: drdo, adapter: notice_page, config: {site: drdo, allow_empty: true}}]
+  - slug: isro
+    name: ISRO
+    sources: [{key: isro, adapter: notice_page, config: {site: isro, allow_empty: true}}]
+  - slug: cdac
+    name: CDAC
+    sources: [{key: cdac, adapter: notice_page, config: {site: cdac, allow_empty: true}}]
+  - slug: barc
+    name: BARC
+    sources: [{key: barc, adapter: notice_page, config: {site: barc, allow_empty: true}}]
+  - slug: cognizant
+    name: Cognizant
+    sources:
+      - key: cognizant
+        adapter: sitemap_partial
+        config:
+          sitemap: "https://careers.cognizant.com/sitemap.xml"
+          job_url: '^https://careers\.cognizant\.com/global-en/jobs/(?P<id>\d+)/(?P<slug>[^/]+)/$'
+  - slug: sap
+    name: SAP
+    sources:
+      - key: sap
+        adapter: sitemap_partial
+        config:
+          sitemap: "https://jobs.sap.com/en/jobs/sitemap.xml"
+          job_url: '^https://jobs\.sap\.com/en/jobs/(?P<id>\d+)/(?P<slug>[^/]+)/$'
+
   # ---------------------------------------------------------------- not supported
   - {slug: meta, name: Meta, supported: false,
      reason: "metacareers.com robots.txt says automated collection is prohibited without written permission"}
@@ -399,3 +450,7 @@ companies:
      reason: "SmartRecruiters API robots.txt allows only LinkedInBot"}
   - {slug: servicenow, name: ServiceNow, supported: false,
      reason: "SmartRecruiters API robots.txt allows only LinkedInBot"}
+  - {slug: siemens, name: Siemens, supported: false,
+     reason: "Avature RSS feed is a fixed list of 20 old jobs; the HTML search shows 6 jobs a page"}
+  - {slug: uber, name: Uber, supported: false,
+     reason: "sitemap lists job IDs only (no titles); job pages are behind Cloudflare"}

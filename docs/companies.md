@@ -88,26 +88,32 @@ Built in R2b ([plan](superpowers/plans/2026-11-11-r2b-adapters.md), [notes](R2b-
 
 **SmartRecruiters job pages.** `jobs.smartrecruiters.com/{Company}/{id}-{slug}` with `Accept: application/json` returns the posting as JSON (`jobTitle`, `content.sections`, `postedDate`, `employmentType`). That host has no robots.txt; a removed posting answers 404 (HTML). The API host `api.smartrecruiters.com` stays off limits.
 
-## R3 — +14 (57 total)
+## R3 — +12 (55 total)
 
-| Company | Adapter | Source details |
-|---|---|---|
-| Wipro | SuccessFactors sitemap | `careers.wipro.com/sitemap.xml` + schema.org microdata on job pages (`/services/` is disallowed) |
-| HCLTech | SuccessFactors sitemap | `careers.hcltech.com/sitemap.xml` |
-| EY | SuccessFactors sitemap | `careers.ey.com` sitemap / HTML `/search/` |
-| Deloitte India | SuccessFactors sitemap | `southasiacareers.deloitte.com` sitemap |
-| Siemens | RSS (Avature) | `jobs.siemens.com/en_US/externaljobs/SearchJobs/feed/` |
-| Zoho | RSS | `careers.zohocorp.com/jobs/Careers/rss` |
-| Tata Elxsi | notice page (HTML list) | `tataelxsi.com/careers/job-openings?page=1..N` |
-| DRDO | notice page | `drdo.gov.in/drdo/en/offerings/vacancies` (+ `/archive`) |
-| ISRO | notice page | `isro.gov.in/Careers.html` (compare the set of `*Recruitment*.html` links) |
-| CDAC | notice page | `cdac.in/index.aspx?id=current_jobs` + PDFs (careers.cdac.in has a broken TLS chain) |
-| BARC | notice page | `barc.gov.in/careers/recruitment.html` + PDFs |
-| Cognizant | partial (sitemap) | `careers.cognizant.com` sitemap (≈3.3k jobs); job pages behind Cloudflare, so title + link only |
-| Uber | partial (sitemap) | `jobs.uber.com/en/jobs/sitemap.xml`; job pages return 403 |
-| SAP | partial (sitemap) | `jobs.sap.com/en/jobs/sitemap.xml`; pages behind Cloudflare; robots disallows `?q=` |
+Checked live on 2026-11-11. "Jobs" is what the full-mode live check read.
 
-## R4 — +7 (64 total), Playwright
+| Company | Adapter | Source details | Jobs |
+|---|---|---|---|
+| Wipro | SuccessFactors sitemap | `careers.wipro.com/sitemap.xml`. The search page is filled by script from `/services/` (robots.txt disallows it), so the sitemap is the only listing. Titles are guessed from the URL slug; the real title and description come from the job page's schema.org microdata, fetched only for possible tech internships | 7,070 |
+| HCLTech | SuccessFactors sitemap | `careers.hcltech.com/sitemap.xml`; same script-only search as Wipro | 15,094 |
+| EY | SuccessFactors sitemap | `careers.ey.com/sitemap.xml`. It also lists `/sgv/job/` and `/eylaw_at/job/` URLs, which are kept | 8,934 |
+| Deloitte India | SuccessFactors sitemap | `southasiacareers.deloitte.com/sitemap.xml`; its search reports "of 1921" and the sitemap matched at planning time | 1,928 |
+| Zoho | `rss` (Zoho Recruit feed) | `careers.zohocorp.com/jobs/Careers/rss`. `pubDate` ends in `IST`, read as +05:30. `?source=RSS` is stripped from links. Job pages are rendered by script and not fetched | 9 |
+| Tata Elxsi | `company/tataelxsi` | `tataelxsi.com/careers/job-openings?page=1..11`: cards with title, locations, date; detail page has the description and an Apply link. Page 11 has cards with an empty date (posted_at is empty) | 83 |
+| DRDO | notice page | `drdo.gov.in/drdo/en/offerings/vacancies`. Notice links are `http://`, rewritten to `https://`. The PDF link is read from each notice page | 9 |
+| ISRO | notice page | `isro.gov.in/Careers.html`: one notice per `*Recruitment*.html` page, titled by its first announcement | 17 |
+| CDAC | notice page | `cdac.in/index.aspx?id=current_jobs`. Links to `careers.cdac.in` (broken TLS chain) are never fetched. The Chennai notice is now inside an HTML comment, so it isn't read | 32 |
+| BARC | notice page | `barc.gov.in/careers/recruitment.html`: one table row per PDF | 5 |
+| Cognizant | partial (sitemap) | `careers.cognizant.com/sitemap.xml`, `global-en` job URLs only. The sitemap repeats every job under 21 locales. 2,091 `global-en` jobs when probed (companies.md earlier said about 3.3k, which counted all locales); 2,085 unique when the live check ran. Job pages are behind Cloudflare, so title (from the slug) and link only | 2,085 |
+| SAP | partial (sitemap) | `jobs.sap.com/en/jobs/sitemap.xml`; job pages behind Cloudflare, robots.txt disallows `?q=` | 454 |
+
+"Not found" answers: SuccessFactors answers a missing job with `302` to `/errorpage/?errortype=Exception` (robots.txt disallows `/error`, so it is never fetched; the redirect itself means gone). ISRO answers a removed recruitment page with 404. Tata Elxsi redirects a missing job (any 3xx) and counts it as gone. DRDO answers 200 for a missing notice, so a page whose title is just the slug counts as gone. The sitemap, RSS and listing-only sources have no per-job lookup.
+
+Notice sources set `allow_empty: true`, since a government page with no current notices is normal. PDFs are linked, never downloaded.
+
+**Zoho robots.txt** (`careers.zohocorp.com/robots.txt`) has `User-agent: *`, then `Allow: /jobs`, `Allow: /jobs/` and `Allow: /jobs/*`, and ends with `Disallow: /`. So the feed under `/jobs/` is allowed and everything else is not.
+
+## R4 — +7 (62 total), Playwright
 
 | Company | Site | Platform |
 |---|---|---|
@@ -142,6 +148,8 @@ These are not built. Check them manually.
 | Bosch | SmartRecruiters API robots.txt allows only LinkedInBot |
 | ServiceNow | SmartRecruiters API robots.txt allows only LinkedInBot |
 | Meta | metacareers.com robots.txt opens with a notice that automated collection is prohibited without written permission (its rules alone would allow job pages) |
+| Siemens | Avature RSS feed is a fixed list of 20 old jobs (the same 20 items, 2018-2021, whatever the paging, sort or keyword parameters); the sitemap has no job URLs; the HTML search shows 6 jobs a page; a job page is 1.2 MB |
+| Uber | `jobs.uber.com/en/jobs/sitemap.xml` lists 811 job IDs with no titles (`/en/jobs/{id}/`); job pages answer 403 "Just a moment…" (Cloudflare) |
 | Goldman Sachs | higher.gs.com's `roleSearch` API works, but has no internships (`EARLY_CAREER` = 6 call-centre and analyst roles on 2026-11-11); the campus internship portal hasn't been found |
 
 Possible later revisit: SmartRecruiters' public job pages are now read as JSON for PhonePe and Swiggy (see R2). A company's job list on `jobs.smartrecruiters.com/{Company}` might work the same way, which could move Freshworks, Bosch and ServiceNow back to automated.

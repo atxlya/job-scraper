@@ -4,7 +4,7 @@ Agreed on 2026-11-10. This is the source of truth for what we are building. Per-
 
 ## 1. What it does
 
-A service running 24/7 on a Raspberry Pi 5. It reads the official careers sites of 64 companies, stores every job it finds, and sends a Telegram alert for each new **tech internship**, including an eligibility check for a student based in **India**. A dashboard, reachable from anywhere through Tailscale, is used to browse jobs, tag them (Liked / Applied / Dismissed) and see whether each scraper is healthy.
+A service running 24/7 on a Raspberry Pi 5. It reads the official careers sites of 62 companies, stores every job it finds, and sends a Telegram alert for each new **tech internship**, including an eligibility check for a student based in **India**. A dashboard, reachable from anywhere through Tailscale, is used to browse jobs, tag them (Liked / Applied / Dismissed) and see whether each scraper is healthy.
 
 The user is a B.Tech CSE student looking for internships. Graduation year does not matter.
 
@@ -16,7 +16,7 @@ The user is a B.Tech CSE student looking for internships. Graduation year does n
 - Getting around bot protection (Cloudflare/Akamai challenges, WAFs) or ignoring robots.txt.
 - Email and Discord alerts (the alert channel is pluggable, so they can be added later).
 - A full analytics page.
-- The 14 unsupported companies listed in [companies.md](companies.md#not-supported).
+- The 16 unsupported companies listed in [companies.md](companies.md#not-supported).
 
 ## 3. Scraping
 
@@ -90,7 +90,7 @@ Free-tier inputs may be used by Google to improve its products. This is acceptab
 - **Bursts:** more than 10 new internships in one run are sent as one grouped message.
 - **No repeats:** each job gets at most one alert, even if it closes and reopens (the `alerts` table has a unique key on the job).
 - **Government notices:** an alert is sent only when the notice title looks internship-like (intern / trainee / apprentice / JRF / project / summer / fellowship), with Gemini deciding unclear cases. The PDF link is included.
-- **Partial sources** (Cognizant, Uber, SAP): an alert is sent when the title looks like a tech internship, marked "details unavailable — open link".
+- **Partial sources** (Cognizant, SAP): an alert is sent when the title looks like a tech internship, marked "details unavailable — open link".
 - **Scraper health:** a warning is sent when a source fails 3 runs in a row or its job count drops by more than 50%. At most one warning per source per day, plus a "recovered" message.
 
 ## 7. Dashboard
@@ -160,7 +160,7 @@ docs/
 |---|---|---|
 | **R1** | Whole pipeline (DB, rules, Gemini, Telegram, worker, Docker) on Google, NVIDIA, Barclays; Workday + Eightfold + Oracle HCM adapters | 28 |
 | **R2** | Dashboard (after mockups); Lever, Greenhouse and the remaining company-specific JSON adapters | 43 |
-| **R3** | SuccessFactors sitemaps, RSS, government/notice pages, partial sources | 57 |
-| **R4** | Headless (Playwright) sites | 64 |
+| **R3** | SuccessFactors sitemaps, RSS, government/notice pages, partial sources | 55 |
+| **R4** | Headless (Playwright) sites | 62 |
 
 Each release is checked against the live sites before the next one starts. Development and testing happen on the Mac, then the same Compose stack is deployed to the Pi.

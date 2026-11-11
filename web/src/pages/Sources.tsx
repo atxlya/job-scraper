@@ -29,6 +29,11 @@ const PLATFORM: Record<string, string> = {
   phonepe: "PhonePe (own site)",
   swiggy: "Swiggy (own site)",
   zerodha: "Zerodha (own site)",
+  successfactors: "SuccessFactors",
+  rss: "RSS feed",
+  notice_page: "Notice page",
+  sitemap_partial: "Sitemap (titles only)",
+  tataelxsi: "Tata Elxsi (own site)",
 };
 
 export function Sources() {
