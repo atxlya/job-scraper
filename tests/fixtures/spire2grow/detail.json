@@ -1,0 +1,71 @@
+{
+ "id": "r_dfc6aebc4d0230ed86366bd4fc29822e",
+ "displayId": "7093610092",
+ "workspaceId": "MYNTRA-93as3",
+ "jobTitle": "Technical Lead Backend - Artificial Intelligence",
+ "requiredExperienceInMonths": {
+  "from": 72,
+  "to": 120
+ },
+ "jobType": "HYBRID",
+ "skills": [
+  {
+   "skill": "artificial intelligence",
+   "isMandatory": true,
+   "reqId": "r_dfc6aebc4d0230ed86366bd4fc29822e"
+  },
+  {
+   "skill": "architecture",
+   "isMandatory": true,
+   "reqId": "r_dfc6aebc4d0230ed86366bd4fc29822e"
+  },
+  {
+   "skill": "deployment",
+   "isMandatory": true,
+   "reqId": "r_dfc6aebc4d0230ed86366bd4fc29822e"
+  }
+ ],
+ "jobLocation": [
+  {
+   "city": "Bangalore",
+   "state": "Karnataka",
+   "country": "India",
+   "fqLocationName": "Bangalore, Karnataka, India",
+   "cityCode": "Bangalore",
+   "stateCode": "Karnataka",
+   "countryCode": "India",
+   "geoCode": {
+    "lat": 12.9715987,
+    "lon": 77.5945627
+   },
+   "originalCityName": "MYNHQ",
+   "originalStatename": "Karnataka",
+   "originalCountryName": "India"
+  }
+ ],
+ "requiredEducation": [],
+ "hotJob": {
+  "isHot": false,
+  "markedOn": 1794378650000
+ },
+ "departmentName": "SF (F1216)",
+ "employmentType": "FULL_TIME",
+ "jobPosting": {
+  "startDate": 1794378650000,
+  "endDate": 1799562650000,
+  "status": "ACTIVE"
+ },
+ "createdOn": 1794378755000,
+ "updatedOn": 1794378755000,
+ "jobDescription": "<b><p>At Myntra, we are building a next-generation AI-native platform that fundamentally changes how software is developed, maintained, and optimized. Our team operates at the intersection of distributed systems, developer tooling, and applied machine learning. We are creating an ecosystem of autonomous coding and operational agents capable of seamlessly integrating into engineering workflows from writing code to triaging live production incidents.</p><h3>The Role</h3><p>We are seeking a highly hands-on Technical Lead to architect our core agentic infrastructure. In this role, you will go beyond basic API wrappers to build the deep foundational systems that make autonomous agents reliable at scale. You will own the agent evaluation harness, design complex context-assembly pipelines, and build out the Skill Library that safely steers LLMs toward accurate, deterministic outcomes.</p><p>You should be a systems-thinker who deeply understands how Large Language Models operate under the hood, and who has a proven track record of bringing specialized agents to production. You will lead by example, writing foundational code while guiding a team of top-tier engineers.</p><h3>What You Will Do</h3><ul><li><p>Design the Agent Harness &amp; Infrastructure: Architect and optimize the execution and evaluation harnesses for our agents. You will build the robust sandboxing, tracing, and benchmarking systems required to test agent reliability, latency, and tool-use accuracy before they hit production.</p></li><li><p>Architect Dynamic Context Systems: Design the data pipelines and retrieval architectures that build rich, real-time context for our agents. This includes integrating codebase structures (ASTs, dependency graphs), operational telemetry, and historical logs into manageable context windows.</p></li><li><p>Build Production-Grade Agents: Design and implement intelligent agents capable of understanding codebases, generating code, self-debugging, and executing complex software engineering tasks.</p></li><li><p>Develop &amp; Steer Agent \"Skills\": Design the centralized \"Skill Library\" a suite of modular, strictly typed tools and APIs. You will implement the guardrails and steering mechanisms that force LLMs to use these skills predictably, minimizing hallucinations and infinite loops.</p></li><li><p>LLM Optimization &amp; Deep Tuning: Deeply analyze LLM behavior to optimize multi-agent orchestration. You will utilize advanced prompting, fine-tuning, state management, and cognitive architectures (e.g., ReAct, Plan-and-Solve) to improve agent reasoning.</p></li><li><p>Model Integration &amp; Optimization: Integrate various foundation models (OpenAI, Anthropic, open-source models like Llama 3). Optimize for latency, context window management, and cost-efficiency using advanced prompting, RAG, and fine-tuning techniques.</p></li><li><p>Technical Leadership: Drive technical decision-making, establish engineering best practices, and mentor a high-performing team of software and AI engineers.</p></li></ul><h3>Minimum Qualifications</h3><ul><li><p>Education &amp; Experience: 6 to 8 years of software engineering experience, with at least 1-2 years leading complex, high-impact technical projects or teams.</p></li><li><p>Programming Mastery: Expert-level proficiency in Python (and preferably Go, C++, or Java), with a strong track record of writing scalable, production-grade systems.</p></li><li><p>Systems Design: Strong background in distributed systems, microservices, and building secure, scalable backend architectures.</p></li></ul><ul><li><p>Agentic &amp; AI-Native Knowledge:</p></li><ul><li><p>Deep understanding of agentic architectures (ReAct, Plan-and-Solve, LLM Compiler, etc.).</p></li><li><p>Strong grasp of LLM primitives: prompt engineering, RAG (Retrieval-Augmented Generation), vector databases (e.g., Pinecone, Weaviate, Qdrant), and semantic search.</p></li><li><p>Hands-on experience building and deploying LLM-backed applications, specifically utilizing agentic workflows, function calling/tool use, and stateful multi-agent systems.</p></li></ul><li><p>Problem Solving: A strong hacker mentality with a rigorous engineering mindset capable of bridging the gap between experimental AI research and reliable production software.</p></li></ul><h3>Preferred Qualifications (What will make you stand out)</h3><ul><li><p>Specialized Agent Deployment: You have successfully built and deployed operational agents in a previous role (e.g., On-Call Agents for PagerDuty/Datadog integration, Performance Analysis Agents, or autonomous Code-Gen/Debugging agents).</p></li><li><p>Deep Harness Expertise: You have built custom LLM evaluation frameworks or have deep experience with tools like LangSmith, OpenAI Evals, or prompt-tracking harnesses to measure and improve agent drift.</p></li><li><p>Context Engineering: Advanced knowledge of context-window optimization, Knowledge Graphs, vector databases, and Retrieval-Augmented Generation (RAG) applied to highly technical data (codebases, logs, metrics).</p></li><li><p>Steering &amp; Guardrails: Experience developing constrained execution environments and programmatic guardrails that safely steer non-deterministic models into predictable software workflows.</p></li></ul><h3>Why Join Us?</h3><ul><li><p>Impact: You will be establishing the architectural foundation for an entire platform of autonomous workers.</p></li><li><p>Engineering Culture: We value deep technical rigor, fast execution, and a \"show, don't tell\" hacker mentality.</p></li></ul><br></b>",
+ "aboutCompany": "<b>Who are we?</b><br><br> <p>Myntra is India’s leading fashion and lifestyle platform, where technology meets creativity. As pioneers in fashion e-commerce, we’ve always believed in disrupting the ordinary.</p> <p>We thrive on a shared passion for fashion, a drive to innovate to lead, and an environment that empowers each one of us to pave our own way. We’re bold in our thinking, agile in our execution, and collaborative in spirit.<br>Here, we create MAGIC by inspiring vibrant and joyous self-expression and expanding fashion possibilities for India, while staying true to what we believe in.</p> <p>We believe in taking bold bets and changing the fashion landscape of India. We are a company that is constantly evolving into newer and better forms and we look for people who are ready to evolve with us.<br>From our humble beginnings as a customization company in 2007 to being technology and fashion pioneers today, Myntra is going places and we want you to take part in this journey with us.</p> <p>Working at Myntra is challenging but fun - we are a young and dynamic team, firm believers in meritocracy, believe in equal opportunity, encourage intellectual curiosity and empower our teams with the right tools, space, and opportunities.</p>\n",
+ "jobStatus": {
+  "statusDisplay": "Open",
+  "statusCode": "OPEN"
+ },
+ "fcpr": {
+  "id": null,
+  "roleSkill": null,
+  "jobFamily": null
+ }
+}

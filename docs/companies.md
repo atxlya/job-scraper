@@ -113,19 +113,22 @@ Notice sources set `allow_empty: true`, since a government page with no current 
 
 **Zoho robots.txt** (`careers.zohocorp.com/robots.txt`) has `User-agent: *`, then `Allow: /jobs`, `Allow: /jobs/` and `Allow: /jobs/*`, and ends with `Disallow: /`. So the feed under `/jobs/` is allowed and everything else is not.
 
-## R4 — +7 (62 total), Playwright
+## R4 — +6 (61 total), plain HTTP
 
-| Company | Site | Platform |
-|---|---|---|
-| Tech Mahindra | `careers.techmahindra.com/CurrentOpportunity.aspx` | custom ASP.NET |
-| LTIMindtree (LTM) | `ltm.com/careers` → `ltm.ripplehire.com` | RippleHire |
-| Myntra | `jobs.myntra.com/home` | Spire2Grow (Flutter) |
-| ShareChat | `sharechat.mynexthire.com/employer/jobs` | MyNextHire |
-| Urban Company | `careers.urbancompany.com/jobs` | custom React |
-| Jio Platforms | `careers.jio.com/frmJobCategories.aspx` (+ `frmStudent_Campus.aspx`) | ASP.NET WebForms |
-| Reliance (Digital) | `careers.ril.com/rilcareers/frmcareersN.aspx` | ASP.NET WebForms |
+Planned as the "headless" release; checked live on 2026-11-11 through `PoliteClient`, and no site needs a browser ([plan](superpowers/plans/2026-11-11-r4-headless.md), [notes](R4-notes.md)). Urban Company moved to [Not supported](#not-supported). "Jobs" is what the full-mode live check read.
 
-Before building each of these, re-check robots.txt and whether the site blocks automated access. If it does, move the company to the list below.
+| Company | Adapter | Source details | Jobs |
+|---|---|---|---|
+| Tech Mahindra | `company/techmahindra` | `careers.techmahindra.com/CurrentOpportunity.aspx`: server HTML, 12 cards a page, ASP.NET postback paging. Pages are ordered by job code, ascending, so new jobs are on the last pages: the 30-minute run reads page 1, the last page and the one before it. Card order inside a page shuffles per request; identity is the card's `HdnJobCode`. No public job page ("Apply/Shortlist" returns the same list), so the card (skills, experience, location) is the description | 502 |
+| LTIMindtree | `ripplehire` | `POST ltm.ripplehire.com/candidate/candidatejobsearch` (form field `careerSiteUrlParams` = JSON with token `xviyQvbnyYZdGtozXoNm` from the links on ltm.com/careers, `geo=India`, `pagesize` 100); newest first. Detail `GET /candidate/candidatejobdetail?token=…&jobSeq=…&source=CAREERSITE&lang=en` (description, skills, `jobPostingDate`). careers.ltm.com (SuccessFactors, 47 jobs, 2 in India; its `/sitemap.xml` is RSS) isn't read | 620 |
+| Myntra | `spire2grow` | `GET io.spire2grow.com/ies/v1/p/workspaceId?domain=jobs.myntra.com` → `MYNTRA-93as3`, then `GET …/requisition/_search?page=N&size=100&` with header `WorkspaceId`: `{entities, total}` with full descriptions. Detail `…/requisition/displayId/{id}` | 51 |
+| ShareChat | `mynexthire` | `POST sharechat.mynexthire.com/employer/careers/reqlist/get` `{"source":"careers","code":"","filterByBuId":-1}`: every job with full text; `employmentType` `intern` sets the internship flag. Jobs link to the careers page (per-job links are built by script). Employee contact fields in the answer are never stored | 11 |
+| Jio Platforms | `jio` | `careers.jio.com/frmJobCategories.aspx` lists 24 categories (30,447 jobs on 2026-11-11, ≈28,000 of them freelance or sales). Only `0206` Engineering & Technology, `0210` IT & Systems, `0216` Product Management, `0222` Information Security and `0227` Apprentice are read; their counts (247) are the reported total. `intern_categories: ["0227"]` sets the internship flag on Apprentice jobs, whose titles ("JC Field Engineer_DET") don't say so. Category pages are GETs with encrypted query values sent verbatim, 10 rows newest first; full runs switch to 25 rows and page by postback. Job page `frmjobdescription.aspx?JBTITLE=…` (the job key is `JBTITLE`). `frmStudentIntern.aspx` is an interest form, not a listing | 247 |
+| Reliance | `ril` | `careers.ril.com/rilcareers/frmJobSearch.aspx?func=w+cpdiT6wL4=&…` (every function; the search postback redirects here): a table, newest first, paged like Jio. Job page `frmJobSearch.aspx?JBTITLE=…&jbID=…` | 44 |
+
+"Not found" answers: Myntra answers a missing job with `404` JSON and ShareChat with `417` "Requested job is not accepting applications any more."; both count as gone. RippleHire answers `500`, Jio redirects to `/error.aspx` and Reliance shows its job page with every field empty; these are errors, not "gone" (an outage looks the same), so LTIMindtree, Jio, Reliance and Tech Mahindra close jobs only through the 2-sweep rule.
+
+robots.txt: careers.techmahindra.com, sharechat.mynexthire.com, careers.ril.com and io.spire2grow.com answer 404 (no rules). careers.jio.com has `Allow: /` and disallows only login, admin and config paths. jobs.myntra.com serves its app page for `/robots.txt` (HTML, so no rules). ltm.ripplehire.com/robots.txt redirects to an employee SAML login page (no rules). Tech Mahindra, Jio and Reliance set F5 cookies but serve pages without any challenge.
 
 ---
 
@@ -150,6 +153,7 @@ These are not built. Check them manually.
 | Meta | metacareers.com robots.txt opens with a notice that automated collection is prohibited without written permission (its rules alone would allow job pages) |
 | Siemens | Avature RSS feed is a fixed list of 20 old jobs (the same 20 items, 2018-2021, whatever the paging, sort or keyword parameters); the sitemap has no job URLs; the HTML search shows 6 jobs a page; a job page is 1.2 MB |
 | Uber | `jobs.uber.com/en/jobs/sitemap.xml` lists 811 job IDs with no titles (`/en/jobs/{id}/`); job pages answer 403 "Just a moment…" (Cloudflare) |
+| Urban Company | `careers.urbancompany.com` is a React shell whose only job source is `POST www.urbanclap.com/api/v2/platform-gateway/getAllJobs`; that host's robots.txt has `Disallow: /api/*` (and ends with `Disallow: /`). No Lever or Greenhouse board |
 | Goldman Sachs | higher.gs.com's `roleSearch` API works, but has no internships (`EARLY_CAREER` = 6 call-centre and analyst roles on 2026-11-11); the campus internship portal hasn't been found |
 
 Possible later revisit: SmartRecruiters' public job pages are now read as JSON for PhonePe and Swiggy (see R2). A company's job list on `jobs.smartrecruiters.com/{Company}` might work the same way, which could move Freshworks, Bosch and ServiceNow back to automated.

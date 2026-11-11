@@ -3,6 +3,13 @@
 Usage:
   uv run python scripts/record_fixture.py ADAPTER NAME METHOD URL [--json BODY] [--max-items 25]
       [--header 'Accept: application/json' ...] [--no-follow] [--keep REGEX]
+      [--form K=V ...] [--step SPEC ...] [--drop-keys a,b,c]
+
+--form K=V: with POST, send a form body (application/x-www-form-urlencoded) instead of JSON.
+--step SPEC: ASP.NET postback on the previous answer (repeatable; the last answer is saved).
+  SPEC is TARGET|K=V|K=V... where TARGET is a control name, label=TEXT (the postback link
+  with that text) or select$=SUFFIX:VALUE (the select whose name ends with SUFFIX, set to VALUE).
+--drop-keys a,b,c: remove these keys at any depth of a JSON answer (e.g. employee contacts).
 
 --no-follow: don't follow redirects; print the status and Location instead of saving.
 XML responses are saved as NAME.xml; a sitemap <urlset> or an RSS <rss> is cut to the
@@ -22,6 +29,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from selectolax.lexbor import LexborHTMLParser as HTMLParser  # noqa: E402
+
+from app.adapters import aspnet  # noqa: E402
 from app.http.client import PoliteClient  # noqa: E402
 
 OUT = Path(__file__).resolve().parent.parent / "tests" / "fixtures"
@@ -33,6 +43,42 @@ def trim(value, max_items: int):
     if isinstance(value, dict):
         return {k: trim(v, max_items) for k, v in value.items()}
     return value
+
+
+def drop_keys(value, keys: set[str]):
+    if isinstance(value, list):
+        return [drop_keys(v, keys) for v in value]
+    if isinstance(value, dict):
+        return {k: drop_keys(v, keys) for k, v in value.items() if k not in keys}
+    return value
+
+
+async def run_step(client: PoliteClient, url: str, html: str, spec: str):
+    """One postback on the page `html`; returns the answer's HTML."""
+    target, *pairs = spec.split("|")
+    extra = dict(p.split("=", 1) for p in pairs)
+    tree = HTMLParser(html)
+    if target.startswith("label="):
+        text = target[len("label=") :]
+        links = tree.css('a[href^="javascript:__doPostBack"]')
+        link = next((a for a in links if a.text(strip=True) == text), None)
+        if link is None:
+            raise SystemExit(f"no postback link labelled {text!r}")
+        target = aspnet.postback_target(link.attributes["href"])
+    elif target.startswith("select$="):
+        suffix, value = target[len("select$=") :].split(":", 1)
+        select = next(
+            (s for s in tree.css("select[name]") if s.attributes["name"].endswith(suffix)), None
+        )
+        if select is None:
+            raise SystemExit(f"no select ending {suffix!r}")
+        target = select.attributes["name"]
+        extra[target] = value
+    data = aspnet.form_fields(tree) | {"__EVENTTARGET": target, "__EVENTARGUMENT": ""} | extra
+    resp = await client.post_form(url, data, follow_redirects=False)
+    if resp.status_code != 200:
+        raise SystemExit(f"postback {target} answered {resp.status_code}")
+    return resp.text  # the raw answer, not a re-serialised tree
 
 
 def local(tag: str) -> str:
@@ -78,13 +124,20 @@ async def main() -> None:
     ap.add_argument("--header", action="append", default=[], help="K: V, repeatable")
     ap.add_argument("--no-follow", action="store_true", help="show status and Location only")
     ap.add_argument("--keep", default="", help="XML: keep only items whose loc/link matches")
+    ap.add_argument("--form", action="append", default=[], help="POST form field K=V")
+    ap.add_argument("--step", action="append", default=[], help="ASP.NET postback, see above")
+    ap.add_argument("--drop-keys", default="", help="JSON: keys to remove, comma-separated")
     a = ap.parse_args()
 
     headers = dict(h.split(":", 1) for h in a.header)
     headers = {k.strip(): v.strip() for k, v in headers.items()}
     client = PoliteClient(min_interval_s=2.5)
+    body = None
     try:
-        if a.method == "POST":
+        if a.method == "POST" and a.form:
+            form = dict(f.split("=", 1) for f in a.form)
+            resp = await client.post_form(a.url, form, headers=headers or None)
+        elif a.method == "POST":
             resp = await client.post_json(
                 a.url, json.loads(a.body or "{}"), headers={"Accept": "application/json", **headers}
             )
@@ -92,6 +145,10 @@ async def main() -> None:
             resp = await client.get(
                 a.url, headers=headers or None, follow_redirects=not a.no_follow
             )
+        if a.step:
+            body = resp.text
+            for spec in a.step:
+                body = await run_step(client, a.url, body, spec)
     finally:
         await client.aclose()
 
@@ -101,10 +158,16 @@ async def main() -> None:
 
     folder = OUT / a.adapter
     folder.mkdir(parents=True, exist_ok=True)
+    if body is not None:
+        path = folder / f"{a.name}.html"
+        path.write_text(body, encoding="utf-8")
+        print(f"postback x{len(a.step)} -> {path} ({path.stat().st_size} bytes)")
+        return
     ctype = resp.headers.get("content-type", "")
     if "json" in ctype:
         path = folder / f"{a.name}.json"
-        path.write_text(json.dumps(trim(resp.json(), a.max_items), indent=1, ensure_ascii=False))
+        data = drop_keys(resp.json(), {k for k in a.drop_keys.split(",") if k})
+        path.write_text(json.dumps(trim(data, a.max_items), indent=1, ensure_ascii=False))
     elif "xml" in ctype:
         path = folder / f"{a.name}.xml"
         path.write_bytes(trim_xml(resp.content, a.max_items, a.keep))

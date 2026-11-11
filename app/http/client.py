@@ -67,6 +67,14 @@ class PoliteClient:
     async def post_json(self, url: str, json: dict, *, headers=None) -> httpx.Response:
         return await self._request("POST", url, json=json, headers=headers)
 
+    async def post_form(
+        self, url: str, data: dict[str, str], *, headers=None, follow_redirects: bool = True
+    ) -> httpx.Response:
+        """application/x-www-form-urlencoded POST (WebForms postbacks, RippleHire)."""
+        return await self._request(
+            "POST", url, follow_redirects=follow_redirects, data=data, headers=headers
+        )
+
     async def aclose(self) -> None:
         await self._http.aclose()
 

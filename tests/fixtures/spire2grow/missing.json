@@ -1,0 +1,13 @@
+{
+ "errorMessages": [
+  "Requisition not found in elasticsearch index for id {} 1"
+ ],
+ "status": 404,
+ "errorCode": {
+  "value": 3000,
+  "series": "REQUISITION",
+  "reasonPhrase": "Requisition not found in elastic search"
+ },
+ "type": null,
+ "reason": "Requisition not found in elasticsearch index for id {} 1"
+}

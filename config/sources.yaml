@@ -13,7 +13,9 @@
 #   zerodha:    allow_empty (any source may set it: 0 jobs is then healthy)
 #   successfactors: host       rss: url       notice_page: site (drdo|isro|cdac|barc)
 #   sitemap_partial: sitemap, job_url (regex with `id` and `slug` groups)
-#   atlassian, ibm, phonepe, swiggy, tataelxsi: no keys
+#   ripplehire: host, token, geo     spire2grow: domain     mynexthire: host
+#   jio:        categories (function codes from frmJobCategories.aspx), intern_categories
+#   atlassian, ibm, phonepe, swiggy, tataelxsi, techmahindra, ril: no keys
 
 companies:
   # ---------------------------------------------------------------- original three
@@ -423,6 +425,33 @@ companies:
           sitemap: "https://jobs.sap.com/en/jobs/sitemap.xml"
           job_url: '^https://jobs\.sap\.com/en/jobs/(?P<id>\d+)/(?P<slug>[^/]+)/$'
 
+  # ---------------------------------------------------------------- R4: last seven sites (plain HTTP)
+  - slug: techmahindra
+    name: Tech Mahindra
+    sources: [{key: techmahindra, adapter: techmahindra, config: {}}]
+  - slug: ltimindtree
+    name: LTIMindtree
+    sources:
+      - key: ltimindtree
+        adapter: ripplehire
+        config: {host: ltm.ripplehire.com, token: xviyQvbnyYZdGtozXoNm, geo: India}
+  - slug: myntra
+    name: Myntra
+    sources: [{key: myntra, adapter: spire2grow, config: {domain: jobs.myntra.com}}]
+  - slug: sharechat
+    name: ShareChat
+    sources: [{key: sharechat, adapter: mynexthire, config: {host: sharechat.mynexthire.com}}]
+  - slug: jio
+    name: Jio Platforms
+    sources:
+      - key: jio-tech
+        adapter: jio
+        config:
+          categories: ["0206", "0210", "0216", "0222", "0227"]
+          intern_categories: ["0227"]  # "Apprentice": titles like "JC Field Engineer_DET"
+  - slug: reliance
+    name: Reliance
+    sources: [{key: reliance, adapter: ril, config: {}}]
   # ---------------------------------------------------------------- not supported
   - {slug: meta, name: Meta, supported: false,
      reason: "metacareers.com robots.txt says automated collection is prohibited without written permission"}
@@ -454,3 +483,5 @@ companies:
      reason: "Avature RSS feed is a fixed list of 20 old jobs; the HTML search shows 6 jobs a page"}
   - {slug: uber, name: Uber, supported: false,
      reason: "sitemap lists job IDs only (no titles); job pages are behind Cloudflare"}
+  - {slug: urbancompany, name: Urban Company, supported: false,
+     reason: "jobs API on www.urbanclap.com is disallowed by robots.txt (/api/*)"}

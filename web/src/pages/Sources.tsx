@@ -34,6 +34,12 @@ const PLATFORM: Record<string, string> = {
   notice_page: "Notice page",
   sitemap_partial: "Sitemap (titles only)",
   tataelxsi: "Tata Elxsi (own site)",
+  techmahindra: "Tech Mahindra (own site)",
+  ripplehire: "RippleHire",
+  spire2grow: "Spire2Grow",
+  mynexthire: "MyNextHire",
+  jio: "Jio (own site)",
+  ril: "Reliance (own site)",
 };
 
 export function Sources() {

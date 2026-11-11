@@ -265,3 +265,18 @@ async def test_robots_redirect_still_followed(client):
     with pytest.raises(RobotsDisallowed):
         await client.get("https://a.com/private/x")
     assert route.call_count == 0
+
+
+@respx.mock
+async def test_post_form_sends_urlencoded_and_checks_robots(client):
+    robots(respx, "a.com", "User-agent: *\nDisallow: /private\n")
+    route = respx.post("https://a.com/x").mock(return_value=httpx.Response(200))
+    blocked = respx.post("https://a.com/private/y").mock(return_value=httpx.Response(200))
+    resp = await client.post_form("https://a.com/x", {"a": "1 2", "b": "w+c/="})
+    assert resp.status_code == 200
+    sent = route.calls[0].request
+    assert sent.headers["content-type"] == "application/x-www-form-urlencoded"
+    assert sent.content == b"a=1+2&b=w%2Bc%2F%3D"
+    with pytest.raises(RobotsDisallowed):
+        await client.post_form("https://a.com/private/y", {})
+    assert blocked.call_count == 0

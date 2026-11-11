@@ -4,7 +4,7 @@ Agreed on 2026-11-10. This is the source of truth for what we are building. Per-
 
 ## 1. What it does
 
-A service running 24/7 on a Raspberry Pi 5. It reads the official careers sites of 62 companies, stores every job it finds, and sends a Telegram alert for each new **tech internship**, including an eligibility check for a student based in **India**. A dashboard, reachable from anywhere through Tailscale, is used to browse jobs, tag them (Liked / Applied / Dismissed) and see whether each scraper is healthy.
+A service running 24/7 on a Raspberry Pi 5. It reads the official careers sites of 61 companies, stores every job it finds, and sends a Telegram alert for each new **tech internship**, including an eligibility check for a student based in **India**. A dashboard, reachable from anywhere through Tailscale, is used to browse jobs, tag them (Liked / Applied / Dismissed) and see whether each scraper is healthy.
 
 The user is a B.Tech CSE student looking for internships. Graduation year does not matter.
 
@@ -16,20 +16,20 @@ The user is a B.Tech CSE student looking for internships. Graduation year does n
 - Getting around bot protection (Cloudflare/Akamai challenges, WAFs) or ignoring robots.txt.
 - Email and Discord alerts (the alert channel is pluggable, so they can be added later).
 - A full analytics page.
-- The 16 unsupported companies listed in [companies.md](companies.md#not-supported).
+- The 17 unsupported companies listed in [companies.md](companies.md#not-supported).
 
 ## 3. Scraping
 
 ### Sources and adapters
 - Each company has one or more **sources**. A company that posts internships on a separate site has two (e.g. Visa `Visa` + `Visa_Early_Careers`).
-- Each source uses an **adapter**: either a platform adapter shared across companies (Workday, Eightfold, Oracle HCM, Lever, Greenhouse, SuccessFactors-sitemap, RSS, notice-page) or a company-specific one (Google, Barclays, Amazon, …).
+- Each source uses an **adapter**: either a platform adapter shared across companies (Workday, Eightfold, Oracle HCM, Lever, Greenhouse, SuccessFactors-sitemap, RSS, notice-page, RippleHire, Spire2Grow, MyNextHire) or a company-specific one (Google, Barclays, Amazon, …).
 - Adding a company that uses a known platform is a config change only. The dashboard's "Add company" form detects the platform from a careers URL, runs a test fetch, and saves the source only if that test succeeds.
 - Every adapter returns the same normalised `RawJob` shape. Nothing downstream knows which site a job came from.
 
 ### Schedule
 | Run | When | What |
 |---|---|---|
-| Incremental | every 30 min, all sources (headless sources included, one at a time) | newest-first, filtered searches; fetch details only for job IDs not seen before |
+| Incremental | every 30 min, all sources | newest-first, filtered searches; fetch details only for job IDs not seen before |
 | Full sweep | nightly, off-peak (≈02:00 IST) | crawl every page of every source; detect closed jobs and changed descriptions |
 | Tracked re-check | daily | re-fetch detail pages of Liked/Applied jobs; this is how Google detects closed jobs |
 
@@ -38,7 +38,7 @@ The user is a B.Tech CSE student looking for internships. Graduation year does n
 - Rate limit per host: about 1 request every 2–3 s. Requests time out, retry with exponential backoff and jitter, and back off for longer on 429 or 5xx responses.
 - An honest User-Agent that names no personal details.
 - Google: only **page 1** of narrow searches (intern level × country, sorted by date), because robots.txt disallows `&page=`.
-- No headless browser where plain HTTP works. Playwright is used only for the 7 sites in group D.
+- No headless browser where plain HTTP works. None of the 7 sites planned as headless (group D) needed a browser: 6 work over plain HTTP and 1 is blocked by robots.txt (see [R4-notes.md](R4-notes.md)).
 
 ### Accuracy checks
 - Each run compares the number of jobs it read with the total the site reports. A mismatch marks the run **failed**, not successful.
@@ -112,7 +112,7 @@ Free-tier inputs may be used by Google to improve its products. This is acceptab
 |---|---|
 | Backend | Python 3.12, FastAPI, Pydantic, SQLAlchemy 2, Alembic |
 | HTTP | httpx (with HTTP/2), selectolax/BeautifulSoup for HTML, `extruct`-style JSON-LD parsing |
-| Headless | Playwright Chromium (group D only) |
+| Headless | none (no site needs it; see [R4-notes.md](R4-notes.md)) |
 | Scheduler | APScheduler in a separate **worker** process |
 | LLM | provider interface, with a Gemini implementation (`google-genai`) |
 | Alerts | channel interface, with a Telegram Bot API implementation |
@@ -161,6 +161,6 @@ docs/
 | **R1** | Whole pipeline (DB, rules, Gemini, Telegram, worker, Docker) on Google, NVIDIA, Barclays; Workday + Eightfold + Oracle HCM adapters | 28 |
 | **R2** | Dashboard (after mockups); Lever, Greenhouse and the remaining company-specific JSON adapters | 43 |
 | **R3** | SuccessFactors sitemaps, RSS, government/notice pages, partial sources | 55 |
-| **R4** | Headless (Playwright) sites | 62 |
+| **R4** | Last 7 sites (planned as headless; all plain HTTP) | 61 |
 
 Each release is checked against the live sites before the next one starts. Development and testing happen on the Mac, then the same Compose stack is deployed to the Pi.

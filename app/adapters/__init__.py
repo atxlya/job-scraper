@@ -4,10 +4,13 @@ from app.adapters import (  # noqa: F401
     eightfold,
     greenhouse,
     lever,
+    mynexthire,
     notice_page,
     oracle_hcm,
+    ripplehire,
     rss,
     sitemap_partial,
+    spire2grow,
     successfactors,
     workday,
 )
@@ -21,7 +24,9 @@ from app.adapters.company import (  # noqa: F401
     google,
     ibm,
     phonepe,
+    reliance,
     swiggy,
     tataelxsi,
+    techmahindra,
     zerodha,
 )
