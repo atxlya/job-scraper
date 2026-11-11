@@ -1,9 +1,10 @@
+import re
 from datetime import UTC, datetime
 
 import httpx
 import pytest
 
-from app.adapters.base import GONE, ParseError
+from app.adapters.base import GONE, ParseError, RawJob
 from app.adapters.notice_page import LIST_URL, NoticePageAdapter
 from tests.conftest import load_fixture
 
@@ -68,3 +69,50 @@ async def test_drdo_soft_404_is_gone(client, mock):
 async def test_drdo_wrong_page_raises_parse_error(client, mock):
     with pytest.raises(ParseError):
         await listing(client, mock, "drdo", "drdo_notice")
+
+
+# ---- ISRO ----
+
+SAC = "SACRecruitment21.html"
+ISRO_BASE = "https://www.isro.gov.in/"
+
+
+async def test_isro_one_notice_per_page(client, mock):
+    res = await listing(client, mock, "isro", "isro_list")
+    raw = load_fixture("notice_page", "isro_list").decode()
+    pages = set(re.findall(r'<td class="news"><a href="([^"]*Recruitment[\w-]*\.html)"', raw))
+    assert len(res.jobs) == len(pages) > 10
+    assert {j.external_id for j in res.jobs} == pages
+    sac = next(j for j in res.jobs if j.external_id == SAC)
+    assert sac.title == (
+        "Advt No. SAC:02:2026 dated 10.09.2026 - Inviting online applications for the posts "
+        "of Junior Research Fellows, Research Associate and Project Scientist-I."
+    )
+    assert sac.url == ISRO_BASE + SAC
+    assert sac.platform_flags == {"notice": True}
+    assert "CareerOpportunities.html" not in {j.external_id for j in res.jobs}
+
+
+async def test_isro_detail_finds_pdf(client, mock):
+    job = RawJob(external_id=SAC, title="t", url=ISRO_BASE + SAC)
+    mock.get(job.url).mock(return_value=page("isro_notice"))
+    out = await NoticePageAdapter().fetch_detail(client, {"site": "isro"}, job)
+    assert out.apply_url == (
+        "https://www.isro.gov.in/media_isro/pdf/recruitmentNotice/2026/Sept/"
+        "SAC_02_2026_dated_09092026.pdf"
+    )
+
+
+async def test_isro_missing_is_gone(client, mock):
+    job = RawJob(
+        external_id="NoSuchRecruitment99.html",
+        title="t",
+        url=ISRO_BASE + "NoSuchRecruitment99.html",
+    )
+    mock.get(job.url).mock(return_value=page("isro_missing", 404))
+    assert await NoticePageAdapter().fetch_detail(client, {"site": "isro"}, job) is GONE
+
+
+async def test_isro_wrong_page_raises_parse_error(client, mock):
+    with pytest.raises(ParseError):
+        await listing(client, mock, "isro", "drdo_list")

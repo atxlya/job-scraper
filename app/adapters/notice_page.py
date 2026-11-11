@@ -5,6 +5,7 @@ treat it as a PDF notice, and its description is built from the listing text (D8
 """
 
 import html
+import re
 from collections.abc import Callable
 from datetime import datetime
 from urllib.parse import urljoin, urlsplit
@@ -135,10 +136,49 @@ def detail_drdo(job: RawJob, page: str) -> RawJob | Gone:
     return job.model_copy(update={"apply_url": pdf}) if pdf else job
 
 
-LIST_URL: dict[str, str] = {"drdo": DRDO_URL}
-PARSERS: dict[str, Callable[[str], list[RawJob]]] = {"drdo": parse_drdo}
-# Sites whose detail page is fetched: (detail parser). CDAC and BARC link the PDF in the list.
-DETAILS: dict[str, Callable[[RawJob, str], RawJob | Gone]] = {"drdo": detail_drdo}
+# ---- ISRO ----
+
+ISRO_URL = "https://www.isro.gov.in/Careers.html"
+_ISRO_PAGE = re.compile(r"(?i)Recruitment[\w-]*\.html$")
+
+
+def parse_isro(page: str) -> list[RawJob]:
+    tree = HTMLParser(page)
+    if _title_of(tree) != "Careers":
+        raise ParseError("notice_page isro: not the careers page")
+    jobs = []
+    for link in tree.css("td.news a[href]"):
+        href = link.attributes["href"] or ""
+        if not _ISRO_PAGE.search(href):
+            continue
+        title = _clean(link.attributes.get("title")) or _clean(link.text()).removesuffix(
+            "Read More"
+        )
+        url = urljoin(ISRO_URL, href)
+        jobs.append(
+            _notice(
+                external_id=urlsplit(url).path.rsplit("/", 1)[-1],
+                title=title.strip(),
+                url=url,
+            )
+        )
+    return jobs
+
+
+def detail_isro(job: RawJob, page: str) -> RawJob:
+    pdf = _first_href(HTMLParser(page), "/media_isro/pdf/", job.url)
+    return job.model_copy(update={"apply_url": pdf}) if pdf else job
+
+
+LIST_URL: dict[str, str] = {"drdo": DRDO_URL, "isro": ISRO_URL}
+PARSERS: dict[str, Callable[[str], list[RawJob]]] = {"drdo": parse_drdo, "isro": parse_isro}
+# Sites whose detail page is fetched. CDAC and BARC link the PDF in the list.
+DETAILS: dict[str, Callable[[RawJob, str], RawJob | Gone]] = {
+    "drdo": detail_drdo,
+    "isro": detail_isro,
+}
+# Sites that answer a missing notice with a real 404 (DRDO answers 200, see detail_drdo).
+GONE_ON_404 = {"isro"}
 
 
 @register
@@ -158,5 +198,7 @@ class NoticePageAdapter:
         if parse is None:
             return job
         resp = await client.get(job.url)
+        if resp.status_code == 404 and cfg["site"] in GONE_ON_404:
+            return GONE
         resp.raise_for_status()
         return parse(job, resp.text)
