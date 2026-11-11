@@ -1,5 +1,6 @@
 import re
 from datetime import UTC, datetime
+from urllib.parse import urlsplit
 
 import httpx
 import pytest
@@ -116,3 +117,52 @@ async def test_isro_missing_is_gone(client, mock):
 async def test_isro_wrong_page_raises_parse_error(client, mock):
     with pytest.raises(ParseError):
         await listing(client, mock, "isro", "drdo_list")
+
+
+# ---- CDAC ----
+
+
+async def test_cdac_parses_links(client, mock):
+    res = await listing(client, mock, "cdac", "cdac_list")
+    by_id = {j.external_id: j for j in res.jobs}
+    assert len(by_id) == len(res.jobs) > 20
+    pdf = by_id["CORRIGENDUM-ADVT-CORP-JIT-03-2026.pdf"]
+    assert pdf.url == (
+        "https://www.cdac.in/index.aspx?id=pdf_hrd&dynamicId=CORRIGENDUM-ADVT-CORP-JIT-03-2026.pdf"
+    )
+    assert pdf.apply_url == pdf.url
+    page_notice = by_id["ca_NotificationConsultant09092026"]
+    assert page_notice.apply_url is None
+    assert page_notice.platform_flags == {"notice": True}
+    external = [j for j in res.jobs if j.external_id.startswith("ext:")]
+    assert {urlsplit(j.url).netloc for j in external} == {
+        "careers.cdac.in",
+        "cdac.kspcrecruitment.com",
+    }
+    assert len({j.external_id for j in external}) == len(external) == 2
+    assert all(re.fullmatch(r"ext:[0-9a-f]{12}", j.external_id) for j in external)
+    assert "job_archive_jobs" not in by_id
+
+
+async def test_cdac_strong_heading_prefixes_link(client, mock):
+    res = await listing(client, mock, "cdac", "cdac_list")
+    job = next(j for j in res.jobs if j.external_id == "Walk-In-Positions-PMS-PE.pdf")
+    assert job.title.startswith(
+        "Walk-In Interview for Various Positions at C-DAC CINE: Advt. No. CINE/REC/2026/06 "
+        "(Guwahati, Assam) — "
+    )
+    plain = next(j for j in res.jobs if j.external_id == "walkin-CINE-REC-2026-01.pdf")
+    assert " — " not in plain.title
+
+
+async def test_cdac_detail_makes_no_request(client, mock):
+    res = await listing(client, mock, "cdac", "cdac_list")
+    mock.reset()
+    out = await NoticePageAdapter().fetch_detail(client, {"site": "cdac"}, res.jobs[0])
+    assert out == res.jobs[0]
+    assert mock.calls.call_count == 0
+
+
+async def test_cdac_missing_marker_raises_parse_error(client, mock):
+    with pytest.raises(ParseError):
+        await listing(client, mock, "cdac", "barc_list")

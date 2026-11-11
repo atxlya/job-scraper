@@ -4,11 +4,12 @@ the `apply_url`. Every notice carries platform_flags["notice"] so the classifier
 treat it as a PDF notice, and its description is built from the listing text (D8).
 """
 
+import hashlib
 import html
 import re
 from collections.abc import Callable
 from datetime import datetime
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import parse_qs, urljoin, urlsplit
 
 from selectolax.lexbor import LexborHTMLParser as HTMLParser
 
@@ -170,8 +171,59 @@ def detail_isro(job: RawJob, page: str) -> RawJob:
     return job.model_copy(update={"apply_url": pdf}) if pdf else job
 
 
-LIST_URL: dict[str, str] = {"drdo": DRDO_URL, "isro": ISRO_URL}
-PARSERS: dict[str, Callable[[str], list[RawJob]]] = {"drdo": parse_drdo, "isro": parse_isro}
+# ---- CDAC ----
+
+CDAC_URL = "https://www.cdac.in/index.aspx?id=current_jobs"
+_CDAC_NOT_NOTICES = {"print_page", "career", "job_archive_jobs", "profile"}
+
+
+def parse_cdac(page: str) -> list[RawJob]:
+    content = HTMLParser(page).css_first("div#content")
+    if content is None or not any(
+        _clean(h.text()) == "Current Openings" for h in content.css("h3")
+    ):
+        raise ParseError("notice_page cdac: no Current Openings heading")
+    jobs = []
+    for link in content.css("a[href]"):
+        query = parse_qs(urlsplit(link.attributes["href"] or "").query)
+        text = _clean(link.text())
+        if not text or query.get("id", [""])[0] in _CDAC_NOT_NOTICES:
+            continue
+        title = _cdac_title(link, text)
+        url = urljoin(CDAC_URL, link.attributes["href"])
+        key = (query.get("dynamicId") or query.get("id") or [None])[0]
+        is_pdf = url.endswith(".pdf") or query.get("id", [""])[0].startswith("pdf_")
+        jobs.append(
+            _notice(
+                external_id=key or "ext:" + hashlib.sha1(title.encode()).hexdigest()[:12],
+                title=title,
+                url=url,
+                apply_url=url if is_pdf else None,
+            )
+        )
+    return jobs
+
+
+def _cdac_title(link, text: str) -> str:
+    """The link text, led by the bold heading of its paragraph when that is not the link."""
+    inside = {s.mem_id for s in link.css("strong")}
+    paragraph = link.parent
+    while paragraph is not None and paragraph.tag != "p":
+        paragraph = paragraph.parent
+    if paragraph is not None:
+        for strong in paragraph.css("strong"):
+            heading = _clean(strong.text())
+            if strong.mem_id not in inside and heading and heading != text:
+                return f"{heading} — {text}"
+    return text
+
+
+LIST_URL: dict[str, str] = {"drdo": DRDO_URL, "isro": ISRO_URL, "cdac": CDAC_URL}
+PARSERS: dict[str, Callable[[str], list[RawJob]]] = {
+    "drdo": parse_drdo,
+    "isro": parse_isro,
+    "cdac": parse_cdac,
+}
 # Sites whose detail page is fetched. CDAC and BARC link the PDF in the list.
 DETAILS: dict[str, Callable[[RawJob, str], RawJob | Gone]] = {
     "drdo": detail_drdo,
