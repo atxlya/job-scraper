@@ -16,6 +16,14 @@ _LANG = re.compile(r"^[a-z]{2}(-[A-Z]{2})?$")
 _ORACLE_PATH = re.compile(r"^/hcmUI/CandidateExperience/[^/]+/sites/(?P<site>[^/?#]+)")
 
 
+_LEVER_HOSTS = {"jobs.lever.co", "jobs.eu.lever.co"}
+_GREENHOUSE_HOSTS = {
+    "boards.greenhouse.io",
+    "job-boards.greenhouse.io",
+    "job-boards.eu.greenhouse.io",
+}
+
+
 def _registrable(host: str) -> str:
     return ".".join(host.split(".")[-2:])
 
@@ -34,6 +42,17 @@ def detect(url: str) -> Detected | None:
             return None
         tenant = m["tenant"]
         return Detected("workday", {"host": host, "tenant": tenant, "site": parts[0]}, tenant)
+
+    if host in _LEVER_HOSTS and parts:
+        return Detected("lever", {"site": parts[0]}, parts[0])
+    if host == "api.lever.co" and parts[:2] == ["v0", "postings"] and len(parts) > 2:
+        return Detected("lever", {"site": parts[2]}, parts[2])
+
+    if host in _GREENHOUSE_HOSTS and parts:
+        board = parse_qs(u.query).get("for", [""])[0] if parts[0] == "embed" else parts[0]
+        return Detected("greenhouse", {"board": board}, board) if board else None
+    if host == "boards-api.greenhouse.io" and parts[:2] == ["v1", "boards"] and len(parts) > 2:
+        return Detected("greenhouse", {"board": parts[2]}, parts[2])
 
     if m := _ORACLE_PATH.match(u.path):
         return Detected("oracle_hcm", {"host": host, "site": m["site"]}, host.split(".")[0])

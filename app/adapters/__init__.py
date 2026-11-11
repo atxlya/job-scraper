@@ -1,4 +1,4 @@
 """Importing this package registers every adapter in ADAPTERS."""
 
-from app.adapters import eightfold, oracle_hcm, workday  # noqa: F401
+from app.adapters import eightfold, greenhouse, lever, oracle_hcm, workday  # noqa: F401
 from app.adapters.company import barclays, google  # noqa: F401

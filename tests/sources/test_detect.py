@@ -54,6 +54,36 @@ from app.sources.detect import Detected, detect
                 "eightfold", {"host": "careers.qualcomm.com", "domain": "qualcomm.com"}, "qualcomm"
             ),
         ),
+        (
+            "https://jobs.lever.co/paytm",
+            Detected("lever", {"site": "paytm"}, "paytm"),
+        ),
+        (
+            "https://jobs.lever.co/paytm/9eed4fec-73f7-4114-a5d3-b2f689c92e8c",
+            Detected("lever", {"site": "paytm"}, "paytm"),
+        ),
+        (
+            "https://api.lever.co/v0/postings/meesho?mode=json",
+            Detected("lever", {"site": "meesho"}, "meesho"),
+        ),
+        ("https://jobs.lever.co/", None),
+        (
+            "https://job-boards.eu.greenhouse.io/groww/jobs/4970739101",
+            Detected("greenhouse", {"board": "groww"}, "groww"),
+        ),
+        (
+            "https://boards.greenhouse.io/embed/job_board?for=inmobi",
+            Detected("greenhouse", {"board": "inmobi"}, "inmobi"),
+        ),
+        (
+            "https://boards-api.greenhouse.io/v1/boards/razorpaysoftwareprivatelimited/jobs",
+            Detected(
+                "greenhouse",
+                {"board": "razorpaysoftwareprivatelimited"},
+                "razorpaysoftwareprivatelimited",
+            ),
+        ),
+        ("https://boards.greenhouse.io/", None),
         ("https://example.com/jobs", None),
         ("https://careers.example.com/careers", None),  # /careers alone is not Eightfold
         ("not a url", None),
