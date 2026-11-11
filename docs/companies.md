@@ -107,7 +107,7 @@ Checked live on 2026-11-11. "Jobs" is what the full-mode live check read.
 | Cognizant | partial (sitemap) | `careers.cognizant.com/sitemap.xml`, `global-en` job URLs only. The sitemap repeats every job under 21 locales. 2,091 `global-en` jobs when probed (companies.md earlier said about 3.3k, which counted all locales); 2,085 unique when the live check ran. Job pages are behind Cloudflare, so title (from the slug) and link only | 2,085 |
 | SAP | partial (sitemap) | `jobs.sap.com/en/jobs/sitemap.xml`; job pages behind Cloudflare, robots.txt disallows `?q=` | 454 |
 
-"Not found" answers: SuccessFactors answers a missing job with `302` to `/errorpage/?errortype=Exception` (robots.txt disallows `/error`, so it is never fetched; the redirect itself means gone). ISRO answers a removed recruitment page with 404. Tata Elxsi redirects a missing job (any 3xx) and counts it as gone. DRDO answers 200 for a missing notice, so a page whose title is just the slug counts as gone. The sitemap, RSS and listing-only sources have no per-job lookup.
+"Not found" answers: SuccessFactors answers a missing job with `302` to `/errorpage/?errortype=Exception` (robots.txt disallows `/error`, so it is never fetched; the redirect itself means gone). ISRO answers a removed recruitment page with 404. Tata Elxsi redirects a missing job to the home page and counts it as gone (other redirects are followed). DRDO answers 200 for a missing notice, so a page whose title is just the slug counts as gone. Zoho's RSS lookup re-reads the feed and counts a missing item as gone. The sitemap and listing-only sources have no per-job lookup.
 
 Notice sources set `allow_empty: true`, since a government page with no current notices is normal. PDFs are linked, never downloaded.
 

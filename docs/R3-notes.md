@@ -14,7 +14,7 @@ What was built, what was checked, and where the build differed from the [plan](s
 | `run-once` on a scratch database | `ey` and `drdo`, full mode, twice each: no title changes (`job_changes` stayed empty). EY stored 8,934 jobs, 118 of them possible internships with a real title and description; DRDO's paid-internship notices carry a PDF `apply_url`. EY's second run saw 7 new jobs (the site changed in between) |
 | **Not yet checked** | The new sources running on the Pi; a real alert from a notice or partial job (none was sent: alerts and Gemini were off); the first sweep's Gemini backlog from the new internships; Zoho, ISRO or BARC with different data than today's |
 
-**Full-mode live check, 2026-11-11** (jobs read; none of these sites reports a total):
+**Full-mode live check, 2026-11-11** (jobs read; the sitemap and feed sources report no total, so the check can't compare counts for them. Deloitte's search page shows "of 1921", but the adapter reads the sitemap, not that page):
 
 | Source | Jobs | | Source | Jobs |
 |---|---|---|---|---|
@@ -49,6 +49,14 @@ The plan's own decisions (D1-D17) are in the plan. These were made while buildin
 - **Tata Elxsi:** page 11 has empty dates (above).
 - **Cognizant:** 2,091 `global-en` jobs when probed and 2,085 unique ones in the live check (not about 3.3k, which counted every locale).
 - **EY:** the sitemap also lists `/sgv/job/` and `/eylaw_at/job/` URLs; they are kept.
+
+## Fixed after the review
+- **SuccessFactors: a missing job behind two redirects is "gone".** Wipro and HCLTech redirect each `/job/.../{id}/` to an `-en_US` URL, which can itself redirect to `/errorpage/`. The adapter now follows up to 5 hops by hand and answers "gone" as soon as a hop points at `/errorpage`, without requesting it. Before, the robots check on that second hop raised an error and aborted tracked runs. More than 5 hops is an error.
+- **Tata Elxsi: only a redirect to the home page is "gone".** Any other redirect is followed (through the polite client) and parsed.
+- **Notice titles with "Engg"** (DRDO's "Paid Internship for Engg/Science UG/PG Students") now count as tech: `engg` was added to the `tech` keywords.
+- **Cleanup:** removed two dead `if False` expressions (SuccessFactors description, RSS description). No behaviour change.
+- **Docs:** the RSS source does have a per-job lookup (Zoho re-reads the feed and answers "gone" when the item is missing); the live-check note about totals is corrected above.
+- **Kept on purpose:** a bare "project" on a notice still counts as internship-like (DESIGN section 6), so C-DAC "Project Engineer" walk-in notices will alert. Change this if it gets noisy.
 
 ## Left for later
 
