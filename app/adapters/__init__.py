@@ -1,6 +1,13 @@
 """Importing this package registers every adapter in ADAPTERS."""
 
-from app.adapters import eightfold, greenhouse, lever, oracle_hcm, workday  # noqa: F401
+from app.adapters import (  # noqa: F401
+    eightfold,
+    greenhouse,
+    lever,
+    oracle_hcm,
+    successfactors,
+    workday,
+)
 from app.adapters.company import (  # noqa: F401
     amazon,
     amd,
