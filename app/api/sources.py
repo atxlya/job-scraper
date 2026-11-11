@@ -21,7 +21,7 @@ router = APIRouter(prefix="/api", dependencies=[Depends(require_user)])
 IST = ZoneInfo("Asia/Kolkata")
 Sess = Annotated[Session, Depends(get_session)]
 Now = Annotated[datetime, Depends(now)]
-NOT_SUPPORTED = "Not a Workday, Eightfold or Oracle HCM careers URL."
+NOT_SUPPORTED = "Not a Workday, Eightfold, Oracle HCM, Lever or Greenhouse careers URL."
 
 
 def _tech():

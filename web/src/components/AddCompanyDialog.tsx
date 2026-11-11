@@ -12,6 +12,8 @@ export function describe(d: Detected): string {
   if (d.adapter === "workday") return `Workday · tenant ${c.tenant} · site ${c.site}`;
   if (d.adapter === "oracle_hcm") return `Oracle HCM · ${c.host} · site ${c.site}`;
   if (d.adapter === "eightfold") return `Eightfold · ${c.host}`;
+  if (d.adapter === "lever") return `Lever · ${c.site}`;
+  if (d.adapter === "greenhouse") return `Greenhouse · ${c.board}`;
   return d.adapter;
 }
 

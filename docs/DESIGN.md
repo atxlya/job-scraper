@@ -4,7 +4,7 @@ Agreed on 2026-11-10. This is the source of truth for what we are building. Per-
 
 ## 1. What it does
 
-A service running 24/7 on a Raspberry Pi 5. It reads the official careers sites of 66 companies, stores every job it finds, and sends a Telegram alert for each new **tech internship**, including an eligibility check for a student based in **India**. A dashboard, reachable from anywhere through Tailscale, is used to browse jobs, tag them (Liked / Applied / Dismissed) and see whether each scraper is healthy.
+A service running 24/7 on a Raspberry Pi 5. It reads the official careers sites of 64 companies, stores every job it finds, and sends a Telegram alert for each new **tech internship**, including an eligibility check for a student based in **India**. A dashboard, reachable from anywhere through Tailscale, is used to browse jobs, tag them (Liked / Applied / Dismissed) and see whether each scraper is healthy.
 
 The user is a B.Tech CSE student looking for internships. Graduation year does not matter.
 
@@ -16,7 +16,7 @@ The user is a B.Tech CSE student looking for internships. Graduation year does n
 - Getting around bot protection (Cloudflare/Akamai challenges, WAFs) or ignoring robots.txt.
 - Email and Discord alerts (the alert channel is pluggable, so they can be added later).
 - A full analytics page.
-- The 12 unsupported companies listed in [companies.md](companies.md#not-supported).
+- The 14 unsupported companies listed in [companies.md](companies.md#not-supported).
 
 ## 3. Scraping
 
@@ -159,8 +159,8 @@ docs/
 | Release | Scope | Companies |
 |---|---|---|
 | **R1** | Whole pipeline (DB, rules, Gemini, Telegram, worker, Docker) on Google, NVIDIA, Barclays; Workday + Eightfold + Oracle HCM adapters | 28 |
-| **R2** | Dashboard (after mockups); Lever, Greenhouse and the remaining company-specific JSON adapters | 45 |
-| **R3** | SuccessFactors sitemaps, RSS, government/notice pages, partial sources | 59 |
-| **R4** | Headless (Playwright) sites | 66 |
+| **R2** | Dashboard (after mockups); Lever, Greenhouse and the remaining company-specific JSON adapters | 43 |
+| **R3** | SuccessFactors sitemaps, RSS, government/notice pages, partial sources | 57 |
+| **R4** | Headless (Playwright) sites | 64 |
 
 Each release is checked against the live sites before the next one starts. Development and testing happen on the Mac, then the same Compose stack is deployed to the Pi.

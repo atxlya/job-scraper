@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 import { api, ApiError } from "../api";
-import { AddCompanyDialog } from "./AddCompanyDialog";
+import { AddCompanyDialog, describe } from "./AddCompanyDialog";
 
 vi.mock("../api", async (orig) => ({ ...(await orig<typeof import("../api")>()), api: vi.fn() }));
 const mockApi = vi.mocked(api);
@@ -103,4 +103,11 @@ it("doesn't guess a name from an Oracle host", async () => {
   await userEvent.paste("https://egug.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1");
   expect(await screen.findByText("Oracle HCM · egug.fa.us2.oraclecloud.com · site CX_1")).toBeInTheDocument();
   expect(screen.getByLabelText("Company name")).toHaveValue("");
+});
+
+it("describes Lever and Greenhouse boards", () => {
+  expect(describe({ adapter: "lever", config: { site: "paytm" }, key_hint: "paytm" })).toBe("Lever · paytm");
+  expect(describe({ adapter: "greenhouse", config: { board: "groww" }, key_hint: "groww" })).toBe(
+    "Greenhouse · groww",
+  );
 });

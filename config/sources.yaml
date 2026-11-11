@@ -7,6 +7,11 @@
 #   oracle_hcm: host, site, public_host
 #   google:     queries, incremental_queries (entries may set catch_all: true)
 #   barclays:   base, org_id, facets
+#   lever:      site                       greenhouse: board
+#   amazon:     queries (search.json params)   apple: locale, team
+#   amd:        intern_category            capgemini: country_code
+#   zerodha:    allow_empty (any source may set it: 0 jobs is then healthy)
+#   atlassian, ibm, phonepe, swiggy: no keys
 
 companies:
   # ---------------------------------------------------------------- original three
@@ -309,7 +314,69 @@ companies:
         adapter: oracle_hcm
         config: {host: ibqbjb.fa.ocs.oraclecloud.com, site: CX_1}
 
+  # ---------------------------------------------------------------- R2b: Lever (3)
+  - slug: paytm
+    name: Paytm
+    sources: [{key: paytm, adapter: lever, config: {site: paytm}}]
+  - slug: meesho
+    name: Meesho
+    sources: [{key: meesho, adapter: lever, config: {site: meesho}}]
+  - slug: cred
+    name: CRED
+    sources: [{key: cred, adapter: lever, config: {site: cred}}]
+
+  # ---------------------------------------------------------------- R2b: Greenhouse (3)
+  - slug: razorpay
+    name: Razorpay
+    sources: [{key: razorpay, adapter: greenhouse, config: {board: razorpaysoftwareprivatelimited}}]
+  - slug: groww
+    name: Groww
+    sources: [{key: groww, adapter: greenhouse, config: {board: groww}}]
+  - slug: inmobi
+    name: InMobi
+    sources: [{key: inmobi, adapter: greenhouse, config: {board: inmobi}}]
+
+  # ---------------------------------------------------------------- R2b: own sites (9)
+  - slug: amazon
+    name: Amazon
+    sources:
+      - key: amazon
+        adapter: amazon
+        config:
+          queries:
+            - {base_query: intern}
+            - {"normalized_country_code[]": IND}
+  - slug: apple
+    name: Apple
+    sources:
+      - {key: apple-interns, adapter: apple, config: {locale: en-in, team: internships-STDNT-INTRN}}
+  - slug: atlassian
+    name: Atlassian
+    sources: [{key: atlassian, adapter: atlassian, config: {}}]
+  - slug: amd
+    name: AMD
+    sources: [{key: amd, adapter: amd, config: {intern_category: "Student / Intern / Temp"}}]
+  - slug: ibm
+    name: IBM
+    sources: [{key: ibm-interns, adapter: ibm, config: {}}]
+  - slug: capgemini
+    name: Capgemini
+    sources: [{key: capgemini-india, adapter: capgemini, config: {country_code: en-in}}]
+  - slug: phonepe
+    name: PhonePe
+    sources: [{key: phonepe, adapter: phonepe, config: {}}]
+  - slug: swiggy
+    name: Swiggy
+    sources: [{key: swiggy, adapter: swiggy, config: {}}]
+  - slug: zerodha
+    name: Zerodha
+    sources: [{key: zerodha, adapter: zerodha, config: {allow_empty: true}}]
+
   # ---------------------------------------------------------------- not supported
+  - {slug: meta, name: Meta, supported: false,
+     reason: "metacareers.com robots.txt says automated collection is prohibited without written permission"}
+  - {slug: goldman, name: Goldman Sachs, supported: false,
+     reason: "higher.gs.com has no internships; the campus portal hasn't been found"}
   - {slug: tcs, name: TCS, supported: false, reason: "Akamai bot protection (403)"}
   - {slug: infosys, name: Infosys, supported: false,
      reason: "Akamai bot protection (403, including robots.txt)"}

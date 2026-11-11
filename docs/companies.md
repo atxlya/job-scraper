@@ -64,29 +64,31 @@ Oracle HCM sites use `GET https://{host}/hcmRestApi/resources/latest/recruitingC
 
 ---
 
-## R2 — +17 (45 total)
+## R2 — +15 (43 total)
 
-| Company | Adapter | Source details | Internship filter |
+Built in R2b ([plan](superpowers/plans/2026-11-11-r2b-adapters.md), [notes](R2b-notes.md)). Every endpoint was re-checked live on **2026-11-11**. Meta and Goldman Sachs moved to [Not supported](#not-supported).
+
+| Company | Adapter | Source details | Internship filter / notes |
 |---|---|---|---|
-| Paytm | Lever | `api.lever.co/v0/postings/paytm?mode=json` | `commitment=Intern` |
-| Meesho | Lever | `api.lever.co/v0/postings/meesho?mode=json` | commitment |
-| CRED | Lever | `api.lever.co/v0/postings/cred?mode=json` | commitment |
-| Razorpay | Greenhouse | `boards-api.greenhouse.io/v1/boards/razorpaysoftwareprivatelimited/jobs` | title |
-| Groww | Greenhouse | `boards-api.greenhouse.io/v1/boards/groww/jobs` | title |
-| InMobi | Greenhouse | `boards-api.greenhouse.io/v1/boards/inmobi/jobs` | title (not yet confirmed that the careers page uses this board) |
-| Amazon | `company/amazon` | `amazon.jobs/en/search.json?normalized_country_code[]=…&offset=&result_limit=` | fields `is_intern`, `university_job` |
-| Apple | `company/apple` | search pages embed results as JSON | `team=internships-STDNT-INTRN` |
-| Meta | `company/meta` | sitemap `metacareers.com/jobs/sitemap.xml` + JSON-LD on job pages | `employmentType` / title. robots disallows `/ajax/` |
-| Atlassian | `company/atlassian` | `atlassian.com/endpoint/careers/listings` (all jobs in one response) | title |
-| AMD | `company/amd` (iCIMS Jibe) | `careers.amd.com/api/jobs?keywords=&page=&limit=` | keywords |
-| IBM | `company/ibm` | `POST www-api.ibm.com/search/api/v2` (`appId:"careers"`, `scopes:["careers2"]`) | `field_keyword_18`=Internship. careers.ibm.com itself has an AWS WAF challenge; don't touch it |
-| Capgemini | `company/capgemini` | `cg-jobstream-api.azurewebsites.net/api/job-search?country_code=en-in&page=&size=` | `experience_level` |
-| PhonePe | `company/phonepe` | `phonepe.com/apollo/job-postings/latest.json` | `type=Intern`; keep `status=PUBLIC` |
-| Zerodha | `company/zerodha` | `careers.zerodha.com/api/jobs` | keyword |
-| Swiggy | `company/swiggy` | `careers.swiggy.in/api/jobs.json` (own endpoint; **not** the SmartRecruiters API) | title |
-| Goldman Sachs | `company/goldman` | `POST api-higher.gs.com/gateway/api/v1/graphql`, `roleSearch` | `experiences:["EARLY_CAREER"]`. Campus internship portal not yet found; higher.gs.com robots allows only `/roles/` |
+| Paytm | Lever | `api.lever.co/v0/postings/paytm?mode=json`: one list, full descriptions (≈3 MB) | `categories.commitment` "Intern" → intern flag. Detail `/v0/postings/paytm/{id}`, 404 when gone |
+| Meesho | Lever | `…/postings/meesho?mode=json` | title only (no "Intern" commitment today) |
+| CRED | Lever | `…/postings/cred?mode=json` | title only |
+| Razorpay | Greenhouse | `boards-api.greenhouse.io/v1/boards/razorpaysoftwareprivatelimited/jobs` | title. `content=true` (HTML-escaped) only in the full sweep |
+| Groww | Greenhouse | `…/boards/groww/jobs` (job links are on `job-boards.eu.greenhouse.io`; the API host is the same) | title |
+| InMobi | Greenhouse | `…/boards/inmobi/jobs` (79 jobs, active) | title; `metadata` "Employment Type" |
+| Amazon | `company/amazon` | `amazon.jobs/en/search.json?…&result_limit=100&sort=recent`, two queries: `base_query=intern` (≈477) and `normalized_country_code[]=IND` (≈2,080) | Amazon ignores `job_type[]`, `business_category[]` and `team[]`, and `is_intern` / `university_job` are always null, so titles decide. `hits` caps at 10,000 |
+| Apple | `company/apple` | `jobs.apple.com/en-in/search?team=internships-STDNT-INTRN&page=N` (20 per page, ≈130); data in `window.__staticRouterHydrationData = JSON.parse("…")` | every result is an internship. `sort=newest` is newest-first. Job page has the same hydration data; a removed job answers 200 with no `jobDetails`. No robots.txt |
+| Atlassian | `company/atlassian` | `atlassian.com/endpoint/careers/listings`: every job (≈358) with full text | title. Links go to the iCIMS job page (`portalJobPost.portalUrl`) |
+| AMD | `company/amd` (iCIMS Jibe) | `careers.amd.com/api/jobs?page=N&limit=100` (≈1,300) | `categories=Student / Intern / Temp` (≈37). robots.txt sets `crawl-delay: 5`, which the client honours |
+| IBM | `company/ibm` | `POST www-api.ibm.com/search/api/v2` (`appId:"careers"`, `scopes:["careers2"]`, `post_filter` `field_keyword_18`=Internship, sorted by `dcdate`) (≈236) | search snippet only: careers.ibm.com has an AWS WAF challenge and is never fetched |
+| Capgemini | `company/capgemini` | `cg-jobstream-api.azurewebsites.net/api/job-search?country_code=en-in&page=N&size=100` (≈705) | pages start at 1 and aren't newest-first, so every run reads every page. `experience_level` today is only Experienced Professionals / Executives |
+| PhonePe | `company/phonepe` | `phonepe.com/apollo/job-postings/latest.json` (955 rows) | keep `status=PUBLIC` (≈153); `type=Intern`. Descriptions from the SmartRecruiters job page (below) |
+| Zerodha | `company/zerodha` | `careers.zerodha.com/api/jobs` → `{count, data, success}`; fields `name`, `job_title`, `location`, `location_type`, `description` (from the site's script) | **0 openings on 2026-11-11**; the source has `allow_empty: true` |
+| Swiggy | `company/swiggy` | `careers.swiggy.in/api/jobs.json` (≈194): keys `t` title, `l` location, `e` type, `d` epoch ms, `u` link, `r`=1 Remote, `h`=1 Hybrid (from the site's script) | title. Descriptions from the SmartRecruiters job page |
 
-## R3 — +14 (59 total)
+**SmartRecruiters job pages.** `jobs.smartrecruiters.com/{Company}/{id}-{slug}` with `Accept: application/json` returns the posting as JSON (`jobTitle`, `content.sections`, `postedDate`, `employmentType`). That host has no robots.txt; a removed posting answers 404 (HTML). The API host `api.smartrecruiters.com` stays off limits.
+
+## R3 — +14 (57 total)
 
 | Company | Adapter | Source details |
 |---|---|---|
@@ -105,7 +107,7 @@ Oracle HCM sites use `GET https://{host}/hcmRestApi/resources/latest/recruitingC
 | Uber | partial (sitemap) | `jobs.uber.com/en/jobs/sitemap.xml`; job pages return 403 |
 | SAP | partial (sitemap) | `jobs.sap.com/en/jobs/sitemap.xml`; pages behind Cloudflare; robots disallows `?q=` |
 
-## R4 — +7 (66 total), Playwright
+## R4 — +7 (64 total), Playwright
 
 | Company | Site | Platform |
 |---|---|---|
@@ -139,7 +141,9 @@ These are not built. Check them manually.
 | Freshworks | SmartRecruiters API robots.txt allows only LinkedInBot |
 | Bosch | SmartRecruiters API robots.txt allows only LinkedInBot |
 | ServiceNow | SmartRecruiters API robots.txt allows only LinkedInBot |
+| Meta | metacareers.com robots.txt opens with a notice that automated collection is prohibited without written permission (its rules alone would allow job pages) |
+| Goldman Sachs | higher.gs.com's `roleSearch` API works, but has no internships (`EARLY_CAREER` = 6 call-centre and analyst roles on 2026-11-11); the campus internship portal hasn't been found |
 
-Possible later revisit: SmartRecruiters' public job pages (`jobs.smartrecruiters.com/{Company}`) had no robots.txt rules on 2026-11-10. If they can be parsed reliably, Freshworks, Bosch and ServiceNow could move back to automated.
+Possible later revisit: SmartRecruiters' public job pages are now read as JSON for PhonePe and Swiggy (see R2). A company's job list on `jobs.smartrecruiters.com/{Company}` might work the same way, which could move Freshworks, Bosch and ServiceNow back to automated.
 
 Note: `companies.txt` line 58 "vPayPal" is PayPal.

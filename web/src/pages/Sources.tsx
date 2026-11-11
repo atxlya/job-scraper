@@ -18,6 +18,17 @@ const PLATFORM: Record<string, string> = {
   oracle_hcm: "Oracle HCM",
   google: "Google (own site)",
   barclays: "Barclays (own site)",
+  lever: "Lever",
+  greenhouse: "Greenhouse",
+  amazon: "Amazon (own site)",
+  apple: "Apple (own site)",
+  atlassian: "Atlassian (own site)",
+  amd: "AMD (own site)",
+  ibm: "IBM (own site)",
+  capgemini: "Capgemini (own site)",
+  phonepe: "PhonePe (own site)",
+  swiggy: "Swiggy (own site)",
+  zerodha: "Zerodha (own site)",
 };
 
 export function Sources() {
