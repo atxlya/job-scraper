@@ -47,3 +47,17 @@ async def test_full_pages_until_total(client, mock, monkeypatch):
     assert [int(c.request.url.params["page"]) for c in route.calls] == [1, 2, 3]
     assert "categories" not in route.calls.last.request.url.params
     assert res.complete is True
+
+
+async def test_empty_last_page_not_complete(client, mock, monkeypatch):
+    monkeypatch.setattr(amd, "PAGE", 8)
+    body = load_json("amd", "all_p1")
+    body["totalCount"] = 20
+    empty = {**body, "jobs": []}
+
+    def respond(request):
+        last = request.url.params["page"] == "3"  # the final page comes back empty
+        return httpx.Response(200, json=empty if last else body)
+
+    mock.get(URL).mock(side_effect=respond)
+    assert (await AmdAdapter().list_jobs(client, CFG, "full")).complete is False

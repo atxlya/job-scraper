@@ -12,7 +12,7 @@ from app.adapters.text import from_ms, join_sections
 from app.http.client import PoliteClient
 
 API = "https://api.lever.co/v0/postings"
-_INTERN = re.compile(r"(?i)\bintern")
+_INTERN = re.compile(r"(?i)\bintern(ship)?s?\b")  # not "International"/"Internal"
 _REMOTE = {"onsite", "hybrid", "remote"}
 
 

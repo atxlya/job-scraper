@@ -45,17 +45,20 @@ class IbmAdapter:
 
     async def list_jobs(self, client: PoliteClient, cfg: dict, mode: Mode) -> ListingResult:
         jobs: dict[str, RawJob] = {}
-        start, total = 0, None
+        start, total, short = 0, None, False
         while True:
             hits, count = await self._page(client, start)
             total = count if total is None else total
             for h in hits:
                 job = _to_raw(h.get("_source") or {})
                 jobs.setdefault(job.external_id, job)
-            start += SIZE
-            if mode == "incremental" or not hits or start >= total:
+            if not hits:
+                short = start < total  # the site stopped before its own total
                 break
-        complete = mode == "full" and start >= total
+            start += SIZE
+            if mode == "incremental" or start >= total:
+                break
+        complete = mode == "full" and start >= total and not short
         return ListingResult(jobs=list(jobs.values()), reported_total=total, complete=complete)
 
     async def _page(self, client: PoliteClient, start: int) -> tuple[list[dict], int]:

@@ -16,7 +16,7 @@ _LANG = re.compile(r"^[a-z]{2}(-[A-Z]{2})?$")
 _ORACLE_PATH = re.compile(r"^/hcmUI/CandidateExperience/[^/]+/sites/(?P<site>[^/?#]+)")
 
 
-_LEVER_HOSTS = {"jobs.lever.co", "jobs.eu.lever.co"}
+_LEVER_HOSTS = {"jobs.lever.co"}  # EU boards use api.eu.lever.co, not supported yet
 _GREENHOUSE_HOSTS = {
     "boards.greenhouse.io",
     "job-boards.greenhouse.io",

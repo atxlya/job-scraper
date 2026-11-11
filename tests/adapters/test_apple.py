@@ -87,3 +87,28 @@ async def test_page_without_hydration_raises_parse_error(client, mock):
     mock.get(SEARCH).mock(return_value=httpx.Response(200, text="<html>maintenance</html>"))
     with pytest.raises(ParseError):
         await AppleAdapter().list_jobs(client, CFG, "full")
+
+
+def _with_details(details) -> httpx.Response:
+    """The recorded job page, with its jobDetails route data replaced."""
+    import json  # noqa: PLC0415
+
+    text = load_fixture("apple", "detail").decode()
+    loader = hydration(text)
+    loader["jobDetails"] = details
+    inner = json.dumps(json.dumps({"loaderData": loader}))
+    text = re.sub(
+        r'(window\.__staticRouterHydrationData\s*=\s*JSON\.parse\()(".*?")(\);)',
+        lambda m: m.group(1) + inner + m.group(3),
+        text,
+        count=1,
+        flags=re.S,
+    )
+    return httpx.Response(200, text=text, headers={"content-type": "text/html"})
+
+
+async def test_detail_with_changed_shape_raises_parse_error(client, mock):
+    mock.get(DETAIL).mock(return_value=_with_details({}))
+    job = RawJob(external_id="200691891-3715", title="x", url=DETAIL)
+    with pytest.raises(ParseError):
+        await AppleAdapter().fetch_detail(client, CFG, job)

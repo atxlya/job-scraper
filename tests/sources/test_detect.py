@@ -67,6 +67,7 @@ from app.sources.detect import Detected, detect
             Detected("lever", {"site": "meesho"}, "meesho"),
         ),
         ("https://jobs.lever.co/", None),
+        ("https://jobs.eu.lever.co/acme", None),  # EU boards use another API host
         (
             "https://job-boards.eu.greenhouse.io/groww/jobs/4970739101",
             Detected("greenhouse", {"board": "groww"}, "groww"),

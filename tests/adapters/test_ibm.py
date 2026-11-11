@@ -62,3 +62,17 @@ async def test_ibm_never_requests_careers_site(client, mock):
     )
     assert await IbmAdapter().fetch_detail(client, {}, blank) == blank
     assert careers.call_count == 0
+
+
+async def test_empty_last_page_not_complete(client, mock, monkeypatch):
+    monkeypatch.setattr(ibm, "SIZE", 25)
+    body = load_json("ibm", "page1")
+    body["hits"]["total"]["value"] = 60
+    empty = {"hits": {"total": {"value": 60}, "hits": []}}
+
+    def respond(request):
+        start = json.loads(request.content)["from"]
+        return httpx.Response(200, json=empty if start == 50 else body)  # final page empty
+
+    mock.post(SEARCH).mock(side_effect=respond)
+    assert (await IbmAdapter().list_jobs(client, {}, "full")).complete is False

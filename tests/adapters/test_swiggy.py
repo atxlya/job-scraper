@@ -35,3 +35,20 @@ async def test_missing_jobs_key_raises_parse_error(client, mock):
     mock.get(URL).mock(return_value=httpx.Response(200, json={"total": 1}))
     with pytest.raises(ParseError):
         await SwiggyAdapter().list_jobs(client, {}, "full")
+
+
+async def test_row_without_link_is_skipped(client, mock):
+    body = load_json("swiggy", "jobs")
+    body["jobs"][0]["u"] = "https://example-ats.com/job/1"
+    mock.get(URL).mock(return_value=httpx.Response(200, json=body))
+    res = await SwiggyAdapter().list_jobs(client, {}, "full")
+    assert len(res.jobs) == len(body["jobs"]) - 1
+
+
+async def test_no_usable_rows_raises_parse_error(client, mock):
+    body = load_json("swiggy", "jobs")
+    for r in body["jobs"]:
+        r["u"] = ""
+    mock.get(URL).mock(return_value=httpx.Response(200, json=body))
+    with pytest.raises(ParseError):
+        await SwiggyAdapter().list_jobs(client, {}, "full")

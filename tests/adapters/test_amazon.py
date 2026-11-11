@@ -91,3 +91,19 @@ async def test_detail_makes_no_request(client, mock):
     job = base.RawJob(external_id="1", title="x", url="https://www.amazon.jobs/en/jobs/1")
     assert await AmazonAdapter().fetch_detail(client, CFG, job) == job
     assert route.call_count == 0
+
+
+async def test_empty_last_page_not_complete(client, mock, monkeypatch):
+    monkeypatch.setattr(amazon, "PAGE", 25)
+    india = load_json("amazon", "india_page1")
+    india["hits"] = 60
+    empty = {**india, "jobs": []}
+
+    def respond(request):
+        if "base_query" in request.url.params:
+            return httpx.Response(200, json={**india, "hits": len(india["jobs"])})
+        last = request.url.params["offset"] == "50"  # the final page comes back empty
+        return httpx.Response(200, json=empty if last else india)
+
+    mock.get(SEARCH).mock(side_effect=respond)
+    assert (await AmazonAdapter().list_jobs(client, CFG, "full")).complete is False

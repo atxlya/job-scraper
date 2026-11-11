@@ -73,3 +73,21 @@ async def test_not_a_list_raises_parse_error(client, mock):
     mock.get(LIST).mock(return_value=httpx.Response(200, json={"ok": False}))
     with pytest.raises(ParseError):
         await LeverAdapter().list_jobs(client, CFG, "full")
+
+
+@pytest.mark.parametrize(
+    ("commitment", "flagged"),
+    [
+        ("Intern", True),
+        ("Internship", True),
+        ("Summer Interns", True),
+        ("International Assignment", False),
+        ("Internal Transfer", False),
+    ],
+)
+async def test_intern_commitment_words(client, mock, commitment, flagged):
+    body = load_json("lever", "paytm_interns")[:1]
+    body[0]["categories"]["commitment"] = commitment
+    mock.get(LIST).mock(return_value=httpx.Response(200, json=body))
+    res = await LeverAdapter().list_jobs(client, CFG, "full")
+    assert bool(res.jobs[0].platform_flags.get("intern")) is flagged

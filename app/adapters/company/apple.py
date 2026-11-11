@@ -69,10 +69,14 @@ class AppleAdapter:
         if resp.status_code == 404:
             return GONE
         resp.raise_for_status()
-        # A removed job still answers 200, with only the "root" route's data.
-        d = (hydration(resp.text).get("jobDetails") or {}).get("jobsData")
-        if not d:
+        # A removed job still answers 200, with only the "root" route's data. Any other
+        # shape is a site change, not a removal.
+        loader = hydration(resp.text)
+        if set(loader) == {"root"}:
             return GONE
+        d = (loader.get("jobDetails") or {}).get("jobsData")
+        if not d:
+            raise ParseError(f"apple: job page without jobsData ({sorted(loader)})")
         sections = [
             (None, text_to_html(d.get("jobSummary"))),
             ("Description", text_to_html(d.get("description"))),

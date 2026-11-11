@@ -41,3 +41,31 @@ async def test_missing_data_raises_parse_error(client, mock):
     mock.get(URL).mock(return_value=httpx.Response(200, json={"total": 3}))
     with pytest.raises(ParseError):
         await CapgeminiAdapter().list_jobs(client, CFG, "full")
+
+
+@pytest.mark.parametrize(
+    ("contract", "flagged"),
+    [("Internship", True), ("Student", True), ("International", False), ("Internal", False)],
+)
+async def test_intern_contract_words(client, mock, contract, flagged):
+    body = load_json("capgemini", "p1")
+    body["data"] = body["data"][:1]
+    body["data"][0]["contract_type"] = contract
+    body["total"] = 1
+    mock.get(URL).mock(return_value=httpx.Response(200, json=body))
+    res = await CapgeminiAdapter().list_jobs(client, CFG, "full")
+    assert bool(res.jobs[0].platform_flags.get("intern")) is flagged
+
+
+async def test_empty_last_page_not_complete(client, mock, monkeypatch):
+    monkeypatch.setattr(capgemini, "PAGE", 25)
+    p1 = load_json("capgemini", "p1")
+    p1["total"] = 60
+    empty = {**p1, "data": []}
+
+    def respond(request):
+        last = request.url.params["page"] == "3"  # the final page comes back empty
+        return httpx.Response(200, json=empty if last else p1)
+
+    mock.get(URL).mock(side_effect=respond)
+    assert (await CapgeminiAdapter().list_jobs(client, CFG, "full")).complete is False

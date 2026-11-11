@@ -30,7 +30,7 @@ class SwiggyAdapter:
         for r in rows:
             m = SR_ID.search(r.get("u") or "")
             if not m or not r.get("t"):
-                raise ParseError("swiggy: job without title or SmartRecruiters link")
+                continue  # e.g. a role posted on another site; it has no page we can read
             locations = [r["l"]] if r.get("l") else []
             remote = "remote" if r.get("r") == 1 else "hybrid" if r.get("h") == 1 else None
             jobs.setdefault(
@@ -46,6 +46,8 @@ class SwiggyAdapter:
                     posted_at=from_ms(r.get("d")),
                 ),
             )
+        if rows and not jobs:
+            raise ParseError("swiggy: no job has a title and SmartRecruiters link")
         return ListingResult(
             jobs=list(jobs.values()), reported_total=total, complete=mode == "full"
         )

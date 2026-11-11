@@ -19,7 +19,7 @@ class AmdAdapter:
 
     async def list_jobs(self, client: PoliteClient, cfg: dict, mode: Mode) -> ListingResult:
         jobs: dict[str, RawJob] = {}
-        page, total = 1, None
+        page, total, short = 1, None, False
         while True:
             params: dict = {"page": page, "limit": PAGE}
             if mode == "incremental":
@@ -29,10 +29,13 @@ class AmdAdapter:
             for row in data["jobs"]:
                 job = _to_raw(cfg, row.get("data") or {})
                 jobs.setdefault(job.external_id, job)
-            if mode == "incremental" or not data["jobs"] or page * PAGE >= total:
+            if not data["jobs"]:
+                short = (page - 1) * PAGE < total  # the site stopped before its own total
+                break
+            if mode == "incremental" or page * PAGE >= total:
                 break
             page += 1
-        complete = mode == "full" and page * PAGE >= total
+        complete = mode == "full" and page * PAGE >= total and not short
         return ListingResult(jobs=list(jobs.values()), reported_total=total, complete=complete)
 
     async def _get(self, client: PoliteClient, params: dict) -> dict:
