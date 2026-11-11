@@ -18,6 +18,7 @@ ROBOTS_TTL_S = 24 * 3600
 MAX_RETRIES = 4
 MAX_CRAWL_DELAY_S = 30.0  # a typo like "Crawl-delay: 3600" must not stall a source
 RETRY_STATUSES = {429, 500, 502, 503, 504}
+MAX_REDIRECTS = 5
 
 
 class RobotsDisallowed(Exception):
@@ -49,15 +50,19 @@ class PoliteClient:
         self._http = httpx.AsyncClient(
             headers={"User-Agent": user_agent},
             timeout=timeout_s,
-            follow_redirects=True,
+            follow_redirects=False,  # _request follows hops itself, robots-checking each
             transport=transport,
         )
         self._robots: dict[str, tuple[float, Robots]] = {}
         self._locks: dict[str, asyncio.Lock] = {}
         self._last: dict[str, float] = {}
 
-    async def get(self, url: str, *, params=None, headers=None) -> httpx.Response:
-        return await self._request("GET", url, params=params, headers=headers)
+    async def get(
+        self, url: str, *, params=None, headers=None, follow_redirects: bool = True
+    ) -> httpx.Response:
+        return await self._request(
+            "GET", url, follow_redirects=follow_redirects, params=params, headers=headers
+        )
 
     async def post_json(self, url: str, json: dict, *, headers=None) -> httpx.Response:
         return await self._request("POST", url, json=json, headers=headers)
@@ -65,19 +70,37 @@ class PoliteClient:
     async def aclose(self) -> None:
         await self._http.aclose()
 
-    async def _request(self, method: str, url: str, **kw) -> httpx.Response:
-        full = str(httpx.URL(url, params=kw.get("params")))
-        robots = await self._check_robots(full)
+    async def _request(
+        self, method: str, url: str, *, follow_redirects: bool = True, **kw
+    ) -> httpx.Response:
+        """Send a request; follow redirects here so every hop is robots-checked and paced."""
+        request = self._http.build_request(method, url, **kw)
+        hops = 0
+        while True:
+            resp = await self._send_one(request)
+            if not follow_redirects or resp.next_request is None:
+                return resp
+            hops += 1
+            if hops > MAX_REDIRECTS:
+                raise httpx.TooManyRedirects(
+                    f"exceeded {MAX_REDIRECTS} redirects", request=resp.request
+                )
+            request = resp.next_request
+
+    async def _send_one(self, request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        method = request.method
+        robots = await self._check_robots(url)
         delay = robots.crawl_delay(self.user_agent) or 0.0
         interval = min(MAX_CRAWL_DELAY_S, max(self.min_interval_s, delay))
-        host = urlsplit(url).netloc
+        host = request.url.netloc.decode()
         lock = self._locks.setdefault(host, asyncio.Lock())
         attempt = 0
         while True:
             async with lock:
                 await self._wait_turn(host, interval)
                 try:
-                    resp = await self._http.request(method, url, **kw)
+                    resp = await self._http.send(request)
                     err: Exception | None = None
                 except (httpx.TimeoutException, httpx.TransportError) as e:
                     resp, err = None, e
@@ -124,7 +147,7 @@ class PoliteClient:
         resp = None
         for attempt in range(3):
             try:
-                resp = await self._http.get(f"{base}/robots.txt")
+                resp = await self._http.get(f"{base}/robots.txt", follow_redirects=True)
                 break
             except httpx.HTTPError as e:
                 if attempt == 2:

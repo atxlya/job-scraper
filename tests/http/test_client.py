@@ -190,3 +190,78 @@ async def test_crawl_delay_capped(ft):
     await c.get("https://slow.com/a")
     await c.get("https://slow.com/a")
     assert ft.sleeps == [30]
+
+
+@respx.mock
+async def test_redirect_target_checked_against_robots(client):
+    robots(respx, "a.com", "User-agent: *\nDisallow: /error\n")
+    respx.get("https://a.com/job/x/1/").mock(
+        return_value=httpx.Response(302, headers={"Location": "/errorpage/?errortype=Exception"})
+    )
+    target = respx.get("https://a.com/errorpage/").mock(return_value=httpx.Response(200))
+    with pytest.raises(RobotsDisallowed):
+        await client.get("https://a.com/job/x/1/")
+    assert target.call_count == 0
+
+
+@respx.mock
+async def test_allowed_redirect_followed(client):
+    robots(respx, "a.com")
+    respx.get("https://a.com/job/A/1340802255/").mock(
+        return_value=httpx.Response(302, headers={"Location": "/job/A/134372-en_US/"})
+    )
+    respx.get("https://a.com/job/A/134372-en_US/").mock(return_value=httpx.Response(200, text="ok"))
+    resp = await client.get("https://a.com/job/A/1340802255/")
+    assert resp.status_code == 200
+    assert str(resp.url).endswith("134372-en_US/")
+
+
+@respx.mock
+async def test_follow_redirects_false_returns_3xx(client):
+    robots(respx, "a.com")
+    respx.get("https://a.com/job/x/1/").mock(
+        return_value=httpx.Response(302, headers={"Location": "/errorpage/?errortype=Exception"})
+    )
+    target = respx.get("https://a.com/errorpage/").mock(return_value=httpx.Response(200))
+    resp = await client.get("https://a.com/job/x/1/", follow_redirects=False)
+    assert resp.status_code == 302
+    assert resp.headers["location"] == "/errorpage/?errortype=Exception"
+    assert target.call_count == 0
+
+
+@respx.mock
+async def test_redirect_to_other_host_uses_its_robots(client):
+    robots(respx, "a.com")
+    robots(respx, "b.com", "User-agent: *\nDisallow: /y\n")
+    respx.get("https://a.com/x").mock(
+        return_value=httpx.Response(302, headers={"Location": "https://b.com/y"})
+    )
+    target = respx.get("https://b.com/y").mock(return_value=httpx.Response(200))
+    with pytest.raises(RobotsDisallowed):
+        await client.get("https://a.com/x")
+    assert target.call_count == 0
+
+
+@respx.mock
+async def test_too_many_redirects(client):
+    robots(respx, "a.com")
+    for i in range(6):
+        respx.get(f"https://a.com/r{i}").mock(
+            return_value=httpx.Response(302, headers={"Location": f"/r{i + 1}"})
+        )
+    with pytest.raises(httpx.TooManyRedirects):
+        await client.get("https://a.com/r0")
+
+
+@respx.mock
+async def test_robots_redirect_still_followed(client):
+    respx.get("https://a.com/robots.txt").mock(
+        return_value=httpx.Response(301, headers={"Location": "/robots-real.txt"})
+    )
+    respx.get("https://a.com/robots-real.txt").mock(
+        return_value=httpx.Response(200, text="User-agent: *\nDisallow: /private\n")
+    )
+    route = respx.get("https://a.com/private/x").mock(return_value=httpx.Response(200))
+    with pytest.raises(RobotsDisallowed):
+        await client.get("https://a.com/private/x")
+    assert route.call_count == 0
