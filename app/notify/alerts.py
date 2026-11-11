@@ -36,6 +36,11 @@ def _eligibility_lines(job: Job, analysis: JobAnalysis | None) -> list[str]:
     lines = []
     if e.degree:
         lines.append(f"⚠️ For {e.degree} students only (from the title)")
+    flags = job.platform_flags or {}
+    if flags.get("notice"):
+        return [*lines, "📄 Government notice — eligibility is in the PDF"]
+    if flags.get("partial"):
+        return [*lines, "ℹ️ Details unavailable — open link"]
     if e.quote:
         lines.append(f"⚠️ Check: “{_e(e.quote)}”")
     if lines:
@@ -70,7 +75,17 @@ def format_alert(
 
 
 def _links(job: Job, dashboard_url: str | None) -> str:
-    apply = f'<a href="{_e(job.apply_url or job.url)}">Apply</a>'
+    flags = job.platform_flags or {}
+    if flags.get("notice"):
+        apply = (
+            f'<a href="{_e(job.apply_url)}">Notice PDF</a>'
+            if job.apply_url
+            else f'<a href="{_e(job.url)}">Notice</a>'
+        )
+    elif flags.get("partial"):
+        apply = f'<a href="{_e(job.url)}">Open link</a>'
+    else:
+        apply = f'<a href="{_e(job.apply_url or job.url)}">Apply</a>'
     if not dashboard_url:
         return apply
     return f'{apply} · <a href="{_e(dashboard_url.rstrip("/"))}/jobs/{job.id}">Dashboard</a>'

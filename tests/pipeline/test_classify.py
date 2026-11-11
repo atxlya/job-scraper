@@ -70,3 +70,40 @@ def test_lowercase_it_is_not_tech():
 )
 def test_degree_only(title, expected):
     assert degree_only(title) == expected
+
+
+@pytest.mark.parametrize(
+    ("title", "expected"),
+    [
+        (
+            "DGRE, Chandigarh invites application for Paid Internship for Engg/Science UG/PG"
+            " Students",
+            True,
+        ),
+        (
+            "Advt No. SAC:02:2026 dated 10.09.2026 - Inviting online applications for the posts"
+            " of Junior Research Fellows, Research Associate and Project Scientist-I.",
+            True,
+        ),
+        (
+            "Recruitment for Project Staff on Various Contract positions for C-DAC, Chennai"
+            " through Walk in Interview",
+            True,
+        ),
+        ("Provisionally Selected List of JRF in DYSL-CT, Chennai", False),
+        (
+            "List of Shortlisted Candidates for the Final Round of Interview for Project"
+            " Associate- Software Simulator Developer",
+            False,
+        ),
+        ("CORRIGENDUM - ADVERTISEMENT REF. NO. CORP/JIT/03/2026", False),
+        ("Walk-in-interview for the post of Scientific Assistant/B", False),
+        (
+            "Advt No.ISRO:ICRB:02(EMC-CEPO):2026 dated 28.07.2026 - Selection Panel for the post"
+            " of Scientist/Engineer 'SC' (Mechanical,Computer Science)",
+            False,
+        ),
+    ],
+)
+def test_notice_titles(title, expected):
+    assert classify(job(title, notice=True), KW).is_internship is expected

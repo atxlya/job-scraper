@@ -1,5 +1,6 @@
 import asyncio
 from collections import Counter
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -15,6 +16,7 @@ from app.pipeline.derived import create_fts
 from app.worker.runner import Ctx, run_all, run_source
 from app.worker.scheduler import build_scheduler
 
+T0 = datetime(2026, 11, 10, tzinfo=UTC)
 KEYWORDS = Path(__file__).resolve().parents[2] / "config" / "keywords.yaml"
 DETAIL_CALLS: Counter = Counter()
 
@@ -298,3 +300,41 @@ async def test_listing_details_without_description_still_fetches(ctx):
     assert DETAILED_CALLS["2"] == 1
     with ctx.session_factory() as s:
         assert s.scalars(select(Job)).one().description_html == "<p>from detail</p>"
+
+
+def test_partial_and_settled_notices_skip_gemini(ctx):
+    from app.worker.runner import _classify_new
+
+    src_id = add_source(ctx, "gov")
+    with ctx.session_factory() as s:
+        src = s.get(Source, src_id)
+
+        def add(ext, title, flags):
+            j = Job(
+                company_id=src.company_id,
+                source_ids=[src.id],
+                external_id=ext,
+                url=f"https://x/{ext}",
+                title=title,
+                locations=[],
+                country_codes=["IN"],
+                platform_flags=flags,
+                content_hash="h",
+                first_seen_at=T0,
+                last_seen_at=T0,
+            )
+            s.add(j)
+            s.flush()
+            return j
+
+        partial = add(
+            "p", "Software engineering internship trizetto product house", {"partial": True}
+        )
+        settled = add("n1", "Paid Internship for Engineering Students", {"notice": True})
+        unclear = add("n2", "Paid Internship for UG/PG Students", {"notice": True})
+        _classify_new(s, ctx.keywords, [partial.id, settled.id, unclear.id])
+        assert (settled.is_internship, settled.is_tech) == (True, True)
+        assert (unclear.is_internship, unclear.is_tech) == (True, None)
+        assert partial.analysis_state == "skipped"
+        assert settled.analysis_state == "skipped"
+        assert unclear.analysis_state == "pending"

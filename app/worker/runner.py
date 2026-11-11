@@ -188,8 +188,15 @@ def _classify_new(s: Session, kw: Keywords, job_ids: list[int]) -> None:
         job = s.get(Job, job_id)
         c = classify(raw_from_job(job), kw)
         job.is_internship, job.is_tech = c.is_internship, c.is_tech
-        if c.is_internship is False or c.is_tech is False:
-            job.analysis_state = "skipped"  # not a tech internship: no Gemini call needed
+        flags = job.platform_flags or {}
+        settled = c.is_internship is not None and c.is_tech is not None
+        if (
+            c.is_internship is False
+            or c.is_tech is False
+            or flags.get("partial")  # title-only: nothing for Gemini to read
+            or (flags.get("notice") and settled)  # PDF notice: only unclear titles need Gemini
+        ):
+            job.analysis_state = "skipped"  # not a tech internship, or nothing to ask
     s.flush()
 
 

@@ -21,6 +21,39 @@ not_internship:
   - international
   - internist
 
+# Government notice pages (platform_flags["notice"]) use these instead of `internship`.
+notice_internship:
+  - interns?
+  - internships?
+  - trainees?
+  - apprentice(ship)?s?
+  - jrf
+  - junior research fellow(ship)?s?
+  - fellow(ship)?s?
+  - projects?
+  - summer
+
+# Notice titles about a process step, not an opening. Beats notice_internship.
+notice_skip:
+  - results?
+  - answer keys?
+  - short-?listed
+  - shortlist
+  - selected
+  - select list
+  - selection panel
+  - admit cards?
+  - call letters?
+  - response sheets?
+  - cancell?ation
+  - corrigendum
+  - date extension
+  - extension of time
+  - schedule of interview
+  - interview schedule
+  - skill test
+  - document verification
+
 # Unclear on their own: send to Gemini instead of guessing.
 maybe_internship:
   - graduate

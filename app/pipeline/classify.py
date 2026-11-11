@@ -18,6 +18,8 @@ class Keywords(NamedTuple):
     internship: re.Pattern
     not_internship: re.Pattern
     maybe_internship: re.Pattern
+    notice_internship: re.Pattern
+    notice_skip: re.Pattern
     tech: re.Pattern
     non_tech: re.Pattern
 
@@ -34,6 +36,8 @@ def load_keywords(path: str | Path) -> Keywords:
         internship=_rx(data["internship"]),
         not_internship=_rx(data.get("not_internship", [])),
         maybe_internship=_rx(data.get("maybe_internship", [])),
+        notice_internship=_rx(data.get("notice_internship", [])),
+        notice_skip=_rx(data.get("notice_skip", [])),
         tech=_rx(data["tech"], data.get("tech_case_sensitive", [])),
         non_tech=_rx(data.get("non_tech", [])),
     )
@@ -41,7 +45,16 @@ def load_keywords(path: str | Path) -> Keywords:
 
 def classify(raw: RawJob, kw: Keywords) -> Classification:
     title = kw.not_internship.sub(" ", raw.title)
-    if raw.platform_flags.get("intern") or kw.internship.search(title):
+    if raw.platform_flags.get("notice"):
+        if kw.notice_skip.search(title):
+            is_internship = False
+        elif kw.notice_internship.search(title):
+            is_internship = True
+        elif kw.maybe_internship.search(title):
+            is_internship = None
+        else:
+            is_internship = False
+    elif raw.platform_flags.get("intern") or kw.internship.search(title):
         is_internship = True
     elif kw.maybe_internship.search(title):
         is_internship = None

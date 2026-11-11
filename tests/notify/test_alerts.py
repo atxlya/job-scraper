@@ -350,3 +350,32 @@ async def test_process_new_passes_dashboard_link(session, tg, channel):
     j = make_job(session, s, "1")
     await process_new(session, channel, s, [j.id], T0, dashboard_url="http://pi:8000")
     assert f"/jobs/{j.id}" in sent_texts(tg)[0]
+
+
+def test_partial_alert_says_details_unavailable(session):
+    c, src = make_source(session)
+    j = make_job(session, src, "p1")
+    j.platform_flags = {"partial": True}
+    text = format_alert(j, c, None)
+    assert "ℹ️ Details unavailable — open link" in text
+    assert ">Open link</a>" in text
+    assert "Checking eligibility" not in text
+
+
+def test_notice_alert_links_pdf(session):
+    c, src = make_source(session)
+    j = make_job(session, src, "n1")
+    j.platform_flags = {"notice": True}
+    j.apply_url = "https://www.barc.gov.in/careers/vacancy27.pdf"
+    text = format_alert(j, c, None)
+    assert "📄 Government notice — eligibility is in the PDF" in text
+    assert '<a href="https://www.barc.gov.in/careers/vacancy27.pdf">Notice PDF</a>' in text
+
+
+def test_notice_without_pdf_links_notice_page(session):
+    c, src = make_source(session)
+    j = make_job(session, src, "n2")
+    j.platform_flags = {"notice": True}
+    j.apply_url = None
+    text = format_alert(j, c, None)
+    assert '<a href="https://x/n2">Notice</a>' in text
