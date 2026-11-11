@@ -170,3 +170,23 @@ async def test_robots_unreachable_message_names_error(client):
     respx.get("https://a.com/robots.txt").mock(side_effect=httpx.ReadTimeout(""))
     with pytest.raises(RobotsDisallowed, match="ReadTimeout"):
         await client.get("https://a.com/x")
+
+
+@respx.mock
+async def test_client_waits_for_crawl_delay(ft):
+    c = PoliteClient(min_interval_s=1, user_agent=USER_AGENT, clock=ft.clock, sleep=ft.sleep)
+    robots(respx, "amd.com", "User-agent: *\nAllow: /\ncrawl-delay: 5\n")
+    respx.get("https://amd.com/a").mock(return_value=httpx.Response(200))
+    await c.get("https://amd.com/a")
+    await c.get("https://amd.com/a")
+    assert ft.sleeps == [5]
+
+
+@respx.mock
+async def test_crawl_delay_capped(ft):
+    c = PoliteClient(min_interval_s=1, user_agent=USER_AGENT, clock=ft.clock, sleep=ft.sleep)
+    robots(respx, "slow.com", "User-agent: *\nCrawl-delay: 3600\n")
+    respx.get("https://slow.com/a").mock(return_value=httpx.Response(200))
+    await c.get("https://slow.com/a")
+    await c.get("https://slow.com/a")
+    assert ft.sleeps == [30]

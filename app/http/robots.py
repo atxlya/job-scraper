@@ -25,10 +25,12 @@ def _compile(pattern: str) -> re.Pattern:
 @dataclass
 class Robots:
     groups: dict[str, list[_Rule]]
+    delays: dict[str, float] = field(default_factory=dict)
 
     @classmethod
     def parse(cls, text: str) -> "Robots":
         groups: dict[str, list[_Rule]] = {}
+        delays: dict[str, float] = {}
         agents: list[str] = []
         in_rules = False
         for raw in text.splitlines():
@@ -49,14 +51,27 @@ class Robots:
                     continue  # "Disallow:" with no path means allow all
                 for a in agents:
                     groups[a].append(_Rule(key == "allow", value, _compile(value)))
-        return cls(groups)
+            elif key == "crawl-delay":
+                in_rules = True
+                try:
+                    delay = float(value)
+                except ValueError:
+                    continue
+                for a in agents:
+                    delays[a] = delay
+        return cls(groups, delays)
+
+    def _group(self, user_agent: str) -> str:
+        """The group name that applies to this agent: a named group, else "*"."""
+        token = user_agent.split("/", 1)[0].lower()
+        return next((n for n in self.groups if n != "*" and n in token), "*")
+
+    def crawl_delay(self, user_agent: str) -> float | None:
+        """Not part of RFC 9309, but sites like AMD set it, and it costs nothing to honour."""
+        return self.delays.get(self._group(user_agent))
 
     def allowed(self, user_agent: str, path_and_query: str) -> bool:
-        token = user_agent.split("/", 1)[0].lower()
-        rules = next(
-            (r for name, r in self.groups.items() if name != "*" and name in token),
-            self.groups.get("*", []),
-        )
+        rules = self.groups.get(self._group(user_agent), [])
         best: _Rule | None = None
         for rule in rules:
             if rule.regex.match(path_and_query):

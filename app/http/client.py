@@ -16,6 +16,7 @@ log = logging.getLogger(__name__)
 USER_AGENT = "job-scraper/0.1 (personal, non-commercial; respects robots.txt)"
 ROBOTS_TTL_S = 24 * 3600
 MAX_RETRIES = 4
+MAX_CRAWL_DELAY_S = 30.0  # a typo like "Crawl-delay: 3600" must not stall a source
 RETRY_STATUSES = {429, 500, 502, 503, 504}
 
 
@@ -66,13 +67,15 @@ class PoliteClient:
 
     async def _request(self, method: str, url: str, **kw) -> httpx.Response:
         full = str(httpx.URL(url, params=kw.get("params")))
-        await self._check_robots(full)
+        robots = await self._check_robots(full)
+        delay = robots.crawl_delay(self.user_agent) or 0.0
+        interval = min(MAX_CRAWL_DELAY_S, max(self.min_interval_s, delay))
         host = urlsplit(url).netloc
         lock = self._locks.setdefault(host, asyncio.Lock())
         attempt = 0
         while True:
             async with lock:
-                await self._wait_turn(host)
+                await self._wait_turn(host, interval)
                 try:
                     resp = await self._http.request(method, url, **kw)
                     err: Exception | None = None
@@ -94,14 +97,14 @@ class PoliteClient:
             await self._sleep(delay)
             attempt += 1
 
-    async def _wait_turn(self, host: str) -> None:
+    async def _wait_turn(self, host: str, interval: float) -> None:
         last = self._last.get(host)
         if last is not None:
-            wait = last + self.min_interval_s - self._clock()
+            wait = last + interval - self._clock()
             if wait > 0:
                 await self._sleep(wait)
 
-    async def _check_robots(self, url: str) -> None:
+    async def _check_robots(self, url: str) -> Robots:
         parts = urlsplit(url)
         base = f"{parts.scheme}://{parts.netloc}"
         cached = self._robots.get(base)
@@ -114,6 +117,7 @@ class PoliteClient:
             path += "?" + parts.query
         if not cached[1].allowed(self.user_agent, path):
             raise RobotsDisallowed(url)
+        return cached[1]
 
     async def _fetch_robots(self, base: str) -> Robots:
         """RFC 9309: 4xx means no rules; 5xx or network failure means stop for now."""

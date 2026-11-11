@@ -43,3 +43,18 @@ def test_empty_allows_everything():
 def test_tie_prefers_allow():
     r = Robots.parse("User-agent: *\nDisallow: /a\nAllow: /a\n")
     assert r.allowed("job-scraper", "/a") is True
+
+
+AMD = "User-agent: *\nAllow: /\nSitemap: http://careers.amd.com/sitemap.xml\ncrawl-delay: 5\n"
+
+
+def test_crawl_delay_parsed():
+    assert Robots.parse(AMD).crawl_delay("job-scraper/0.1") == 5.0
+    assert Robots.parse("User-agent: *\nAllow: /\n").crawl_delay("job-scraper/0.1") is None
+    assert Robots.parse("User-agent: *\nCrawl-delay: soon\n").crawl_delay("x/1") is None
+
+
+def test_crawl_delay_follows_agent_group():
+    text = "User-agent: job-scraper\nCrawl-delay: 2\n\nUser-agent: *\nCrawl-delay: 9\n"
+    assert Robots.parse(text).crawl_delay("job-scraper/0.1") == 2.0
+    assert Robots.parse(text).crawl_delay("otherbot/1") == 9.0
