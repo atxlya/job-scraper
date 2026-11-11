@@ -50,8 +50,8 @@ class ZerodhaAdapter:
 
 
 def _to_raw(p: dict) -> RawJob:
-    title = p.get("job_title") or p.get("title")
-    if not isinstance(p, dict) or not title:
+    title = (p.get("job_title") or p.get("title")) if isinstance(p, dict) else None
+    if not title:
         raise ParseError("zerodha: job without job_title")
     key = p.get("name") or re.sub(r"\s+", "-", title.strip().lower())
     locations = [p["location"]] if p.get("location") else []

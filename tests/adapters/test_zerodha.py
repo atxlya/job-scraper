@@ -28,3 +28,11 @@ async def test_detail_gone_when_not_listed(client, mock):
     mock.get(URL).mock(return_value=httpx.Response(200, json=load_json("zerodha", "empty")))
     job = RawJob(external_id="backend-dev", title="Backend dev", url=URL)
     assert await ZerodhaAdapter().fetch_detail(client, CFG, job) is GONE
+
+
+async def test_non_object_row_raises_parse_error(client, mock):
+    body = load_json("zerodha", "empty")
+    body["data"] = ["not a job"]
+    mock.get(URL).mock(return_value=httpx.Response(200, json=body))
+    with pytest.raises(ParseError):
+        await ZerodhaAdapter().list_jobs(client, CFG, "full")
