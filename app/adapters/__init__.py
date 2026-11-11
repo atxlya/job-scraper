@@ -5,6 +5,7 @@ from app.adapters import (  # noqa: F401
     greenhouse,
     lever,
     oracle_hcm,
+    sitemap_partial,
     successfactors,
     workday,
 )
