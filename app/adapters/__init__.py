@@ -21,5 +21,6 @@ from app.adapters.company import (  # noqa: F401
     ibm,
     phonepe,
     swiggy,
+    tataelxsi,
     zerodha,
 )
