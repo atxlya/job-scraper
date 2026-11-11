@@ -57,6 +57,8 @@ Each line gives the change from the plan, why, and what it costs if wrong. The p
 
 ## Left for later
 
+> **2026-11-11:** the code items below were fixed or found already fixed on branch `fix-deferred`; see [deferred-fixes-notes.md](deferred-fixes-notes.md). What's still open is listed there.
+
 - **Zerodha:** record a real non-empty `/api/jobs` answer once openings appear, and add a parsing test for it. The field names come from the site's script, not from a real job.
 - **Polling size:** Paytm's Lever listing (≈3 MB) and Atlassian's (≈2.4 MB) are read in full every 30 minutes, because neither has a smaller form.
 - **IBM descriptions are search snippets**, so Gemini's eligibility check sees only a summary.

@@ -7,7 +7,7 @@ unit, e employment type, d epoch ms, u job URL, r 1 = "Remote" tag, h 1 = "Hybri
 
 from app.adapters.base import Gone, ListingResult, Mode, ParseError, RawJob, register
 from app.adapters.geo import country_codes
-from app.adapters.smartrecruiters_page import SR_ID, apply_posting, fetch_posting
+from app.adapters.smartrecruiters_page import apply_posting, fetch_posting, sr_id
 from app.adapters.text import from_ms
 from app.http.client import PoliteClient
 
@@ -28,15 +28,15 @@ class SwiggyAdapter:
             raise ParseError("swiggy: unexpected shape") from e
         jobs: dict[str, RawJob] = {}
         for r in rows:
-            m = SR_ID.search(r.get("u") or "")
-            if not m or not r.get("t"):
+            job_id = sr_id(r.get("u") or "")
+            if not job_id or not r.get("t"):
                 continue  # e.g. a role posted on another site; it has no page we can read
             locations = [r["l"]] if r.get("l") else []
             remote = "remote" if r.get("r") == 1 else "hybrid" if r.get("h") == 1 else None
             jobs.setdefault(
-                m.group(1),
+                job_id,
                 RawJob(
-                    external_id=m.group(1),
+                    external_id=job_id,
                     title=r["t"],
                     url=r["u"],
                     locations=locations,

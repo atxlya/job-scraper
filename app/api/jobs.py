@@ -1,10 +1,10 @@
 """Job list, filters, job detail, tags, notes and "seen"."""
 
+import asyncio
 import logging
-from collections import Counter
 from datetime import datetime, timedelta
 from typing import Annotated
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import httpx
 import nh3
@@ -22,6 +22,7 @@ from sqlalchemy import (
     or_,
     select,
     text,
+    true,
     type_coerce,
 )
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -57,6 +58,10 @@ from app.core.models import (
 from app.http.client import RobotsDisallowed, RobotsUnavailable
 from app.pipeline.derived import fts_query
 from app.pipeline.ingest import apply_detail, mark_gone, raw_from_job
+
+# The dashboard waits on this fetch: a site retrying 5xx with back-off could hold it
+# for minutes (20 s timeout x 5 tries), so give up after this long.
+DETAIL_BUDGET_S = 30.0
 
 router = APIRouter(prefix="/api", dependencies=[Depends(require_user)])
 log = logging.getLogger(__name__)
@@ -189,22 +194,30 @@ def _country_name(code: str) -> str:
 
 @router.get("/filters")
 def filter_options(s: Sess, view: Annotated[str, Query(pattern="^(tech|all)$")] = "tech"):
-    base = _base(view, dismissed=False).with_only_columns(
-        Company.slug, Company.name, Job.country_codes
+    # Counted in SQL: at ~40k jobs, reading every row into Python is the slow part.
+    ids = _base(view, dismissed=False).with_only_columns(Job.id).scalar_subquery()
+    company_rows = s.execute(
+        select(Company.slug, Company.name, func.count(Job.id))
+        .join(Job, Job.company_id == Company.id)
+        .where(Job.id.in_(ids))
+        .group_by(Company.id)
     )
-    companies: Counter[tuple[str, str]] = Counter()
-    countries: Counter[str] = Counter()
-    for slug, name, codes in s.execute(base):
-        companies[(slug, name)] += 1
-        countries.update(set(codes or []))
+    code = func.json_each(Job.country_codes).table_valued("value")
+    country_rows = s.execute(
+        select(code.c.value, func.count(func.distinct(Job.id)))
+        .select_from(Job)
+        .join(code, true())
+        .where(Job.id.in_(ids))
+        .group_by(code.c.value)
+    )
     return FilterOptions(
         companies=[
             Option(value=slug, label=name, count=n)
-            for (slug, name), n in sorted(companies.items(), key=lambda x: (-x[1], x[0][1]))
+            for slug, name, n in sorted(company_rows, key=lambda r: (-r[2], r[1]))
         ],
         countries=[
-            Option(value=code, label=_country_name(code), count=n)
-            for code, n in sorted(countries.items(), key=lambda x: (-x[1], x[0]))
+            Option(value=c, label=_country_name(c), count=n)
+            for c, n in sorted(country_rows, key=lambda r: (-r[1], r[0]))
         ],
     )
 
@@ -217,14 +230,23 @@ ALLOWED_TAGS = {
 }  # fmt: skip
 
 
-def sanitise(html: str) -> str:
-    """Posting HTML is third-party: keep structure, drop scripts, handlers and odd links."""
+def sanitise(html: str, base_url: str | None = None) -> str:
+    """Posting HTML is third-party: keep structure, drop scripts, handlers and odd links.
+    Links open in a new tab, and relative ones point at the posting's site, not ours."""
+
+    def absolute(tag: str, attr: str, value: str) -> str:
+        if tag == "a" and attr == "href" and base_url:
+            return urljoin(base_url, value)
+        return value
+
     return nh3.clean(
         html,
         tags=ALLOWED_TAGS,
         attributes={"a": {"href"}},
         url_schemes={"http", "https", "mailto"},
         link_rel="noopener noreferrer nofollow",
+        attribute_filter=absolute,
+        set_tag_attribute_values={"a": {"target": "_blank"}},
     )
 
 
@@ -263,9 +285,10 @@ def job_detail(s: Session, job_id: int) -> JobDetail:
         quote=e.quote,
         checking=e.checking,
         unclear=e.unclear,
+        unchecked=e.unchecked,
         tech_internship=job.is_tech is True and job.is_internship is True,
         sections=sections,
-        description_html=sanitise(job.description_html)
+        description_html=sanitise(job.description_html, job.url)
         if sections is None and job.description_html
         else None,
         has_description=bool(job.description_html),
@@ -362,7 +385,11 @@ async def fetch_description(job_id: int, request: Request, at: Now) -> JobDetail
         adapter, cfg, raw = ADAPTERS[src.adapter](), dict(src.config), raw_from_job(job)
         host = urlparse(job.url).hostname or "the site"
     try:
-        detail = await adapter.fetch_detail(request.app.state.client, cfg, raw)
+        detail = await asyncio.wait_for(
+            adapter.fetch_detail(request.app.state.client, cfg, raw), DETAIL_BUDGET_S
+        )
+    except TimeoutError as e:
+        raise HTTPException(504, f"{host} took too long to answer. Try again later.") from e
     except (RobotsUnavailable, httpx.HTTPError) as e:
         raise HTTPException(502, f"Couldn't reach {host}. Try again later.") from e
     except RobotsDisallowed as e:

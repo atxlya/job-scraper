@@ -58,12 +58,14 @@ async def test_sap_titles_from_slug(client, mock):
 async def test_duplicate_ids_kept_once(client, mock):
     xml = serve(mock, SAP, "sap_sitemap")
     first = re.search(r"<url>.*?</url>", xml).group(0)
-    mock.get(SAP["sitemap"]).mock(
-        return_value=httpx.Response(200, content=xml.replace("</urlset>", first + "</urlset>"))
-    )
-    res = await SitemapPartialAdapter().list_jobs(client, SAP, "full")
-    ids = [j.external_id for j in res.jobs]
-    assert len(ids) == len(set(ids))
+    doubled = xml.replace("</urlset>", first + "</urlset>")
+    assert doubled.count(first) == 2  # the duplicate really is in the sitemap
+    mock.get(SAP["sitemap"]).mock(return_value=httpx.Response(200, content=doubled))
+    once = await SitemapPartialAdapter().list_jobs(client, SAP, "full")
+    mock.get(SAP["sitemap"]).mock(return_value=httpx.Response(200, content=xml))
+    plain = await SitemapPartialAdapter().list_jobs(client, SAP, "full")
+    ids = [j.external_id for j in once.jobs]
+    assert len(ids) == len(set(ids)) == len(plain.jobs)
 
 
 async def test_never_requests_job_pages(client, mock):

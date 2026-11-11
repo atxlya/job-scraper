@@ -100,3 +100,12 @@ def test_registry_sync_keeps_dashboard_sources(session):
     )
     acme = session.scalars(select(Source).where(Source.key == "acme")).one()
     assert acme.enabled is True
+
+
+def test_unindexed_ids_lists_only_jobs_missing_from_the_index(session):
+    from app.pipeline.derived import unindexed_ids  # noqa: PLC0415
+
+    a, b = add_job(session, ext="a"), add_job(session, ext="b")
+    assert unindexed_ids(session) == [a.id, b.id]
+    refresh_derived(session, [a.id])
+    assert unindexed_ids(session) == [b.id]

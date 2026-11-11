@@ -37,3 +37,20 @@ async def test_html_raises_parse_error(client, mock):
     )
     with pytest.raises(ParseError):
         await read_urlset(client, "https://x.example/sitemap.xml")
+
+
+async def test_http_error_raises(client, mock):
+    mock.get("https://x.example/sitemap.xml").mock(return_value=httpx.Response(404))
+    with pytest.raises(httpx.HTTPStatusError):
+        await read_urlset(client, "https://x.example/sitemap.xml")
+
+
+async def test_entries_without_loc_are_skipped(client, mock):
+    body = load_fixture("successfactors", "wipro_sitemap")
+    first_loc = body.index(b"<loc>")
+    end = body.index(b"</loc>", first_loc) + len(b"</loc>")
+    mock.get("https://careers.wipro.com/sitemap.xml").mock(
+        return_value=httpx.Response(200, content=body[:first_loc] + body[end:])
+    )
+    entries = await read_urlset(client, "https://careers.wipro.com/sitemap.xml")
+    assert len(entries) == 24 and all(e.loc for e in entries)

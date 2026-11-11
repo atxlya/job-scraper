@@ -100,5 +100,7 @@ def _to_raw(s: dict) -> RawJob:
         remote_type=_REMOTE.get((s.get("field_keyword_17") or "").lower()),
         posted_at=posted,
         description_html=text_to_html(s.get("description")),
-        platform_flags={"intern": True},  # the search is filtered to Internship
+        # The search is filtered to Internship. "snippet": the description is the search
+        # summary (boilerplate), so Gemini is never asked about it.
+        platform_flags={"intern": True, "snippet": True},
     )

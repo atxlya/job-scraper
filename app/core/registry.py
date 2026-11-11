@@ -35,6 +35,12 @@ def load_registry(path: str | Path) -> list[CompanySpec]:
         for s in c.sources:
             if s.adapter not in ADAPTERS:
                 raise ValueError(f"{c.slug}/{s.key}: unknown adapter {s.adapter!r}")
+            check = getattr(ADAPTERS[s.adapter], "validate_config", None)
+            if check is not None:
+                try:
+                    check(s.config)
+                except ValueError as e:  # fail at start-up, not at the first sweep
+                    raise ValueError(f"{c.slug}/{s.key}: {e}") from e
     return specs
 
 

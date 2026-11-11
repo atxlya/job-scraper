@@ -60,3 +60,19 @@ def test_shipped_registry_valid():
     assert all(c.sources and all(s.enabled for s in c.sources) for c in supported)
     assert all(s.adapter in ADAPTERS for c in supported for s in c.sources)
     assert len({s.key for c in specs for s in c.sources}) == sum(len(c.sources) for c in specs)
+
+
+@pytest.mark.parametrize(
+    ("job_url", "why"),
+    [("^https://x/(?P<id>\\d+", "not a valid regex"), ("^https://x/(?P<id>\\d+)/$", "slug")],
+)
+def test_bad_partial_job_url_rejected_at_load(tmp_path, job_url, why):
+    f = tmp_path / "s.yaml"
+    f.write_text(
+        "companies:\n  - slug: x\n    name: X\n    sources:\n"
+        "      - key: x1\n        adapter: sitemap_partial\n"
+        f"        config: {{sitemap: 'https://x/s.xml', job_url: '{job_url}'}}\n"
+    )
+    with pytest.raises(ValueError, match=why) as e:
+        load_registry(f)
+    assert "x/x1" in str(e.value)

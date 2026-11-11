@@ -1,10 +1,11 @@
 """RSS feed adapter (Zoho Recruit's careers feed, plan D14).
 
-The feed carries everything, so `fetch_detail` re-reads it. Zoho's job pages are
-script-rendered and are never fetched. `IST` in pubDate means +05:30.
+The feed carries everything, so `fetch_detail` looks jobs up in it (read once a run).
+Zoho's job pages are script-rendered and are never fetched. `IST` in pubDate means +05:30.
 """
 
 import html
+import logging
 import re
 from datetime import datetime
 from email.utils import parsedate_to_datetime
@@ -16,6 +17,7 @@ from app.adapters.base import GONE, Gone, ListingResult, Mode, ParseError, RawJo
 from app.adapters.geo import country_codes
 from app.http.client import PoliteClient
 
+log = logging.getLogger(__name__)
 _LOCATION = re.compile(r"Location:\s*([^<]*)")
 
 
@@ -28,17 +30,26 @@ class RssAdapter:
     name = "rss"
     listing_has_details = True
 
+    def __init__(self) -> None:
+        self._feed: tuple[dict[str, RawJob], int] | None = None  # read once per run
+
     async def list_jobs(self, client: PoliteClient, cfg: dict, mode: Mode) -> ListingResult:
-        jobs = {j.external_id: j for j in await self._items(client, cfg["url"])}
-        return ListingResult(jobs=list(jobs.values()), reported_total=None, complete=mode == "full")
+        jobs, skipped = await self._items(client, cfg["url"])
+        # A skipped item may be a live job: don't let this sweep count towards closing it.
+        complete = mode == "full" and skipped == 0
+        return ListingResult(jobs=list(jobs.values()), reported_total=None, complete=complete)
 
     async def fetch_detail(self, client: PoliteClient, cfg: dict, job: RawJob) -> RawJob | Gone:
-        for job_now in await self._items(client, cfg["url"]):
-            if job_now.external_id == job.external_id:
-                return job_now
+        if self._feed is None:
+            self._feed = await self._items(client, cfg["url"])
+        jobs, skipped = self._feed
+        if job.external_id in jobs:
+            return jobs[job.external_id]
+        if skipped:
+            raise ParseError(f"rss: {skipped} items skipped, so a missing job may not be gone")
         return GONE
 
-    async def _items(self, client: PoliteClient, url: str) -> list[RawJob]:
+    async def _items(self, client: PoliteClient, url: str) -> tuple[dict[str, RawJob], int]:
         resp = await client.get(url)
         resp.raise_for_status()
         try:
@@ -48,7 +59,20 @@ class RssAdapter:
         channel = next((c for c in root if _local(c.tag) == "channel"), None)
         if _local(root.tag) != "rss" or channel is None:
             raise ParseError(f"{url}: not an RSS feed (root <{_local(root.tag)}>)")
-        return [_to_raw(i) for i in channel if _local(i.tag) == "item"]
+        items = [i for i in channel if _local(i.tag) == "item"]
+        jobs: dict[str, RawJob] = {}
+        skipped = 0
+        for item in items:
+            try:
+                job = _to_raw(item)
+            except ParseError as e:
+                log.warning("%s: item skipped: %s", url, e)
+                skipped += 1
+                continue
+            jobs.setdefault(job.external_id, job)
+        if items and not jobs:
+            raise ParseError(f"{url}: every item lacks a title or link")
+        return jobs, skipped
 
 
 def _to_raw(item: ElementTree.Element) -> RawJob:

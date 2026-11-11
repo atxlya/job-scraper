@@ -51,6 +51,7 @@ class PoliteClient:
             headers={"User-Agent": user_agent},
             timeout=timeout_s,
             follow_redirects=False,  # _request follows hops itself, robots-checking each
+            max_redirects=MAX_REDIRECTS,  # only robots.txt fetches follow redirects here
             transport=transport,
         )
         self._robots: dict[str, tuple[float, Robots]] = {}
@@ -64,8 +65,12 @@ class PoliteClient:
             "GET", url, follow_redirects=follow_redirects, params=params, headers=headers
         )
 
-    async def post_json(self, url: str, json: dict, *, headers=None) -> httpx.Response:
-        return await self._request("POST", url, json=json, headers=headers)
+    async def post_json(
+        self, url: str, json: dict, *, headers=None, follow_redirects: bool = True
+    ) -> httpx.Response:
+        return await self._request(
+            "POST", url, follow_redirects=follow_redirects, json=json, headers=headers
+        )
 
     async def post_form(
         self, url: str, data: dict[str, str], *, headers=None, follow_redirects: bool = True
@@ -157,6 +162,11 @@ class PoliteClient:
             try:
                 resp = await self._http.get(f"{base}/robots.txt", follow_redirects=True)
                 break
+            except httpx.TooManyRedirects as e:
+                # RFC 9309 needs at least five hops followed; past that, fetch nothing.
+                raise RobotsUnavailable(
+                    f"robots.txt for {base}: more than {MAX_REDIRECTS} redirects"
+                ) from e
             except httpx.HTTPError as e:
                 if attempt == 2:
                     raise RobotsUnavailable(

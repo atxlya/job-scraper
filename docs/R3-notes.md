@@ -60,6 +60,8 @@ The plan's own decisions (D1-D17) are in the plan. These were made while buildin
 
 ## Left for later
 
+> **2026-11-11:** the code items below were fixed or found already fixed on branch `fix-deferred`; see [deferred-fixes-notes.md](deferred-fixes-notes.md). What's still open is listed there.
+
 From the per-task reviews (all minor):
 
 - **SuccessFactors:** a dead `... if False else _inner(desc_node)` expression (successfactors.py ~122); the second redirect hop follows redirects, so a redirect to `/errorpage/` on hop 2 raises `RobotsDisallowed` instead of "gone"; an empty `Location` refetches the same URL.

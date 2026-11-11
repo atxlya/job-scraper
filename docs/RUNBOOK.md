@@ -64,10 +64,15 @@ This starts four services:
 
 | Service | What it does |
 |---|---|
-| `migrate` | Prepares the database, then exits |
+| `migrate` | Prepares the database and indexes any jobs missing from search, then exits |
 | `worker` | Runs the schedule below |
 | `api` | The dashboard at `http://<host>:8000`, and the health check at `/healthz` |
 | `backup` | Nightly backup at 03:00 IST into `./backups`, keeping 30 days |
+
+After an update that changes the search or the degree rules, rebuild the whole index once:
+```bash
+docker compose run --rm migrate python -m app.cli reindex
+```
 
 The worker's schedule (all times IST):
 

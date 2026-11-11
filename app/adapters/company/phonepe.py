@@ -3,7 +3,7 @@ each links to a SmartRecruiters job page, which carries the description."""
 
 from app.adapters.base import Gone, ListingResult, Mode, ParseError, RawJob, register
 from app.adapters.geo import country_codes
-from app.adapters.smartrecruiters_page import SR_ID, apply_posting, fetch_posting
+from app.adapters.smartrecruiters_page import apply_posting, fetch_posting, sr_id
 from app.http.client import PoliteClient
 
 URL = "https://www.phonepe.com/apollo/job-postings/latest.json"
@@ -23,14 +23,14 @@ class PhonePeAdapter:
             raise ParseError("phonepe: unexpected shape") from e
         jobs: dict[str, RawJob] = {}
         for r in rows:
-            m = SR_ID.search(r.get("applyUrl") or "")
-            if r.get("status") != "PUBLIC" or not m or not r.get("title"):
+            job_id = sr_id(r.get("applyUrl") or "")
+            if r.get("status") != "PUBLIC" or not job_id or not r.get("title"):
                 continue
             locations = [r["location"]] if r.get("location") else []
             jobs.setdefault(
-                m.group(1),
+                job_id,
                 RawJob(
-                    external_id=m.group(1),
+                    external_id=job_id,
                     title=r["title"],
                     url=r["applyUrl"],
                     locations=locations,

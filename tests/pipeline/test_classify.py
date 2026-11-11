@@ -114,3 +114,33 @@ def test_degree_only(title, expected):
 )
 def test_notice_titles(title, expected):
     assert classify(job(title, notice=True), KW).is_internship is expected
+
+
+@pytest.mark.parametrize(
+    ("title", "expected"),
+    [
+        # process steps, from the recorded CDAC page: still skipped
+        (
+            "Written Examination Result dated June 14, 2026 for the requirement of"
+            " Project Engineer",
+            False,
+        ),
+        ("C-DAC PUNE RESULT- ADVT NO. CORP_Grp. A and BGA_04_2025_PN", False),
+        ("Selected candidate against JIT Adv ertisement CORP/JIT/02/2026-DL", False),
+        ("Pune Centre list of selected candidates - Advertisement No : CORP/JIT/02/2026", False),
+        ("CDAC TVM- SELECT LIST- JIT-11-12- PA/PT/PSS", False),
+        ("Result – Project Engineer", False),
+        ("Project Engineer Result", False),
+        ("JRF Results", False),
+        ("Result List: Project Staff", False),
+        ("Provisional result JRF", False),
+        ("Candidates selected for Project Associate interview", False),
+        ("Merit list of JRF candidates", False),
+        # openings that merely contain the words
+        ("Walk-in for JRF positions in selected research projects", True),
+        ("Applications invited for Interns in the Results-Based Monitoring project", True),
+        ("Project Associate (results analysis) at C-DAC Pune", True),
+    ],
+)
+def test_notice_skip_words_need_a_process_context(title, expected):
+    assert classify(job(title, notice=True), KW).is_internship is expected

@@ -145,3 +145,20 @@ async def test_intern_categories_flag_their_jobs(client, jio):
     assert res.jobs and all(j.platform_flags == {"intern": True} for j in res.jobs)
     plain = await JioAdapter().list_jobs(client, {"categories": ["0210"]}, "incremental")
     assert all(j.platform_flags == {} for j in plain.jobs)
+
+
+async def test_category_page_redirect_raises_without_following(client, mock):
+    mock.get("https://careers.jio.com/robots.txt").mock(
+        return_value=httpx.Response(200, text=ROBOTS)
+    )
+
+    def get(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/frmJobCategories.aspx":
+            return html("categories")
+        return httpx.Response(302, headers={"Location": "/error.aspx?aspxerrorpath=/x"})
+
+    mock.get(url__regex=r"https://careers\.jio\.com/frm.*").mock(side_effect=get)
+    error = mock.get(url__regex=r".*/error\.aspx.*").mock(return_value=httpx.Response(200))
+    with pytest.raises(ParseError, match="redirected"):
+        await JioAdapter().list_jobs(client, {"categories": ["0210"]}, "incremental")
+    assert error.call_count == 0

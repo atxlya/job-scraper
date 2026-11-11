@@ -151,3 +151,10 @@ def test_filter_options_count_within_view(client, db):
     every = client.get("/api/filters?view=all").json()
     assert every["companies"][0] == {"value": "google", "label": "Google", "count": 2}
     assert {"value": "US", "label": "United States", "count": 1} in every["countries"]
+
+
+def test_filter_options_count_a_repeated_country_once(client, db):
+    seed_job(db, company="Google", countries=("IN", "IN", "US"))
+    opts = client.get("/api/filters").json()
+    assert {"value": "IN", "label": "India", "count": 1} in opts["countries"]
+    assert opts["companies"] == [{"value": "google", "label": "Google", "count": 1}]

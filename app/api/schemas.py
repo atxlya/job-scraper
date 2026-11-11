@@ -76,6 +76,7 @@ class JobDetail(JobCard):
     quote: str | None
     checking: bool
     unclear: bool
+    unchecked: Literal["notice", "partial", "snippet"] | None  # why Gemini never reads it
     tech_internship: bool  # eligibility is only checked for these
     sections: dict | None
     description_html: str | None  # sanitised; only when there are no sections

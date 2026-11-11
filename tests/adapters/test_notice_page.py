@@ -194,3 +194,121 @@ async def test_barc_detail_makes_no_request(client, mock):
 async def test_barc_missing_table_raises_parse_error(client, mock):
     with pytest.raises(ParseError):
         await listing(client, mock, "barc", "cdac_list")
+
+
+# ---- fixes after R3 ----
+
+
+def swapped(name: str, *swaps: tuple[bytes, bytes]) -> httpx.Response:
+    body = load_fixture("notice_page", name)
+    for old, new in swaps:
+        assert old in body
+        body = body.replace(old, new, 1)
+    return httpx.Response(200, content=body)
+
+
+DMRL = b'href="http://drdo.gov.in/drdo/en/offerings/vacancies/dmrl-hyderabad-invites-application-post-research-associate-ra"'
+
+
+async def test_https_upgrade_only_for_the_site_host_and_scheme(client, mock):
+    mock.get(LIST_URL["drdo"]).mock(
+        return_value=swapped(
+            "drdo_list",
+            (DMRL, b'href="https://drdo.gov.in/drdo/en/offerings/vacancies/x?back=http://y"'),
+        )
+    )
+    res = await NoticePageAdapter().list_jobs(client, {"site": "drdo"}, "incremental")
+    job = next(j for j in res.jobs if "back=" in j.url)
+    assert job.url == "https://drdo.gov.in/drdo/en/offerings/vacancies/x?back=http://y"
+
+
+async def test_other_hosts_keep_their_scheme(client, mock):
+    mock.get(LIST_URL["drdo"]).mock(
+        return_value=swapped("drdo_list", (DMRL, b'href="http://www.example.org/notice-1"'))
+    )
+    res = await NoticePageAdapter().list_jobs(client, {"site": "drdo"}, "incremental")
+    assert any(j.url == "http://www.example.org/notice-1" for j in res.jobs)
+
+
+async def test_drdo_absolute_http_pdf_link_upgraded(client, mock):
+    res = await listing(client, mock, "drdo", "drdo_list")
+    job = next(j for j in res.jobs if j.external_id == DGRE)
+    mock.get(job.url).mock(
+        return_value=swapped(
+            "drdo_notice",
+            (
+                b'href="/drdo/sites/default/files/vacancy/advtDGRE10112026.pdf"',
+                b'href="http://drdo.gov.in/drdo/sites/default/files/vacancy/advtDGRE10112026.pdf"',
+            ),
+        )
+    )
+    out = await NoticePageAdapter().fetch_detail(client, {"site": "drdo"}, job)
+    assert out.apply_url == (
+        "https://drdo.gov.in/drdo/sites/default/files/vacancy/advtDGRE10112026.pdf"
+    )
+
+
+async def test_cdac_application_forms_are_not_separate_notices(client, mock):
+    res = await listing(client, mock, "cdac", "cdac_list")
+    ids = {j.external_id for j in res.jobs}
+    assert "Walk-In-Positions-PMS-PE.pdf" in ids and "Advertisement-Consultant.pdf" in ids
+    assert "Application-Form-Walk-In-Interview.pdf" not in ids
+    assert "Interview-Application-Consultant.pdf" not in ids
+    titles = [j.title for j in res.jobs]
+    assert len(titles) == len(set(titles))  # one notice per advertisement heading
+
+
+async def test_unknown_site(client, mock):
+    with pytest.raises(ValueError, match="nope"):
+        NoticePageAdapter.validate_config({"site": "nope"})
+    job = RawJob(external_id="1", title="t", url="https://x/1")
+    with pytest.raises(ParseError, match="nope"):
+        await NoticePageAdapter().list_jobs(client, {"site": "nope"}, "full")
+    with pytest.raises(ParseError, match="nope"):
+        await NoticePageAdapter().fetch_detail(client, {"site": "nope"}, job)
+
+
+async def test_barc_no_vacancies_row_is_empty_list(client, mock):
+    body = load_fixture("notice_page", "barc_list")
+    start = body.index(b"<tbody>") + len(b"<tbody>")
+    end = body.index(b"</tbody>")
+    body = body[:start] + b"<tr><td colspan='4'>No vacancies at present</td></tr>" + body[end:]
+    mock.get(LIST_URL["barc"]).mock(return_value=httpx.Response(200, content=body))
+    res = await NoticePageAdapter().list_jobs(client, {"site": "barc"}, "full")
+    assert res.jobs == []
+
+
+async def test_barc_header_row_without_thead(client, mock):
+    body = load_fixture("notice_page", "barc_list")
+    body, n = re.subn(rb"<thead>|</thead>\s*<tbody>", b"", body)
+    assert n == 2  # the header row now sits in the table body
+    mock.get(LIST_URL["barc"]).mock(return_value=httpx.Response(200, content=body))
+    res = await NoticePageAdapter().list_jobs(client, {"site": "barc"}, "full")
+    assert [j.external_id for j in res.jobs] == [f"vacancy{n}.pdf" for n in range(24, 29)]
+
+
+async def test_isro_link_without_text_titled_from_its_page_name(client, mock):
+    body = load_fixture("notice_page", "isro_list")
+    body, n = re.subn(
+        rb'<a href="DOSRecruitment10.html"[^>]*>.*?</a>',
+        b'<a href="DOSRecruitment10.html"></a>',
+        body,
+        count=1,
+        flags=re.S,
+    )
+    assert n == 1
+    mock.get(LIST_URL["isro"]).mock(return_value=httpx.Response(200, content=body))
+    res = await NoticePageAdapter().list_jobs(client, {"site": "isro"}, "full")
+    job = next(j for j in res.jobs if j.external_id == "DOSRecruitment10.html")
+    assert job.title == "DOS Recruitment 10"
+
+
+async def test_cdac_second_advert_under_one_heading_is_kept(client, mock):
+    mock.get(LIST_URL["cdac"]).mock(
+        return_value=swapped(
+            "cdac_list",
+            (b">Interview Application Consultant", b">Advertisement for Senior Consultants"),
+        )
+    )
+    res = await NoticePageAdapter().list_jobs(client, {"site": "cdac"}, "full")
+    assert "Interview-Application-Consultant.pdf" in {j.external_id for j in res.jobs}

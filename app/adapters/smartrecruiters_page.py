@@ -7,12 +7,26 @@ allows only LinkedInBot) is never used.
 
 import re
 from datetime import datetime
+from urllib.parse import urlsplit
 
 from app.adapters.base import GONE, Gone, ParseError, RawJob, utc
 from app.adapters.text import join_sections
 from app.http.client import PoliteClient
 
 SR_ID = re.compile(r"/(\d+)-[^/?#]*")
+SR_HOST = "jobs.smartrecruiters.com"
+
+
+def sr_id(url: str) -> str | None:
+    """The posting id in a jobs.smartrecruiters.com/{Company}/{id}-{slug} link, else None
+    (a link to any other site has no page this helper can read)."""
+    parts = urlsplit(url or "")
+    if parts.scheme != "https" or parts.hostname != SR_HOST:
+        return None
+    m = SR_ID.search(parts.path)
+    return m.group(1) if m else None
+
+
 SECTIONS = ("companyDescription", "jobDescription", "qualifications", "additionalInformation")
 
 

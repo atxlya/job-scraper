@@ -89,3 +89,14 @@ async def test_search_without_entities_raises(client, mock, workspace):
     mock.get(SEARCH).mock(return_value=httpx.Response(200, json={"total": 3}))
     with pytest.raises(ParseError):
         await Spire2GrowAdapter().list_jobs(client, CFG, "full")
+
+
+async def test_workspace_asked_once_per_run(client, mock, workspace):
+    for n in ("7093610092", "7093610093"):
+        mock.get(f"{API}/requisition/displayId/{n}").mock(
+            return_value=httpx.Response(200, content=load_fixture("spire2grow", "detail"))
+        )
+    adapter = Spire2GrowAdapter()
+    for n in ("7093610092", "7093610093"):
+        await adapter.fetch_detail(client, CFG, job().model_copy(update={"external_id": n}))
+    assert workspace.call_count == 1

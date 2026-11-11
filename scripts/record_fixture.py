@@ -108,7 +108,10 @@ def trim_xml(content: bytes, max_items: int, keep: str) -> bytes:
             parent.remove(child)
         else:
             kept += 1
-    for prefix, uri in re.findall(rb'xmlns(?::(\w+))?="([^"]+)"', content):
+    # Only the root's own declarations: a nested xmlns="..." (e.g. an XHTML link inside a
+    # sitemap <url>) must not take over the default prefix.
+    root_tag = re.search(rb"<(?![?!])[^>]*>", content)
+    for prefix, uri in re.findall(rb'xmlns(?::(\w+))?="([^"]+)"', root_tag[0] if root_tag else b""):
         ET.register_namespace(prefix.decode(), uri.decode())
     return ET.tostring(root, encoding="utf-8", xml_declaration=True)
 
@@ -136,10 +139,15 @@ async def main() -> None:
     try:
         if a.method == "POST" and a.form:
             form = dict(f.split("=", 1) for f in a.form)
-            resp = await client.post_form(a.url, form, headers=headers or None)
+            resp = await client.post_form(
+                a.url, form, headers=headers or None, follow_redirects=not a.no_follow
+            )
         elif a.method == "POST":
             resp = await client.post_json(
-                a.url, json.loads(a.body or "{}"), headers={"Accept": "application/json", **headers}
+                a.url,
+                json.loads(a.body or "{}"),
+                headers={"Accept": "application/json", **headers},
+                follow_redirects=not a.no_follow,
             )
         else:
             resp = await client.get(

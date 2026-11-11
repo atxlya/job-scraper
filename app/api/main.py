@@ -4,12 +4,13 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import func, select, text
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.api import auth, jobs, sources
 from app.api.auth import LoginThrottle
+from app.api.deps import logged_in
 from app.core.db import make_engine, make_session_factory
 from app.core.models import ScrapeRun
 from app.core.secrets import session_secret
@@ -17,6 +18,7 @@ from app.core.settings import Settings, get_settings
 from app.http.client import PoliteClient
 
 SESSION_DAYS = 30
+PUBLIC_API = {"/api/login"}
 WEB_DIST = Path(__file__).resolve().parents[2] / "web" / "dist"
 
 
@@ -31,11 +33,24 @@ def create_app(settings: Settings | None = None, web_dist: Path = WEB_DIST) -> F
         yield
         await app.state.client.aclose()
 
-    app = FastAPI(title="job-scraper", lifespan=lifespan)
+    # The API docs are served behind login, under /api (auth.py), not at /docs.
+    app = FastAPI(
+        title="job-scraper", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None
+    )
     app.state.settings = settings
     app.state.session_factory = sf
     app.state.client = PoliteClient(min_interval_s=settings.http_min_interval_s)
     app.state.throttle = LoginThrottle()
+
+    @app.middleware("http")
+    async def lock_api(request: Request, call_next):
+        # Locked by default: an /api route added without the login dependency is still
+        # closed. Runs inside SessionMiddleware (added after it, so it wraps this one).
+        if request.url.path.startswith("/api") and request.url.path not in PUBLIC_API:
+            if not logged_in(request):
+                return JSONResponse({"detail": "Not logged in"}, status_code=401)
+        return await call_next(request)
+
     app.add_middleware(
         SessionMiddleware,
         secret_key=secret,

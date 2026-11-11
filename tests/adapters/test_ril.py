@@ -109,3 +109,31 @@ async def test_full_without_pages_text_but_pager_raises(client, mock):
     )
     with pytest.raises(ParseError, match="page count"):
         await RilAdapter().list_jobs(client, {}, "full")
+
+
+async def test_first_page_redirect_raises_without_following(client, mock):
+    mock.get(url__regex=r"https://careers\.ril\.com/rilcareers/frmJobSearch.*").mock(
+        return_value=httpx.Response(302, headers={"Location": "/rilcareers/error.aspx"})
+    )
+    error = mock.get(url__regex=r".*/error\.aspx.*").mock(return_value=httpx.Response(200))
+    with pytest.raises(ParseError, match="redirected"):
+        await RilAdapter().list_jobs(client, {}, "incremental")
+    assert error.call_count == 0
+
+
+async def test_page_total_changing_mid_walk_raises(client, mock):
+    mock.get(url__regex=r"https://careers\.ril\.com/rilcareers/frmJobSearch.*").mock(
+        return_value=html("results")
+    )
+    moved = load_fixture("ril", "results_25_p2").replace(b"of 2 Pages", b"of 3 Pages")
+    assert moved != load_fixture("ril", "results_25_p2")
+
+    def post(request: httpx.Request) -> httpx.Response:
+        body = parse_qs(request.content.decode())
+        if body["__EVENTTARGET"] == ["ctl00$MainContent$ddlentries"]:
+            return html("results_25")
+        return httpx.Response(200, content=moved)
+
+    mock.post(url__regex=r"https://careers\.ril\.com/rilcareers/.*").mock(side_effect=post)
+    with pytest.raises(ParseError, match="page count changed"):
+        await RilAdapter().list_jobs(client, {}, "full")

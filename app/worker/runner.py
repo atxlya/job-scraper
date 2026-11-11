@@ -5,6 +5,7 @@ fetches everything first, then writes and commits in one step, then sends alerts
 """
 
 import asyncio
+import json
 import logging
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -28,6 +29,10 @@ log = logging.getLogger(__name__)
 RunKind = Literal["incremental", "full", "tracked"]
 CONCURRENCY = 4
 COUNT_TOLERANCE = 0.02
+# A job page failing in one of these ways skips that job, not the whole source. Only
+# JSONDecodeError (a 200 answer that isn't JSON), not every ValueError: an adapter bug
+# (a pydantic error, int("")) must still fail the run loudly.
+DETAIL_ERRORS = (httpx.HTTPError, ParseError, RobotsDisallowed, json.JSONDecodeError)
 
 
 @dataclass
@@ -93,15 +98,29 @@ async def _run_source(ctx: Ctx, source_id: int, mode: RunKind) -> ScrapeRun:
     status, error, result, gone_ids = "ok", None, None, []
     try:
         if mode == "tracked":
+            failures: list[str] = []
             for job_id, raw in targets:
-                if await adapter.fetch_detail(ctx.client, cfg, raw) is GONE:
-                    gone_ids.append(job_id)
+                try:
+                    if await adapter.fetch_detail(ctx.client, cfg, raw) is GONE:
+                        gone_ids.append(job_id)
+                except DETAIL_ERRORS as e:
+                    # One job failing must not stop the re-check of the others.
+                    log.warning("%s: re-check failed for %s: %s", src.key, raw.external_id, e)
+                    if len(failures) == len(targets) - 1:
+                        raise  # every job failed: the site, not one job, is the problem
+                    failures.append(f"{raw.external_id}: {type(e).__name__}: {e}")
+            if failures:
+                status = "partial"
+                error = (f"{len(failures)} of {len(targets)} jobs failed; " + "; ".join(failures))[
+                    :2000
+                ]
         else:
             result = await adapter.list_jobs(ctx.client, cfg, mode)
             if mode == "full" and _mismatch(len(result.jobs), result.reported_total):
                 status = "partial"
                 result = result.model_copy(update={"complete": False})
             fresh: list[RawJob] = []
+            tried = failed = 0
             has_details = getattr(adapter, "listing_has_details", False)
             for raw in result.jobs:
                 c = classify(raw, ctx.keywords)
@@ -113,14 +132,22 @@ async def _run_source(ctx: Ctx, source_id: int, mode: RunKind) -> ScrapeRun:
                     # otherwise fetch tens of thousands of pages (Accenture alone ~40k).
                     fresh.append(raw)
                     continue
+                tried += 1
                 try:
                     detail = await adapter.fetch_detail(ctx.client, cfg, raw)
-                except (httpx.HTTPError, ParseError, RobotsDisallowed) as e:
+                except DETAIL_ERRORS as e:
                     log.warning("%s: detail failed for %s: %s", src.key, raw.external_id, e)
+                    failed += 1
+                    error = f"{failed} of {tried} job pages failed; last: {type(e).__name__}: {e}"
                     fresh.append(raw)
                     continue
                 if detail is not GONE:
                     fresh.append(detail)
+            if tried >= 2 and failed == tried:
+                # Every job page failing means the site changed, not one bad job: say so.
+                status, error = "partial", error[:2000]
+            else:
+                error = None
             result = result.model_copy(update={"jobs": fresh})
     except Exception as e:  # noqa: BLE001 - one source failing must never stop the others
         log.warning("%s %s run failed: %s", src.key, mode, e)
@@ -194,6 +221,7 @@ def _classify_new(s: Session, kw: Keywords, job_ids: list[int]) -> None:
             c.is_internship is False
             or c.is_tech is False
             or flags.get("partial")  # title-only: nothing for Gemini to read
+            or flags.get("snippet")  # a search summary: Gemini can only answer "unknown"
             or (flags.get("notice") and settled)  # PDF notice: only unclear titles need Gemini
         ):
             job.analysis_state = "skipped"  # not a tech internship, or nothing to ask

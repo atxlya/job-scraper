@@ -62,3 +62,13 @@ async def test_sr_sends_json_accept(client, mock):
 
 def test_sr_id_from_url():
     assert SR_ID.search(URL).group(1) == "1000000000002543"
+
+
+def test_sr_id_only_from_smartrecruiters_job_pages():
+    from app.adapters.smartrecruiters_page import sr_id  # noqa: PLC0415
+
+    assert sr_id(URL) == "1000000000002543"
+    assert sr_id("https://jobs.smartrecruiters.com/PhonePe/744000-backend-dev") == "744000"
+    assert sr_id("https://careers.example.com/jobs/1234-backend-dev") is None
+    assert sr_id("https://boards.greenhouse.io/x/jobs/5678-y?src=smartrecruiters.com") is None
+    assert sr_id("") is None

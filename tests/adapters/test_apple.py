@@ -112,3 +112,13 @@ async def test_detail_with_changed_shape_raises_parse_error(client, mock):
     job = RawJob(external_id="200691891-3715", title="x", url=DETAIL)
     with pytest.raises(ParseError):
         await AppleAdapter().fetch_detail(client, CFG, job)
+
+
+def test_hydration_survives_an_escaped_quote_paren_in_a_value():
+    body = load_fixture("apple", "search_p1").decode()
+    old = 'postingTitle\\":\\"Global Sourcing and Supply Manager, Intern'
+    assert old in body
+    # a title containing `");` is written inside the JS string as \\\");
+    body = body.replace(old, 'postingTitle\\":\\"Odd \\\\\\");  Title', 1)
+    titles = [r["postingTitle"] for r in hydration(body)["search"]["searchResults"]]
+    assert 'Odd ");  Title' in titles

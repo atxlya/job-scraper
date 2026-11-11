@@ -53,7 +53,11 @@ def _to_raw(cfg: dict, p: dict) -> RawJob:
     if p.get("country"):
         codes.add(p["country"])
     commitment = cats.get("commitment")
-    lists = [(li.get("text"), f"<ul>{li.get('content', '')}</ul>") for li in p.get("lists") or []]
+    lists = [
+        (li.get("text"), f"<ul>{li['content']}</ul>")
+        for li in p.get("lists") or []
+        if (li.get("content") or "").strip()  # no empty heading for a list without items
+    ]
     workplace = p.get("workplaceType")
     return RawJob(
         external_id=p["id"],

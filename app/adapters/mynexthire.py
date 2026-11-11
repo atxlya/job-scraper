@@ -15,6 +15,7 @@ from app.adapters.geo import country_codes
 from app.adapters.text import text_to_html
 from app.http.client import PoliteClient
 
+_GONE_TEXT = "not accepting applications"
 # The site's own decodeString(): text that looks like base64 is decoded first.
 _BASE64 = re.compile(r"^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$")
 
@@ -47,7 +48,9 @@ class MyNextHireAdapter:
             headers={"Accept": "application/json"},
         )
         if resp.status_code == 417:
-            return GONE  # "Requested job is not accepting applications any more."
+            if _GONE_TEXT in resp.text.lower():
+                return GONE  # "Requested job is not accepting applications any more."
+            raise ParseError(f"mynexthire: 417 without the closed-job message: {resp.text[:200]}")
         resp.raise_for_status()
         bo = resp.json().get("reqDetailsBO") if isinstance(resp.json(), dict) else None
         if not isinstance(bo, dict):

@@ -52,7 +52,9 @@ class SuccessFactorsAdapter:
             resp = await client.get(url, follow_redirects=False)
             if not 300 <= resp.status_code < 400:
                 break
-            location = resp.headers.get("Location", "")
+            location = resp.headers.get("Location", "").strip()
+            if not location:
+                raise ParseError(f"successfactors: {resp.status_code} without a Location")
             if urlsplit(location).path.startswith("/errorpage"):
                 return GONE
             url = urljoin(url, location)

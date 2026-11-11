@@ -52,6 +52,8 @@ Each line gives the change from the plan, why, and what it costs if wrong. The p
 - **"Mark all as seen" could mark jobs that arrived while you were reading.** The worker stamps a job's time before it saves, so a time cut-off can miss new jobs. It now marks up to the newest job number the list had when it loaded.
 
 ## Left for later (minor)
+
+> **2026-11-11:** the code items below were fixed or found already fixed on branch `fix-deferred`; see [deferred-fixes-notes.md](deferred-fixes-notes.md). What's still open is listed there.
 - The API docs (`/docs`, `/openapi.json`) open without login. They show the API's shape, not your data. Every `/api` route is locked, router by router, rather than locked by default.
 - Logging out ends the session only in that browser. Changing the password doesn't sign out other devices.
 - "Add company": pressing save twice at once gives an error on the second, and the same careers site added under two names is scraped twice.

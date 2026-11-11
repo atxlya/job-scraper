@@ -28,8 +28,10 @@ export function Header({ q, onSearch, onMarkAllSeen, markingSeen, onAddCompany }
     return () => clearTimeout(t);
   }, [text, q, onSearch]);
 
-  async function logout() {
-    await api("/api/logout", { method: "POST" }).catch(() => undefined);
+  async function logout(everywhere = false) {
+    if (everywhere && !window.confirm("Log out on every device, your phone included?")) return;
+    const path = everywhere ? "/api/logout?everywhere=true" : "/api/logout";
+    await api(path, { method: "POST" }).catch(() => undefined);
     navigate("/login");
   }
 
@@ -76,7 +78,12 @@ export function Header({ q, onSearch, onMarkAllSeen, markingSeen, onAddCompany }
           >
             <ThemeIcon mode={theme} />
           </Button>
-          <Button onClick={logout}>Log out</Button>
+          <Button onClick={() => logout()} title="Log out of this browser">
+            Log out
+          </Button>
+          <Button onClick={() => logout(true)} title="Log out on every device, phone included">
+            Everywhere
+          </Button>
         </div>
       </div>
     </header>

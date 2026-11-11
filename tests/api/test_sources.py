@@ -131,3 +131,59 @@ def test_added_source_survives_registry_sync(client, db, detected, fake_adapter)
     )
     db.commit()
     assert db.scalars(select(Source).where(Source.key == "acme")).one().enabled is True
+
+
+def test_same_site_under_another_name_409(client, db, detected, fake_adapter):
+    fake_adapter.listing = listing(3)
+    assert (
+        client.post(
+            "/api/sources", json={"company_name": "Acme", "url": "https://acme.example"}
+        ).status_code
+        == 201
+    )
+    r = client.post(
+        "/api/sources", json={"company_name": "Acme India", "url": "https://acme.example/jobs"}
+    )
+    assert r.status_code == 409 and "acme" in r.json()["detail"]
+    assert len(db.scalars(select(Source)).all()) == 1
+
+
+def test_second_save_racing_the_first_is_409_not_500(client, app, db, detected, fake_adapter):
+    from app.adapters.base import ADAPTERS  # noqa: PLC0415
+
+    class Racing:
+        name = "fake-api"
+
+        async def list_jobs(self, c, cfg, mode):
+            # the other click's save lands while this one is test-fetching
+            with app.state.session_factory() as s:
+                co = Company(slug="acme", name="Acme")
+                s.add(co)
+                s.flush()
+                s.add(Source(company_id=co.id, key="acme", adapter="other", config={}))
+                s.commit()
+            return listing(3)
+
+    ADAPTERS["fake-api"] = Racing
+    r = client.post("/api/sources", json={"company_name": "Acme", "url": "https://acme.example"})
+    assert r.status_code == 409
+
+
+def test_same_site_with_extra_registry_keys_is_still_a_duplicate(
+    client, db, detected, fake_adapter
+):
+    c = Company(slug="acme-reg", name="Acme")
+    db.add(c)
+    db.flush()
+    db.add(
+        Source(
+            company_id=c.id,
+            key="acme-reg",
+            adapter="fake-api",
+            config={"host": "acme.example", "allow_empty": True},
+        )
+    )
+    db.commit()
+    fake_adapter.listing = listing(3)
+    r = client.post("/api/sources", json={"company_name": "Acme 2", "url": "https://acme.example"})
+    assert r.status_code == 409 and "acme-reg" in r.json()["detail"]

@@ -22,6 +22,9 @@ class ZerodhaAdapter:
     name = "zerodha"
     listing_has_details = True
 
+    def __init__(self) -> None:
+        self._listed: dict[str, RawJob] | None = None  # one read of the list per run
+
     async def list_jobs(self, client: PoliteClient, cfg: dict, mode: Mode) -> ListingResult:
         rows, count = await self._rows(client)
         jobs = {j.external_id: j for j in map(_to_raw, rows)}
@@ -42,11 +45,11 @@ class ZerodhaAdapter:
         return rows, data.get("count")
 
     async def fetch_detail(self, client: PoliteClient, cfg: dict, job: RawJob) -> RawJob | Gone:
-        rows, _ = await self._rows(client)
-        for job_now in map(_to_raw, rows):
-            if job_now.external_id == job.external_id:
-                return job_now
-        return GONE
+        # No per-job API: the list is the only source, so read it once and look jobs up.
+        if self._listed is None:
+            rows, _ = await self._rows(client)
+            self._listed = {j.external_id: j for j in map(_to_raw, rows)}
+        return self._listed.get(job.external_id, GONE)
 
 
 def _to_raw(p: dict) -> RawJob:

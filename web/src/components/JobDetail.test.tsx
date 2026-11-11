@@ -32,6 +32,7 @@ const base: Detail = {
   quote: null,
   checking: false,
   unclear: false,
+  unchecked: null,
   tech_internship: true,
   sections: { about: "Build things", responsibilities: ["Write code"], requirements: [], preferred: [], eligibility: [] },
   description_html: null,
@@ -174,4 +175,20 @@ it("saves a half-typed note when you switch to another job", async () => {
   unmount(); // e.g. clicking the next job, well before the 800 ms save
   expect(sent("/note")).toHaveLength(1);
   expect(sent("/note")[0].json).toEqual({ note: "call back Fri" });
+});
+
+it.each([
+  ["notice", "This is a notice: eligibility is in its PDF."],
+  ["partial", "Only the title is known: open the posting to check."],
+  ["snippet", "Only a search summary is available: open the posting to check."],
+] as const)("says why Gemini never reads a %s job", async (unchecked, text) => {
+  serve({ eligibility: "pending", unchecked });
+  show();
+  expect(await screen.findByText(text)).toBeInTheDocument();
+});
+
+it("a non-tech notice says eligibility is only checked for tech internships", async () => {
+  serve({ eligibility: "pending", unchecked: "notice", tech_internship: false });
+  show();
+  expect(await screen.findByText("Eligibility is only checked for tech internships.")).toBeInTheDocument();
 });

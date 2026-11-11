@@ -52,6 +52,8 @@ The plan's own decisions (D1-D13) are in the plan. These were made while buildin
 
 ## Left for later
 
+> **2026-11-11:** the code items below were fixed or found already fixed on branch `fix-deferred`; see [deferred-fixes-notes.md](deferred-fixes-notes.md). What's still open is listed there.
+
 - **careers.ltm.com** (SuccessFactors, 47 jobs, 2 in India) isn't read; its `/sitemap.xml` is an RSS feed that neither the `successfactors` nor the `rss` adapter reads.
 - **Jio's other categories** (≈30,000 freelance, sales and operations jobs) aren't read.
 - **ShareChat links** go to the careers page, not the job: per-job links are a base64 JSON context built by the site's script.

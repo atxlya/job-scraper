@@ -4,7 +4,7 @@ python -m app.cli sync-registry
 python -m app.cli live-check [--source KEY] [--mode incremental|full]
 python -m app.cli run-once --mode incremental|full|tracked [--source KEY]
 python -m app.cli analyze-one --job-id N
-python -m app.cli reindex
+python -m app.cli reindex [--missing-only]
 python -m app.cli set-password
 """
 
@@ -112,14 +112,18 @@ def sync() -> int:
     return 0
 
 
-def reindex() -> int:
-    """Fill the search index and degree flags for every job (safe to re-run)."""
+def reindex(missing_only: bool = False) -> int:
+    """Fill the search index and degree flags (safe to re-run). --missing-only does just the
+    jobs the index lacks, so a container restart doesn't rebuild everything."""
     from app.core.models import Job  # noqa: PLC0415
-    from app.pipeline.derived import refresh_derived  # noqa: PLC0415
+    from app.pipeline.derived import refresh_derived, unindexed_ids  # noqa: PLC0415
 
     ctx = build_ctx(get_settings())
     with ctx.session_factory() as s:
-        ids = list(s.scalars(select(Job.id).order_by(Job.id)))
+        if missing_only:
+            ids = unindexed_ids(s)
+        else:
+            ids = list(s.scalars(select(Job.id).order_by(Job.id)))
         for i in range(0, len(ids), 500):
             refresh_derived(s, ids[i : i + 500])
             s.commit()
@@ -158,13 +162,13 @@ def main(argv: list[str] | None = None) -> int:
     ro.add_argument("--source")
     ao = sub.add_parser("analyze-one")
     ao.add_argument("--job-id", type=int, required=True)
-    sub.add_parser("reindex")
+    sub.add_parser("reindex").add_argument("--missing-only", action="store_true")
     sub.add_parser("set-password")
     a = ap.parse_args(argv)
     if a.cmd == "set-password":
         return set_password()
     if a.cmd == "reindex":
-        return reindex()
+        return reindex(missing_only=a.missing_only)
     if a.cmd == "sync-registry":
         return sync()
     if a.cmd == "live-check":

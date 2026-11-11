@@ -36,3 +36,12 @@ async def test_non_object_row_raises_parse_error(client, mock):
     mock.get(URL).mock(return_value=httpx.Response(200, json=body))
     with pytest.raises(ParseError):
         await ZerodhaAdapter().list_jobs(client, CFG, "full")
+
+
+async def test_detail_reads_the_list_once_per_run(client, mock):
+    route = mock.get(URL).mock(return_value=httpx.Response(200, json=load_json("zerodha", "empty")))
+    adapter = ZerodhaAdapter()
+    for key in ("a", "b", "c"):
+        job = RawJob(external_id=key, title=key, url=URL)
+        assert await adapter.fetch_detail(client, CFG, job) is GONE
+    assert route.call_count == 1

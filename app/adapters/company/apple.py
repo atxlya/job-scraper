@@ -18,7 +18,11 @@ from app.adapters.text import join_sections, text_to_html
 from app.http.client import PoliteClient
 
 PER_PAGE = 20
-_HYDRATION = re.compile(r'window\.__staticRouterHydrationData\s*=\s*JSON\.parse\((".*?")\);', re.S)
+# The argument is a JS string literal: match escapes as pairs so an escaped quote inside
+# it (e.g. a title containing `");`) can't end the match early.
+_HYDRATION = re.compile(
+    r'window\.__staticRouterHydrationData\s*=\s*JSON\.parse\(("(?:[^"\\]|\\.)*")\s*\);', re.S
+)
 
 
 def hydration(page: str) -> dict:

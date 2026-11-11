@@ -2,7 +2,7 @@ import httpx
 import pytest
 import respx
 
-from app.http.client import USER_AGENT, PoliteClient, RobotsDisallowed
+from app.http.client import USER_AGENT, PoliteClient, RobotsDisallowed, RobotsUnavailable
 
 
 class FakeTime:
@@ -280,3 +280,38 @@ async def test_post_form_sends_urlencoded_and_checks_robots(client):
     with pytest.raises(RobotsDisallowed):
         await client.post_form("https://a.com/private/y", {})
     assert blocked.call_count == 0
+
+
+@respx.mock
+async def test_robots_txt_redirects_capped_at_five(client):
+    for i in range(6):
+        src = "robots.txt" if i == 0 else f"robots{i}.txt"
+        respx.get(f"https://a.com/{src}").mock(
+            return_value=httpx.Response(301, headers={"Location": f"/robots{i + 1}.txt"})
+        )
+    respx.get("https://a.com/robots6.txt").mock(return_value=httpx.Response(200, text=""))
+    route = respx.get("https://a.com/x").mock(return_value=httpx.Response(200))
+    with pytest.raises(RobotsUnavailable, match="redirect"):
+        await client.get("https://a.com/x")
+    assert route.call_count == 0
+
+
+@respx.mock
+async def test_exactly_five_redirects_followed(client):
+    robots(respx, "a.com")
+    for i in range(5):
+        respx.get(f"https://a.com/r{i}").mock(
+            return_value=httpx.Response(302, headers={"Location": f"/r{i + 1}"})
+        )
+    respx.get("https://a.com/r5").mock(return_value=httpx.Response(200, text="end"))
+    resp = await client.get("https://a.com/r0")
+    assert resp.text == "end"
+
+
+@respx.mock
+async def test_same_host_redirect_hop_is_paced(client, ft):
+    robots(respx, "a.com")
+    respx.get("https://a.com/x").mock(return_value=httpx.Response(302, headers={"Location": "/y"}))
+    respx.get("https://a.com/y").mock(return_value=httpx.Response(200))
+    await client.get("https://a.com/x")
+    assert ft.sleeps == [2.5]  # the second request to a.com waited its turn

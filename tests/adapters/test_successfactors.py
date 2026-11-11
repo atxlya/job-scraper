@@ -202,3 +202,11 @@ async def test_page_without_title_raises_parse_error(client, mock):
     )
     with pytest.raises(ParseError):
         await SuccessFactorsAdapter().fetch_detail(client, {}, listed("", url))
+
+
+async def test_redirect_without_location_raises(client, mock):
+    url = "https://careers.wipro.com/job/Odd/999/"
+    route = mock.get(url).mock(return_value=httpx.Response(302))
+    with pytest.raises(ParseError, match="Location"):
+        await SuccessFactorsAdapter().fetch_detail(client, {}, listed("", url))
+    assert route.call_count == 1

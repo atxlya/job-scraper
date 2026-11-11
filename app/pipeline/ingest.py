@@ -16,6 +16,8 @@ from app.adapters.base import ListingResult, RawJob
 from app.core.models import Job, JobChange, Source
 
 CLOSE_AFTER_MISSES = 2
+# Flags meaning Gemini has nothing to read (title only, or a search summary).
+NEVER_ANALYSED = ("partial", "snippet")
 
 # RawJob field -> (Job column, name recorded in the change log)
 TRACKED = {
@@ -64,6 +66,17 @@ def _merged(raw: RawJob, job: Job) -> RawJob:
     if raw.title_from_url and job.title:
         update["title"] = job.title  # a title guessed from the URL never replaces a stored one
     return raw.model_copy(update=update)
+
+
+def _add_flags(job: Job, raw: RawJob) -> None:
+    """Flags a source started sending (e.g. IBM's "snippet") reach jobs stored earlier.
+    Flags are only added or changed, never removed, and aren't logged as posting changes."""
+    flags = {**(job.platform_flags or {}), **raw.platform_flags}
+    if flags == (job.platform_flags or {}):
+        return
+    job.platform_flags = flags
+    if job.analysis_state == "pending" and any(flags.get(f) for f in NEVER_ANALYSED):
+        job.analysis_state = "skipped"
 
 
 def _update_fields(session: Session, job: Job, raw: RawJob, now: datetime) -> list[str]:
@@ -141,6 +154,7 @@ def ingest(
             job.state, job.closed_at = "open", None
             stats.reopened_ids.append(job.id)
 
+        _add_flags(job, raw)
         if _update_fields(session, job, raw, now):
             stats.updated_ids.append(job.id)
 

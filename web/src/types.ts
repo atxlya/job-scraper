@@ -67,6 +67,7 @@ export interface JobDetail extends JobCard {
   quote: string | null;
   checking: boolean;
   unclear: boolean;
+  unchecked: "notice" | "partial" | "snippet" | null; // why Gemini never reads it
   tech_internship: boolean;
   sections: Sections | null;
   description_html: string | null;

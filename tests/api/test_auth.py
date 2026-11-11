@@ -80,3 +80,46 @@ def test_set_password_cli_rejects_mismatch_and_short(monkeypatch):
     monkeypatch.setattr("getpass.getpass", lambda prompt="": next(answers))
     assert cli_main(["set-password"]) == 1
     assert cli_main(["set-password"]) == 1
+
+
+def test_api_docs_need_login(anon):
+    for path in ("/api/docs", "/api/openapi.json"):
+        assert anon.get(path).status_code == 401, path
+    for path in ("/docs", "/redoc", "/openapi.json"):  # at most the dashboard page
+        r = anon.get(path)
+        assert "swagger" not in r.text.lower() and '"openapi"' not in r.text, path
+    assert anon.post("/api/login", json={"password": PASSWORD}).status_code == 204
+    assert anon.get("/api/openapi.json").json()["info"]["title"] == "job-scraper"
+    assert "swagger" in anon.get("/api/docs").text.lower()
+
+
+def test_unknown_api_path_is_locked_by_default(anon):
+    # A route someone adds without the login dependency is still locked.
+    @anon.app.get("/api/forgot-to-lock")
+    def leak() -> dict:
+        return {"secret": True}
+
+    assert anon.get("/api/forgot-to-lock").status_code == 401
+
+
+def test_password_change_signs_out_every_device(tmp_path):
+    from app.core.secrets import hash_password  # noqa: PLC0415
+
+    with TestClient(make_app(tmp_path)) as c:
+        c.post("/api/login", json={"password": PASSWORD})
+        cookies = dict(c.cookies)
+    new = make_app(tmp_path, dashboard_password_hash=hash_password("a new password"))
+    with TestClient(new, cookies=cookies) as c:
+        assert c.get("/api/me").status_code == 401
+
+
+def test_logout_everywhere_ends_other_sessions(tmp_path):
+    app = make_app(tmp_path)
+    with TestClient(app) as phone, TestClient(app) as laptop:
+        for c in (phone, laptop):
+            assert c.post("/api/login", json={"password": PASSWORD}).status_code == 204
+        assert laptop.post("/api/logout", params={"everywhere": "true"}).status_code == 204
+        assert phone.get("/api/me").status_code == 401
+        assert laptop.get("/api/me").status_code == 401
+        assert phone.post("/api/login", json={"password": PASSWORD}).status_code == 204
+        assert phone.get("/api/me").status_code == 200

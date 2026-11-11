@@ -91,3 +91,17 @@ async def test_intern_commitment_words(client, mock, commitment, flagged):
     mock.get(LIST).mock(return_value=httpx.Response(200, json=body))
     res = await LeverAdapter().list_jobs(client, CFG, "full")
     assert bool(res.jobs[0].platform_flags.get("intern")) is flagged
+
+
+async def test_list_without_content_leaves_no_empty_heading(client, mock):
+    body = load_json("lever", "cred")
+    p = next(p for p in body if any(li["text"] for li in p["lists"]))
+    li = next(li for li in p["lists"] if li["text"])
+    li["content"] = "  "
+    mock.get("https://api.lever.co/v0/postings/cred").mock(
+        return_value=httpx.Response(200, json=body)
+    )
+    res = await LeverAdapter().list_jobs(client, {"site": "cred"}, "full")
+    j = next(j for j in res.jobs if j.external_id == p["id"])
+    assert f"<h3>{li['text']}</h3>" not in j.description_html
+    assert "<ul>  </ul>" not in j.description_html

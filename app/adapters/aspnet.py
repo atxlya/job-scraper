@@ -52,6 +52,17 @@ async def postback(
     return HTMLParser(resp.text)
 
 
+async def get_page(client: PoliteClient, url: str) -> HTMLParser:
+    """GET a WebForms page. These sites redirect errors to /error.aspx, so a 3xx is a
+    ParseError and the redirect is never followed."""
+    resp = await client.get(url, follow_redirects=False)
+    if 300 <= resp.status_code < 400:
+        location = resp.headers.get("Location", "")
+        raise ParseError(f"{url} redirected to {location!r}")
+    resp.raise_for_status()
+    return HTMLParser(resp.text)
+
+
 def pages_shown(tree: HTMLParser) -> tuple[int, int] | None:
     """Jio and Reliance print "Showing 2 of 4 Pages" under the list."""
     body = tree.body

@@ -41,6 +41,10 @@ class FakeAdapter:
             raise httpx.ConnectError("[Errno 8] nodename nor servname provided, or not known")
         if job.external_id in cfg.get("gone", []):
             return GONE
+        if job.external_id in cfg.get("bug", []):
+            raise ValueError("invalid literal for int() with base 10: ''")
+        if job.external_id in cfg.get("bad_json", []):
+            httpx.Response(200, text="<html>maintenance</html>").json()
         return job.model_copy(update={"description_html": f"<p>{job.title}</p>"})
 
 
@@ -338,3 +342,77 @@ def test_partial_and_settled_notices_skip_gemini(ctx):
         assert partial.analysis_state == "skipped"
         assert settled.analysis_state == "skipped"
         assert unclear.analysis_state == "pending"
+
+
+async def test_tracked_continues_past_a_failing_job(ctx):
+    sid = add_source(ctx, "tf", jobs=[["1", "Software Intern"], ["2", "Data Intern"]])
+    await run_source(ctx, sid, "incremental")
+    with ctx.session_factory() as s:
+        for job in s.scalars(select(Job)):
+            s.add(JobUserState(job_id=job.id, tag="liked"))
+        src = s.get(Source, sid)
+        src.config = {**src.config, "detail_down": ["1"], "gone": ["2"]}
+        s.commit()
+    run = await run_source(ctx, sid, "tracked")
+    assert run.status == "partial" and run.closed_count == 1
+    assert "1 of 2" in run.error
+    with ctx.session_factory() as s:
+        assert {j.external_id: j.state for j in s.scalars(select(Job))} == {
+            "1": "open",
+            "2": "closed",
+        }
+
+
+async def test_tracked_all_jobs_failing_fails_the_run(ctx):
+    sid = add_source(ctx, "ta", jobs=[["1", "Software Intern"]])
+    await run_source(ctx, sid, "incremental")
+    with ctx.session_factory() as s:
+        s.add(JobUserState(job_id=s.scalars(select(Job)).one().id, tag="applied"))
+        src = s.get(Source, sid)
+        src.config = {**src.config, "detail_down": ["1"]}
+        s.commit()
+    run = await run_source(ctx, sid, "tracked")
+    assert run.status == "failed" and "ConnectError" in run.error
+
+
+async def test_non_json_detail_skips_only_that_job(ctx):
+    sid = add_source(
+        ctx, "nj", jobs=[["1", "Software Intern"], ["2", "Data Intern"]], bad_json=["1"]
+    )
+    run = await run_source(ctx, sid, "incremental")
+    assert run.status == "ok" and run.new_count == 2
+
+
+async def test_snippet_jobs_are_not_sent_to_gemini(ctx):
+    sid = add_source(ctx, "sn", jobs=[["1", "Software Intern"]])
+    with ctx.session_factory() as s:
+        src = s.get(Source, sid)
+        src.adapter = "fake-snippet"
+        s.commit()
+    await run_source(ctx, sid, "incremental")
+    with ctx.session_factory() as s:
+        assert s.scalars(select(Job)).one().analysis_state == "skipped"
+
+
+@register
+class SnippetAdapter(FakeAdapter):
+    name = "fake-snippet"
+
+    async def list_jobs(self, client, cfg, mode):
+        res = await super().list_jobs(client, cfg, mode)
+        jobs = [j.model_copy(update={"platform_flags": {"snippet": True}}) for j in res.jobs]
+        return res.model_copy(update={"jobs": jobs})
+
+
+async def test_adapter_bug_in_detail_still_fails_the_run(ctx):
+    sid = add_source(ctx, "bug", jobs=[["1", "Software Intern"]], bug=["1"])
+    run = await run_source(ctx, sid, "incremental")
+    assert run.status == "failed" and "ValueError" in run.error
+
+
+async def test_every_detail_failing_marks_the_run_partial(ctx):
+    sid = add_source(
+        ctx, "down", jobs=[["1", "Software Intern"], ["2", "Data Intern"]], detail_down=["1", "2"]
+    )
+    run = await run_source(ctx, sid, "incremental")
+    assert run.status == "partial" and "2 of 2 job pages failed" in run.error

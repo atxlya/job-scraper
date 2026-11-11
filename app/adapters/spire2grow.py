@@ -22,8 +22,11 @@ class Spire2GrowAdapter:
     name = "spire2grow"
     listing_has_details = True
 
+    def __init__(self) -> None:
+        self._workspaces: dict[str, str] = {}  # domain → id, for one run (one instance a run)
+
     async def list_jobs(self, client: PoliteClient, cfg: dict, mode: Mode) -> ListingResult:
-        headers = await _headers(client, cfg)
+        headers = await self._headers(client, cfg)
         jobs: dict[str, RawJob] = {}
         total = None
         for page in range(1, MAX_PAGES + 1):
@@ -45,20 +48,26 @@ class Spire2GrowAdapter:
         return ListingResult(jobs=list(jobs.values()), reported_total=total, complete=complete)
 
     async def fetch_detail(self, client: PoliteClient, cfg: dict, job: RawJob) -> RawJob | Gone:
-        headers = await _headers(client, cfg)
+        headers = await self._headers(client, cfg)
         resp = await client.get(f"{API}/requisition/displayId/{job.external_id}", headers=headers)
         if resp.status_code == 404:
             return GONE  # {"errorMessages":["Requisition not found in elasticsearch index…"]}
         resp.raise_for_status()
         return _job(cfg, resp.json())
 
+    async def _headers(self, client: PoliteClient, cfg: dict) -> dict[str, str]:
+        domain = cfg["domain"]
+        if domain not in self._workspaces:
+            resp = await client.get(f"{API}/workspaceId", params={"domain": domain})
+            resp.raise_for_status()
+            workspace = resp.text.strip().strip('"')
+            if not workspace:
+                raise ParseError(f"spire2grow: no workspace for {domain}")
+            self._workspaces[domain] = workspace
+        return _headers(self._workspaces[domain])
 
-async def _headers(client: PoliteClient, cfg: dict) -> dict[str, str]:
-    resp = await client.get(f"{API}/workspaceId", params={"domain": cfg["domain"]})
-    resp.raise_for_status()
-    workspace = resp.text.strip().strip('"')
-    if not workspace:
-        raise ParseError(f"spire2grow: no workspace for {cfg['domain']}")
+
+def _headers(workspace: str) -> dict[str, str]:
     return {
         "WorkspaceId": workspace,
         "language": "en",

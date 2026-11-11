@@ -265,3 +265,35 @@ def test_fetch_description_unexpected_page_502_not_500(client, db, fake_adapter)
     assert r.status_code == 502 and "jobs.example" in r.json()["detail"]
     fake_adapter.detail = IndexError("list index out of range")
     assert fetch(client, j).status_code == 502
+
+
+def test_description_links_open_in_a_new_tab_and_resolve_against_the_posting(client, db):
+    j = seed_job(
+        db,
+        description='<p><a href="/careers/apply?id=1">apply</a> '
+        '<a href="https://ok.example/x" target="_self">x</a> '
+        '<a href="javascript:alert(1)">bad</a></p>',
+    )
+    html = detail(client, j)["description_html"]
+    assert 'href="https://jobs.example/careers/apply?id=1"' in html  # seed url host
+    assert html.count('target="_blank"') == 3 and "_self" not in html
+    assert "javascript:" not in html
+
+
+def test_fetch_description_gives_up_after_its_time_budget(client, db, fake_adapter, monkeypatch):
+    import asyncio  # noqa: PLC0415
+
+    from app.adapters.base import ADAPTERS  # noqa: PLC0415
+    from app.api import jobs  # noqa: PLC0415
+
+    class Slow:
+        name = "fake-api"
+
+        async def fetch_detail(self, c, cfg, job):
+            await asyncio.sleep(5)  # a site retrying 5xx answers with back-off
+
+    monkeypatch.setattr(jobs, "DETAIL_BUDGET_S", 0.05)
+    ADAPTERS["fake-api"] = Slow
+    j = seed_job(db, description=None)
+    r = client.post(f"/api/jobs/{j.id}/description")
+    assert r.status_code == 504 and "too long" in r.json()["detail"]

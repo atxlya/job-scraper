@@ -75,6 +75,15 @@ def _node_text(node) -> str | None:
     return _clean(node.text()) or None if node else None
 
 
+def _https(url: str, host: str) -> str:
+    """http:// becomes https:// for the site's own host only (DRDO writes http links to a
+    site that serves https); other hosts and any "http://" inside the query are left alone."""
+    parts = urlsplit(url)
+    if parts.scheme == "http" and (parts.hostname or "").removeprefix("www.") == host:
+        return parts._replace(scheme="https").geturl()
+    return url
+
+
 def _first_href(tree: HTMLParser, needle: str, base: str) -> str | None:
     for a in tree.css("a[href]"):
         href = a.attributes.get("href") or ""
@@ -86,6 +95,7 @@ def _first_href(tree: HTMLParser, needle: str, base: str) -> str | None:
 # ---- DRDO ----
 
 DRDO_URL = "https://drdo.gov.in/drdo/en/offerings/vacancies"
+DRDO_HOST = "drdo.gov.in"
 
 
 def _title_of(tree: HTMLParser) -> str:
@@ -103,7 +113,7 @@ def parse_drdo(page: str) -> list[RawJob]:
         link = box.css_first(".vacanciess-view-node a[href]")
         if not (title and link):
             raise ParseError("notice_page drdo: incomplete vacancy box")
-        url = urljoin(DRDO_URL, link.attributes["href"]).replace("http://", "https://", 1)
+        url = _https(urljoin(DRDO_URL, link.attributes["href"]), DRDO_HOST)
         published = box.css_first(".vacanciess-date-publish-content time[datetime]")
         desc = box.css_first(".vacanciess-desc")
         jobs.append(
@@ -134,7 +144,7 @@ def detail_drdo(job: RawJob, page: str) -> RawJob | Gone:
     if _title_of(tree).split(" | ", 1)[0] == slug:
         return GONE
     pdf = _first_href(tree, "/sites/default/files/vacancy/", job.url)
-    return job.model_copy(update={"apply_url": pdf}) if pdf else job
+    return job.model_copy(update={"apply_url": _https(pdf, DRDO_HOST)}) if pdf else job
 
 
 # ---- ISRO ----
@@ -156,14 +166,22 @@ def parse_isro(page: str) -> list[RawJob]:
             "Read More"
         )
         url = urljoin(ISRO_URL, href)
+        name = urlsplit(url).path.rsplit("/", 1)[-1]
         jobs.append(
             _notice(
-                external_id=urlsplit(url).path.rsplit("/", 1)[-1],
-                title=title.strip(),
+                external_id=name,
+                title=title.strip() or _name_title(name),
                 url=url,
             )
         )
     return jobs
+
+
+def _name_title(name: str) -> str:
+    """ "DOSRecruitment10.html" → "DOS Recruitment 10", for a link with no text."""
+    stem = name.rsplit(".", 1)[0]
+    words = re.sub(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|(?<=[A-Za-z])(?=\d)", " ", stem)
+    return " ".join(words.replace("-", " ").replace("_", " ").split())
 
 
 def detail_isro(job: RawJob, page: str) -> RawJob:
@@ -174,6 +192,9 @@ def detail_isro(job: RawJob, page: str) -> RawJob:
 # ---- CDAC ----
 
 CDAC_URL = "https://www.cdac.in/index.aspx?id=current_jobs"
+_CDAC_FORM = re.compile(
+    r"(?i)\b(application\s+form|interview\s+application|annexure|proforma|format)\b"
+)
 _CDAC_NOT_NOTICES = {"print_page", "career", "job_archive_jobs", "profile"}
 
 
@@ -189,7 +210,9 @@ def parse_cdac(page: str) -> list[RawJob]:
         text = _clean(link.text())
         if not text or query.get("id", [""])[0] in _CDAC_NOT_NOTICES:
             continue
-        title = _cdac_title(link, text)
+        title, paragraph = _cdac_title(link, text)
+        if paragraph is not None and _CDAC_FORM.search(text):
+            continue  # an advertisement's application form or annexure, not a new opening
         url = urljoin(CDAC_URL, link.attributes["href"])
         key = (query.get("dynamicId") or query.get("id") or [None])[0]
         is_pdf = url.endswith(".pdf") or query.get("id", [""])[0].startswith("pdf_")
@@ -204,8 +227,9 @@ def parse_cdac(page: str) -> list[RawJob]:
     return jobs
 
 
-def _cdac_title(link, text: str) -> str:
-    """The link text, led by the bold heading of its paragraph when that is not the link."""
+def _cdac_title(link, text: str) -> tuple[str, int | None]:
+    """The link text, led by the bold heading of its paragraph when that is not the link,
+    and that paragraph's id when a heading was used."""
     inside = {s.mem_id for s in link.css("strong")}
     paragraph = link.parent
     while paragraph is not None and paragraph.tag != "p":
@@ -214,8 +238,8 @@ def _cdac_title(link, text: str) -> str:
         for strong in paragraph.css("strong"):
             heading = _clean(strong.text())
             if strong.mem_id not in inside and heading and heading != text:
-                return f"{heading} — {text}"
-    return text
+                return f"{heading} — {text}", paragraph.mem_id
+    return text, None
 
 
 # ---- BARC ----
@@ -233,8 +257,12 @@ def parse_barc(page: str) -> list[RawJob]:
     if table is None:
         raise ParseError("notice_page barc: no vacancy table")
     jobs = []
-    for row in table.css("tbody tr"):
+    for row in table.css("tr"):
         cells = row.css("td")
+        if not cells:
+            continue  # the header row, whether or not it sits in <thead>
+        if len(cells) == 1 and cells[0].css_first("a[href]") is None:
+            continue  # one cell across the table: "no vacancies at present"
         link = cells[3].css_first("a[href]") if len(cells) == 4 else None
         title = _barc_title(cells[1]) if link else ""
         if not title:
@@ -279,12 +307,24 @@ DETAILS: dict[str, Callable[[RawJob, str], RawJob | Gone]] = {
 GONE_ON_404 = {"isro"}
 
 
+def _site(cfg: dict) -> str:
+    site = cfg.get("site")
+    if site not in PARSERS:
+        raise ParseError(f"notice_page: unknown site {site!r}")
+    return site
+
+
 @register
 class NoticePageAdapter:
     name = "notice_page"
 
+    @staticmethod
+    def validate_config(cfg: dict) -> None:
+        if cfg.get("site") not in PARSERS:
+            raise ValueError(f"unknown notice site {cfg.get('site')!r}; one of {sorted(PARSERS)}")
+
     async def list_jobs(self, client: PoliteClient, cfg: dict, mode: Mode) -> ListingResult:
-        site = cfg["site"]
+        site = _site(cfg)
         resp = await client.get(LIST_URL[site])
         resp.raise_for_status()
         return ListingResult(
@@ -292,7 +332,7 @@ class NoticePageAdapter:
         )
 
     async def fetch_detail(self, client: PoliteClient, cfg: dict, job: RawJob) -> RawJob | Gone:
-        parse = DETAILS.get(cfg["site"])
+        parse = DETAILS.get(_site(cfg))
         if parse is None:
             return job
         resp = await client.get(job.url)

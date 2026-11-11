@@ -103,3 +103,34 @@ async def test_home_page_raises_parse_error(client, mock):
     mock.get(BASE, params={"page": "1"}).mock(return_value=html("home"))
     with pytest.raises(ParseError):
         await TataElxsiAdapter().list_jobs(client, {}, "incremental")
+
+
+def swapped(name: str, old: bytes, new: bytes) -> httpx.Response:
+    body = load_fixture("tataelxsi", name)
+    assert old in body
+    return httpx.Response(200, content=body.replace(old, new, 1))
+
+
+async def test_page_links_outside_the_pager_are_ignored(client, mock):
+    stray = b'<a href="https://www.tataelxsi.com/news?page=99">news</a></body>'
+    route = mock.get(BASE).mock(
+        side_effect=lambda req: (
+            swapped("page_1", b"</body>", stray)
+            if req.url.params["page"] == "1"
+            else html("page_11")
+        )
+    )
+    await TataElxsiAdapter().list_jobs(client, {}, "full")
+    assert max(int(c.request.url.params["page"]) for c in route.calls) == 11
+
+
+async def test_card_link_without_a_path_raises_parse_error(client, mock):
+    mock.get(BASE, params={"page": "1"}).mock(
+        return_value=swapped(
+            "page_1",
+            b'href="https://www.tataelxsi.com/careers/job-openings/java-developer"',
+            b'href="https://www.tataelxsi.com"',
+        )
+    )
+    with pytest.raises(ParseError, match="job link"):
+        await TataElxsiAdapter().list_jobs(client, {}, "incremental")

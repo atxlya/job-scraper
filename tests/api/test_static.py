@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.api.main import create_app
 
-from .conftest import make_settings
+from .conftest import PASSWORD, make_settings
 
 
 def app_with_dist(tmp_path):
@@ -37,6 +37,8 @@ def test_assets_and_root_files_served(tmp_path):
 
 def test_unknown_api_path_stays_json_404(tmp_path):
     c = app_with_dist(tmp_path)
+    assert c.get("/api/nope").status_code == 401  # locked by default: not even a 404
+    assert c.post("/api/login", json={"password": PASSWORD}).status_code == 204
     r = c.get("/api/nope")
     assert r.status_code == 404 and r.json() == {"detail": "Not Found"}
 

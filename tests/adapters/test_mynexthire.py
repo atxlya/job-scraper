@@ -73,3 +73,13 @@ async def test_list_without_key_raises_parse_error(client, mock):
     mock.post(LIST).mock(return_value=httpx.Response(200, json={"requesterTitle": ""}))
     with pytest.raises(ParseError):
         await MyNextHireAdapter().list_jobs(client, CFG, "full")
+
+
+async def test_detail_417_with_another_message_raises(client, mock):
+    mock.post(REQ).mock(
+        return_value=httpx.Response(417, json={"errorMessage": "Session expired, try again."})
+    )
+    with pytest.raises(ParseError, match="417"):
+        await MyNextHireAdapter().fetch_detail(
+            client, CFG, RawJob(external_id="1", title="t", url="u")
+        )

@@ -27,9 +27,7 @@ class TechMahindraAdapter:
     listing_has_details = True
 
     async def list_jobs(self, client: PoliteClient, cfg: dict, mode: Mode) -> ListingResult:
-        resp = await client.get(LIST_URL)
-        resp.raise_for_status()
-        tree = HTMLParser(resp.text)
+        tree = await aspnet.get_page(client, LIST_URL)
         trees = [tree]
         if mode == "full":
             current = _current(tree)
@@ -47,8 +45,11 @@ class TechMahindraAdapter:
             last_link = _link(tree, "Last")
             if last_link is not None:
                 last = await aspnet.postback(client, LIST_URL, tree, last_link)
-                trees.append(last)
                 n = _current(last)
+                if n <= _current(tree) or _link(last, "Last") is not None:
+                    # Not the last page: new jobs would wait for the nightly run.
+                    raise ParseError(f'techmahindra: "Last" answered page {n}')
+                trees.append(last)
                 before = _link(last, str(n - 1))
                 if before is not None:
                     trees.append(await _go(client, last, before, n - 1))

@@ -69,3 +69,16 @@ async def test_empty_last_page_not_complete(client, mock, monkeypatch):
 
     mock.get(URL).mock(side_effect=respond)
     assert (await CapgeminiAdapter().list_jobs(client, CFG, "full")).complete is False
+
+
+async def test_incremental_reads_every_page(client, mock, monkeypatch):
+    # Pages aren't newest-first, so the 30-minute run must read them all too.
+    monkeypatch.setattr(capgemini, "PAGE", 25)
+    p1, p2 = load_json("capgemini", "p1"), load_json("capgemini", "p2")
+    p1["total"] = p2["total"] = 60
+    route = mock.get(URL).mock(
+        side_effect=lambda r: httpx.Response(200, json=p1 if r.url.params["page"] == "1" else p2)
+    )
+    res = await CapgeminiAdapter().list_jobs(client, CFG, "incremental")
+    assert [int(c.request.url.params["page"]) for c in route.calls] == [1, 2, 3]
+    assert res.complete is False

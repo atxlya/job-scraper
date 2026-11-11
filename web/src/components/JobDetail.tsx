@@ -232,12 +232,19 @@ function AppliedButton({
   );
 }
 
+const UNCHECKED: Record<NonNullable<Detail["unchecked"]>, string> = {
+  notice: "This is a notice: eligibility is in its PDF.",
+  partial: "Only the title is known: open the posting to check.",
+  snippet: "Only a search summary is available: open the posting to check.",
+};
+
 function EligibilityBox({ job }: { job: Detail }) {
   let note = "Checked by Gemini for a Bachelor's student based in India.";
   if (job.eligibility !== "ok") {
     if (job.unclear) note = "Gemini couldn't tell — read the posting.";
     else if (job.checking) note = "Gemini will read the posting soon — this updates automatically.";
     else if (!job.tech_internship) note = "Eligibility is only checked for tech internships.";
+    else if (job.unchecked) note = UNCHECKED[job.unchecked];
     else if (!job.quote) note = job.degree ? "From the job title." : "Not checked yet.";
     else note = "Quoted from the posting. You decide.";
   }

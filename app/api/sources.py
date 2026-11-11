@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import app.adapters  # noqa: F401  (registers adapters)
@@ -96,6 +97,16 @@ async def add_company(body: AddCompany, request: Request) -> AddResult:
     with sf() as s:
         if s.scalars(select(Source).where(Source.key == key)).first():
             raise HTTPException(409, f"A source called “{key}” already exists.")
+        same = next(
+            (
+                src
+                for src in s.scalars(select(Source).where(Source.adapter == d.adapter))
+                if d.config.items() <= (src.config or {}).items()  # extra keys allowed
+            ),
+            None,
+        )
+        if same is not None:  # the same careers site under another name
+            raise HTTPException(409, f"This careers site is already added as “{same.key}”.")
     try:
         result = await ADAPTERS[d.adapter]().list_jobs(
             request.app.state.client, d.config, "incremental"
@@ -120,7 +131,11 @@ async def add_company(body: AddCompany, request: Request) -> AddResult:
                 origin="dashboard",
             )
         )
-        s.commit()
+        try:
+            s.commit()
+        except IntegrityError as e:  # a second click saved it while this one was testing
+            s.rollback()
+            raise HTTPException(409, f"A source called “{key}” already exists.") from e
     return AddResult(
         key=key, jobs_found=len(result.jobs), sample_titles=[j.title for j in result.jobs[:5]]
     )

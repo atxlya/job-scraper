@@ -13,7 +13,7 @@ from app.adapters.geo import country_codes
 from app.http.client import PoliteClient
 
 LISTING = "https://www.tataelxsi.com/careers/job-openings"
-_PAGE = re.compile(r"[?&]page=(\d+)")
+_PAGE = re.compile(rf"^{re.escape(LISTING)}\?page=(\d+)$")
 
 
 @register
@@ -24,7 +24,7 @@ class TataElxsiAdapter:
         first = HTMLParser((await _get(client, 1)).text)
         pages = [first]
         if mode == "full":
-            last = max((int(m[1]) for m in _PAGE.finditer(first.html or "")), default=1)
+            last = _last_page(first)
             for n in range(2, last + 1):
                 pages.append(HTMLParser((await _get(client, n)).text))
         jobs = [job for tree in pages for job in _cards(tree)]
@@ -53,6 +53,23 @@ class TataElxsiAdapter:
         )
 
 
+def _last_page(tree: HTMLParser) -> int:
+    """The highest numbered pager link: links to the listing itself, labelled with a number."""
+    pages = [1]
+    for a in tree.css("li > a[href]"):
+        m = _PAGE.match(a.attributes.get("href") or "")
+        if m and a.text(strip=True) == m[1]:
+            pages.append(int(m[1]))
+    return max(pages)
+
+
+def _job_id(href: str) -> str:
+    segments = [s for s in urlsplit(href).path.split("/") if s]
+    if not segments:
+        raise ParseError(f"tataelxsi: job link without a path: {href!r}")
+    return segments[-1]
+
+
 async def _get(client: PoliteClient, page: int):
     resp = await client.get(LISTING, params={"page": page})
     resp.raise_for_status()
@@ -76,9 +93,9 @@ def _cards(tree: HTMLParser) -> list[RawJob]:
         posted = _posted(date.text(strip=True))
         jobs.append(
             RawJob(
-                external_id=href.rstrip("/").rsplit("/", 1)[1],
+                external_id=_job_id(href),
                 title=title.text(strip=True),
-                url=href,
+                url=urljoin(LISTING + "/", href),
                 locations=locations,
                 country_codes=country_codes(locations),
                 posted_at=posted,

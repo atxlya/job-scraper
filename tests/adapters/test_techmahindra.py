@@ -132,3 +132,20 @@ async def test_full_without_next_link_but_later_pages_raises(client, mock):
     with pytest.raises(ParseError, match="no link to page 2"):
         await TechMahindraAdapter().list_jobs(client, {}, "full")
     assert post.call_count == 0
+
+
+async def test_incremental_last_postback_must_land_on_a_later_page(client, mock):
+    mock.get(LIST_URL).mock(return_value=html("page_1"))
+    serve_posts(mock, {}, default="page_1")  # "Last" answered with page 1 again
+    with pytest.raises(ParseError, match="Last"):
+        await TechMahindraAdapter().list_jobs(client, {}, "incremental")
+
+
+async def test_first_page_redirect_raises_without_following(client, mock):
+    mock.get(LIST_URL).mock(
+        return_value=httpx.Response(302, headers={"Location": "/error.aspx?aspxerrorpath=/x"})
+    )
+    error = mock.get(url__regex=r".*/error\.aspx.*").mock(return_value=httpx.Response(200))
+    with pytest.raises(ParseError, match="redirected"):
+        await TechMahindraAdapter().list_jobs(client, {}, "incremental")
+    assert error.call_count == 0

@@ -23,7 +23,7 @@ async def test_parses_listing(client, mock):
     assert j.title == src["title"] and j.url == src["url"]
     assert j.locations == [src["field_keyword_19"]]
     assert j.posted_at == datetime.fromisoformat(src["dcdate"]).replace(tzinfo=UTC)
-    assert j.platform_flags == {"intern": True}
+    assert j.platform_flags == {"intern": True, "snippet": True}
     assert j.description_html.startswith("<p>")
     assert res.reported_total == body["hits"]["total"]["value"]
     sent = json.loads(route.calls.last.request.content)

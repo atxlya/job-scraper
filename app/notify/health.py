@@ -56,7 +56,8 @@ def _problem(session: Session, source: Source, run: ScrapeRun) -> str | None:
             f"{(run.error or '')[:300]}"
         )
     allow_empty = (source.config or {}).get("allow_empty")
-    if run.status != "failed" and run.kind == "full" and not allow_empty:
+    # allow_empty: a page with no openings is normal, so only a drop to zero is quiet.
+    if run.status != "failed" and run.kind == "full" and not (allow_empty and run.jobs_found == 0):
         prev = _previous_full(session, run)
         if prev and prev.jobs_found and run.jobs_found < DROP_RATIO * prev.jobs_found:
             return (

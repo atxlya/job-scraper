@@ -12,6 +12,12 @@ class Eligibility(NamedTuple):
     quote: str | None  # Gemini's verbatim line behind a warning
     checking: bool  # Gemini hasn't run yet but will
     unclear: bool  # Gemini ran and couldn't tell
+    # Why Gemini will never read this job: a PDF notice, a title-only listing, or a
+    # search summary (platform flags). None when it did, will, or the job isn't a candidate.
+    unchecked: Literal["notice", "partial", "snippet"] | None = None
+
+
+_NEVER_READ = ("notice", "partial", "snippet")
 
 
 def eligibility(job: Job, analysis: JobAnalysis | None) -> Eligibility:
@@ -20,7 +26,14 @@ def eligibility(job: Job, analysis: JobAnalysis | None) -> Eligibility:
         # Gemini only reads jobs that may be tech internships (app/llm/queue.py next_jobs).
         may_be_candidate = job.is_internship is not False and job.is_tech is not False
         checking = job.analysis_state == "pending" and may_be_candidate
-        return Eligibility("warn" if degree else "pending", degree, None, checking, False)
+        flags = job.platform_flags or {}
+        unchecked = (
+            next((f for f in _NEVER_READ if flags.get(f)), None)
+            if job.analysis_state == "skipped"
+            else None
+        )
+        status = "warn" if degree else "pending"
+        return Eligibility(status, degree, None, checking, False, unchecked)
     if analysis.eligibility == "warn" and analysis.eligibility_quote:
         return Eligibility("warn", degree, analysis.eligibility_quote, False, False)
     if analysis.eligibility == "ok":

@@ -6,7 +6,7 @@ from collections import deque
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 
-from app.api.deps import require_user
+from app.api.deps import bump_session_epoch, password_tag, require_user, session_epoch
 from app.core.secrets import verify_password
 
 MAX_FAILURES = 5
@@ -60,14 +60,32 @@ def login(body: LoginBody, request: Request) -> Response:
         throttle.fail()
         raise HTTPException(401, "Wrong password")
     throttle.reset()
-    request.session["user"] = "me"
+    with request.app.state.session_factory() as s:
+        epoch = session_epoch(s)
+    request.session.update({"user": "me", "pw": password_tag(request), "epoch": epoch})
     return Response(status_code=204)
 
 
 @private.post("/logout", status_code=204)
-def logout(request: Request) -> Response:
+def logout(request: Request, everywhere: bool = False) -> Response:
+    """Ends this browser's session; with ?everywhere=true, every device's."""
+    if everywhere:
+        with request.app.state.session_factory() as s:
+            bump_session_epoch(s)
     request.session.clear()
     return Response(status_code=204)
+
+
+@private.get("/openapi.json", include_in_schema=False)
+def openapi(request: Request) -> dict:
+    return request.app.openapi()
+
+
+@private.get("/docs", include_in_schema=False)
+def docs() -> Response:
+    from fastapi.openapi.docs import get_swagger_ui_html  # noqa: PLC0415
+
+    return get_swagger_ui_html(openapi_url="/api/openapi.json", title="job-scraper API")
 
 
 @private.get("/me")

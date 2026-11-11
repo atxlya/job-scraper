@@ -268,3 +268,23 @@ def test_real_title_still_updates(session, setup):
     [j] = jobs(session)
     [ch] = session.scalars(select(JobChange)).all()
     assert j.title == "Bengaluru Management Trainee IND 560035" and ch.fields == ["title"]
+
+
+def test_new_flags_reach_stored_jobs_and_stop_gemini(session, setup):
+    _, a, _ = setup
+    ingest(session, a, res(raw(platform_flags={"intern": True})), "incremental", T0)
+    job = jobs(session)[0]
+    assert job.analysis_state == "pending"
+    ingest(session, a, res(raw(platform_flags={"snippet": True})), "incremental", T0)
+    assert job.platform_flags == {"intern": True, "snippet": True}  # added, never removed
+    assert job.analysis_state == "skipped"
+    assert session.scalars(select(JobChange)).all() == []  # flags aren't a posting change
+
+
+def test_flags_never_undo_a_finished_analysis(session, setup):
+    _, a, _ = setup
+    ingest(session, a, res(raw()), "incremental", T0)
+    job = jobs(session)[0]
+    job.analysis_state = "done"
+    ingest(session, a, res(raw(platform_flags={"snippet": True})), "incremental", T0)
+    assert job.analysis_state == "done"

@@ -44,3 +44,20 @@ def analysis(e, quote=None):
 )
 def test_eligibility(j, a, expected):
     assert eligibility(j, a) == expected
+
+
+@pytest.mark.parametrize("flag", ["notice", "partial", "snippet"])
+def test_jobs_gemini_never_reads_say_why(flag):
+    j = Job(
+        title="Software Intern",
+        analysis_state="skipped",
+        is_internship=True,
+        is_tech=True,
+        platform_flags={flag: True},
+    )
+    assert eligibility(j, None) == Eligibility("pending", None, None, False, False, flag)
+
+
+def test_notice_still_waiting_for_gemini_has_no_reason():
+    j = Job(title="Walk-in", analysis_state="pending", platform_flags={"notice": True})
+    assert eligibility(j, None).unchecked is None

@@ -35,11 +35,20 @@ notice_internship:
 
 # Notice titles about a process step, not an opening. Beats notice_internship.
 notice_skip:
-  - results?
+  # "result" and "selected" only next to a process word, so "selected research projects"
+  # or "results analysis" in a real opening isn't skipped.
+  - (exam(ination)?|test|interview|final|written|selection|recruitment)\s+results?
+  - results?(?=\s*(-\s|[–—:(]))
+  - results?(?=\s*$)
+  - results?\s+(of|for|against|dated|declared)
+  - (result|merit)\s+lists?
+  - provisional(ly)?\s+(results?|selected)
+  - candidates?\s+selected
   - answer keys?
   - short-?listed
   - shortlist
-  - selected
+  - selected\s+(candidates?|list|applicants?|persons?)
+  - list\s+of\s+selected
   - select list
   - selection panel
   - admit cards?

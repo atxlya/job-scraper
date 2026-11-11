@@ -68,12 +68,8 @@ def parse_detail(tree: HTMLParser, job: RawJob) -> RawJob:
 
 
 async def fetch_portal_detail(client: PoliteClient, job: RawJob) -> RawJob:
-    resp = await client.get(job.url, follow_redirects=False)
-    if 300 <= resp.status_code < 400:
-        location = resp.headers.get("Location", "")
-        raise ParseError(f"job page redirected to {location!r}")  # error page, not "gone"
-    resp.raise_for_status()
-    return parse_detail(HTMLParser(resp.text), job)
+    # A redirect goes to the error page, which is a ParseError, not "gone".
+    return parse_detail(await aspnet.get_page(client, job.url), job)
 
 
 async def walk_pages(
@@ -101,7 +97,9 @@ async def walk_pages(
             raise ParseError("pager without PageDropDownList")
         name = select.attributes["name"]
         tree = await aspnet.postback(client, url, tree, name, {name: str(n), ENTRIES: "25"})
-        _check(tree, n)
+        if (now := _check(tree, n)) != total:
+            # Jobs added or removed mid-walk shift every row; a later run reads it cleanly.
+            raise ParseError(f"page count changed from {total} to {now} mid-walk")
         trees.append(tree)
     return trees
 
@@ -125,9 +123,7 @@ class JioAdapter:
     name = "jio"
 
     async def list_jobs(self, client: PoliteClient, cfg: dict, mode: Mode) -> ListingResult:
-        resp = await client.get(JIO_CATEGORIES)
-        resp.raise_for_status()
-        categories = _categories(HTMLParser(resp.text))
+        categories = _categories(await aspnet.get_page(client, JIO_CATEGORIES))
         wanted = cfg["categories"]
         missing = [c for c in wanted if c not in categories]
         if missing:
@@ -139,9 +135,8 @@ class JioAdapter:
             if count == 0:
                 continue
             url = urljoin(JIO, href)  # verbatim: encrypted values keep their + / =
-            page = await client.get(url)
-            page.raise_for_status()
-            for tree in await walk_pages(client, url, HTMLParser(page.text), mode):
+            first = await aspnet.get_page(client, url)
+            for tree in await walk_pages(client, url, first, mode):
                 for job in _jio_rows(tree):
                     if code in intern_codes:  # e.g. 0227 "Apprentice": the site's own facet
                         job = job.model_copy(update={"platform_flags": {"intern": True}})
@@ -201,10 +196,9 @@ class RilAdapter:
     name = "ril"
 
     async def list_jobs(self, client: PoliteClient, cfg: dict, mode: Mode) -> ListingResult:
-        resp = await client.get(RESULTS_URL)
-        resp.raise_for_status()
+        first = await aspnet.get_page(client, RESULTS_URL)
         jobs: dict[str, RawJob] = {}
-        for tree in await walk_pages(client, RESULTS_URL, HTMLParser(resp.text), mode):
+        for tree in await walk_pages(client, RESULTS_URL, first, mode):
             for job in _ril_rows(tree):
                 jobs.setdefault(job.external_id, job)
         return ListingResult(jobs=list(jobs.values()), reported_total=None, complete=mode == "full")

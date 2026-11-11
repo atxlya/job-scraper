@@ -47,6 +47,14 @@ def refresh_derived(session: Session, job_ids: Iterable[int]) -> None:
     session.flush()
 
 
+def unindexed_ids(session: Session) -> list[int]:
+    """Jobs with no search-index row (stored before the index existed, or never indexed)."""
+    rows = session.execute(
+        text("SELECT id FROM jobs WHERE id NOT IN (SELECT rowid FROM jobs_fts) ORDER BY id")
+    )
+    return [r[0] for r in rows]
+
+
 def fts_query(q: str) -> str | None:
     """User text -> an FTS5 query of quoted prefix terms. Never passes FTS syntax through."""
     words = [_WORD_KEEP.sub("", w) for w in q.split()]
