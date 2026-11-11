@@ -1,0 +1,469 @@
+{
+ "took": 18,
+ "timed_out": false,
+ "_shards": {
+  "total": 20,
+  "successful": 20,
+  "skipped": 0,
+  "failed": 0
+ },
+ "hits": {
+  "total": {
+   "value": 235,
+   "relation": "eq"
+  },
+  "max_score": null,
+  "hits": [
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "ea5b73ed69e9d2395e78a8e7a52bcfb724ba0f2084de88c4625a612567612d2e",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=140053",
+     "dcdate": "2026-11-10",
+     "title": "Applied AI Specialist-Cloud FullStack Intern",
+     "description": "A career in IBM Consulting is built on long-term client relationships and close collaboration worldwide. You'll work with leading companies across industries, helping them shape their hybrid cloud and AI journeys. With support from our strategic...",
+     "field_keyword_08": "Software Engineering",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "Singapore, SG"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "483307689cfe239a4918abede6628497513f37f22775294643ae6ae612fe1c92",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=140056",
+     "dcdate": "2026-11-10",
+     "title": "Applied AI Specialist-Cloud FullStack Intern",
+     "description": "A career in IBM Consulting is built on long-term client relationships and close collaboration worldwide. You'll work with leading companies across industries, helping them shape their hybrid cloud and AI journeys. With support from our strategic...",
+     "field_keyword_08": "Software Engineering",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "Singapore, SG"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "b9ac032de5baff14cacc8aba7cad986bc2f4b6c555310466d6f638d19ef8b0a5",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=139034",
+     "dcdate": "2026-11-10",
+     "title": "Technical Consultant-Cloud Platform Engineering Services",
+     "description": "A career in IBM Consulting is built on long-term client relationships and close collaboration worldwide. You'll work with leading companies across industries, helping them shape their hybrid cloud and AI journeys. With support from our strategic...",
+     "field_keyword_08": "Consulting",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "Singapore, SG"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "cf34ee9be2243d7778beea447d8de74a16c169344af4ad34e6f2e4121f912c0f",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=140400",
+     "dcdate": "2026-11-10",
+     "title": "IT Lab Tech Apprentice - Thermal",
+     "description": "At IBM Infrastructure & Technology, we design and operate the systems that keep the world running. From high-resiliency mainframes and hybrid cloud platforms to networking, automation, and site reliability. Our teams ensure the performance, security,...",
+     "field_keyword_08": "Infrastructure & Technology",
+     "field_keyword_17": "",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "HOPEWELL JUNCTION, US"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "3f8ee8a4c9eaec9447459163124602ddd859b96ad803ce7721b8d07399554d10",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=128775",
+     "dcdate": "2026-11-10",
+     "title": "Consultant Intern – SAP 2027",
+     "description": "Launch your career like an IBMer  Every IBMer has a story. For many, it started with an internship.   As an IBM intern, you won't just gain experience - you'll start thinking, working, and growing like an IBMer. From day one, you'll contribute to real...",
+     "field_keyword_08": "Consulting",
+     "field_keyword_17": "",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "COLUMBIA, US"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "d6290889ae85eed5069e57cb7beeacce9a0c6515e4929e03d967b6b0f84c1222",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=140061",
+     "dcdate": "2026-11-10",
+     "title": "Application Consultant-AWS Cloud Intern",
+     "description": "A career in IBM Consulting is built on long-term client relationships and close collaboration worldwide. You'll work with leading companies across industries, helping them shape their hybrid cloud and AI journeys. With support from our strategic...",
+     "field_keyword_08": "Consulting",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "Singapore, SG"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "54d0b9c0801f5f5b53b7067813996161a93867eea0c7057b8b9460cd4f2092ea",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=140741",
+     "dcdate": "2026-11-10",
+     "title": "Package Consultant-SAP HANA SCM MM Intern",
+     "description": "A career in IBM Consulting is built on long-term client relationships and close collaboration worldwide. You'll work with leading companies across industries, helping them shape their hybrid cloud and AI journeys. With support from our strategic...",
+     "field_keyword_08": "Consulting",
+     "field_keyword_17": "",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "Singapore, SG"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "cd487882a833b93f0f33c50a7edf2149f0cac3affac13645fea8e60e831f23bb",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=135618",
+     "dcdate": "2026-11-10",
+     "title": "Sales Configuration Developer Intern 2027",
+     "description": "Join IBM Global Product Enablement (GPE) and help build the systems that transform IBM hardware product definitions into orderable and manufacturable solutions. As a Sales Configuration Developer Intern, you will work with experienced configuration...",
+     "field_keyword_08": "Software Engineering",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "RESEARCH TRIANGLE PARK, US"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "061bf6dd53286b65759e019e7b854d0badc199be914a6a893479cb2f6ad1ba8d",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=137869",
+     "dcdate": "2026-11-10",
+     "title": "IBM Prompt & Context Engineering Traineeship",
+     "description": "At IBM Finance & Operations, we are the backbone of IBM's transformation driving efficiency, transparency, and smart decision-making across the business. Our teams provide the insight and discipline that guide strategy, ensure financial strength, and...",
+     "field_keyword_08": "Enterprise Operations",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "BRATISLAVA, SK"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "e063b74b2b514ca23227664dbe89c6abc651a4ecae3a4f59a170e502e3b6a732",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=142008",
+     "dcdate": "2026-11-10",
+     "title": "IBM Traineeship",
+     "description": "At IBM Finance & Operations, we are the backbone of IBM's transformation driving efficiency, transparency, and smart decision-making across the business. Our teams provide the insight and discipline that guide strategy, ensure financial strength, and...",
+     "field_keyword_08": "Enterprise Operations",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "BRATISLAVA, SK"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "0a46291aef46c8f390a27a33bf06214c9af4291fba91949b0096937220dc71c9",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=139192",
+     "dcdate": "2026-11-10",
+     "title": "Internship: AI Enablement for Embedded Firmware Development (f/m/x)",
+     "description": "IBM Z Systems are known for high reliability and availability. As an intern in the IBM Z Firmware organisation you will learn from and work with highly motivated engineers who are responsible for driving the future of dependable computing. As an intern...",
+     "field_keyword_08": "Cloud",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "Ehningen, DE"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "0aa028b7032a8fac14acc4ce583ada56742d23b7e0f8e2fe7abf2dcac9444b31",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=138649",
+     "dcdate": "2026-11-10",
+     "title": "Business Analyst-ADM Intern",
+     "description": "A career in IBM Consulting is built on long-term client relationships and close collaboration worldwide. You'll work with leading companies across industries, helping them shape their hybrid cloud and AI journeys. With support from our strategic...",
+     "field_keyword_08": "Software Engineering",
+     "field_keyword_17": "",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "BANGKOK, TH"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "2c113eafe00c706c632f28f952de9b530261778f12b2ff2a6475dec9cc811b89",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=141838",
+     "dcdate": "2026-11-10",
+     "title": "LLM Adapters for Agentic Workflows- MSC/PHD Student Position- Research Lab",
+     "description": "At IBM Research, we are the innovation engine of IBM. Exploring what's next in computing and shaping the technologies the world will rely on tomorrow. From advancing AI and hybrid cloud to pioneering practical quantum computing, we anticipate challenges...",
+     "field_keyword_08": "Research",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "Be'Er Sheva, IL"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "0a6d1cd0684a9807b84ae3c6f7aad6a4487676f2ac3216b14fa7c58a71c54460",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=142049",
+     "dcdate": "2026-11-10",
+     "title": "Mainframe System Verification Tester Apprentice",
+     "description": "At IBM Infrastructure & Technology, we design and operate the systems that keep the world running. From high-resiliency mainframes and hybrid cloud platforms to networking, automation, and site reliability. Our teams ensure the performance, security,...",
+     "field_keyword_08": "Infrastructure & Technology",
+     "field_keyword_17": "",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "POUGHKEEPSIE, US"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "d960d930242868d9ab1cf80080272626ce8c34fa43afe497a44c281c07b7be80",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=137390",
+     "dcdate": "2026-11-10",
+     "title": "AI Engineer Intern",
+     "description": "En IBM Global Sales, reunimos innovación, colaboración y experiencia para ayudar a nuestros clientes a resolver sus desafíos empresariales más complejos. Trabajando en diferentes industrias y geografías, establecerás alianzas con colegas, clientes y...",
+     "field_keyword_08": "Sales",
+     "field_keyword_17": "",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "MONTEVIDEO, UY"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "53caa85d3501cdc06c245aeadbdd117c1b49248e05c3d67e009e5b36564d1d89",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=140750",
+     "dcdate": "2026-11-10",
+     "title": "Package Consultant-EA Business Transformation & Change Intern",
+     "description": "A career in IBM Consulting is built on long-term client relationships and close collaboration worldwide. You'll work with leading companies across industries, helping them shape their hybrid cloud and AI journeys. With support from our strategic...",
+     "field_keyword_08": "Consulting",
+     "field_keyword_17": "",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "Singapore, SG"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "f7d8ef91baafa248acc963762d885ae2adb095969b3f4c3e3d62fcdb57bf274b",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=142063",
+     "dcdate": "2026-11-10",
+     "title": "Infrastructure Lab Technician Apprentice",
+     "description": "At IBM Infrastructure & Technology, we design and operate the systems that keep the world running. From high-resiliency mainframes and hybrid cloud platforms to networking, automation, and site reliability. Our teams ensure the performance, security,...",
+     "field_keyword_08": "Infrastructure & Technology",
+     "field_keyword_17": "",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "POUGHKEEPSIE, US"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "7fcc427bfb866d3cfac717c279ef8849d618e830812733462feff3a73470016c",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=130023",
+     "dcdate": "2026-11-10",
+     "title": "Technical Enablement Specialist Intern - Dallas, TX - 2027",
+     "description": "At IBM, work is more than a job - it's a calling: To build. To design. To code. To consult. To think along with clients and sell. To make markets. To invent. To collaborate. Not just to do something better, but to attempt things you've never thought...",
+     "field_keyword_08": "Infrastructure & Technology",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "Dallas, US"
+    },
+    "sort": [
+     1794268800000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "52e11001cbf9a7d00bc8d13712265210018eb59002840435171171a52700bdd6",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=141929",
+     "dcdate": "2026-11-09",
+     "title": "Associate Management Consultant Apprentice (Public Sector)",
+     "description": "A career in IBM Consulting is built on long-term client relationships and close collaboration worldwide. You'll work with leading companies across industries, helping them shape their hybrid cloud and AI journeys. With support from our strategic...",
+     "field_keyword_08": "Consulting",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "Multiple Cities"
+    },
+    "sort": [
+     1794182400000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "f82ee2492500de272c6d18e7e3a0a6ce1fd475f190cbaf4a19cd83484956f700",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=139618",
+     "dcdate": "2026-11-09",
+     "title": "Oportunidad de Prácticas: Desarrollador(a) de Software y Analista de Datos",
+     "description": "At IBM Infrastructure & Technology, we design and operate the systems that keep the world running. From high-resiliency mainframes and hybrid cloud platforms to networking, automation, and site reliability. Our teams ensure the performance, security,...",
+     "field_keyword_08": "Infrastructure & Technology",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "GUADALAJARA, MX"
+    },
+    "sort": [
+     1794182400000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "b68778ef0fa792d36b7c448dbf93178ff8c4b2f14ac3b86ba9771e2f1a4c7dd5",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=136570",
+     "dcdate": "2026-11-09",
+     "title": "Content Designer (Artificial Intelligence) Intern 2027",
+     "description": "The IBM Canada Lab in Markham, Ontario is one of the largest R&D facilities in Canada. As a Content Designer intern at the IBM Canada Lab, you would be part of a team that transforms our customer’s challenges into solutions.   This role is for a Content...",
+     "field_keyword_08": "Software Engineering",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "Markham, CA"
+    },
+    "sort": [
+     1794182400000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "d90b419218c8568a28ec39660aef10b25a90207cb7a014b78de3aa25a85bc570",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=137080",
+     "dcdate": "2026-11-09",
+     "title": "Mainframe Z System Verification Tester Apprentice",
+     "description": "At IBM Infrastructure & Technology, we design and operate the systems that keep the world running. From high-resiliency mainframes and hybrid cloud platforms to networking, automation, and site reliability. Our teams ensure the performance, security,...",
+     "field_keyword_08": "Infrastructure & Technology",
+     "field_keyword_17": "",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "POUGHKEEPSIE, US"
+    },
+    "sort": [
+     1794182400000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "5bd036574606c6f27012f26ca4737a34cf8db6afa92e9a486fc7ffec4d8d751e",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=137428",
+     "dcdate": "2026-11-09",
+     "title": "z/OS Core Technologies Back End Developer Intern 2027 - Poughkeepsie",
+     "description": "As an intern, you’ll gain hands-on experience working on real-world projects that impact users globally. You’ll collaborate with architects and developers to produce and maintain backend services, APIs, and internal tooling using modern AI technologies....",
+     "field_keyword_08": "Infrastructure & Technology",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "POUGHKEEPSIE, US"
+    },
+    "sort": [
+     1794182400000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "025a89226e1a3290d2f38299f99be81fc07427416adca3ae9d77a8a3ed0db0e0",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=141691",
+     "dcdate": "2026-11-09",
+     "title": "Oportunidad de Pasantía: Garantía del Suministro",
+     "description": "At IBM Infrastructure & Technology, we design and operate the systems that keep the world running. From high-resiliency mainframes and hybrid cloud platforms to networking, automation, and site reliability. Our teams ensure the performance, security,...",
+     "field_keyword_08": "Infrastructure & Technology",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "GUADALAJARA, MX"
+    },
+    "sort": [
+     1794182400000
+    ]
+   },
+   {
+    "_index": "genesis-prod-1788036777996",
+    "_id": "4103f8f49a6362d08861a388a91ad3d242f6e1b80a21fca79ab1569149420cc2",
+    "_score": null,
+    "_source": {
+     "url": "https://careers.ibm.com/careers/JobDetail?jobId=141879",
+     "dcdate": "2026-11-09",
+     "title": "Consulting Digital & Technology Solutions Degree Apprenticeship (Public Sector)",
+     "description": "A career in IBM Consulting is built on long-term client relationships and close collaboration worldwide. You'll work with leading companies across industries, helping them shape their hybrid cloud and AI journeys. With support from our strategic...",
+     "field_keyword_08": "Consulting",
+     "field_keyword_17": "Hybrid",
+     "field_keyword_18": "Internship",
+     "field_keyword_19": "Multiple Cities"
+    },
+    "sort": [
+     1794182400000
+    ]
+   }
+  ]
+ }
+}
