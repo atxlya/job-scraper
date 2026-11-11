@@ -102,8 +102,12 @@ async def _run_source(ctx: Ctx, source_id: int, mode: RunKind) -> ScrapeRun:
                 status = "partial"
                 result = result.model_copy(update={"complete": False})
             fresh: list[RawJob] = []
+            has_details = getattr(adapter, "listing_has_details", False)
             for raw in result.jobs:
                 c = classify(raw, ctx.keywords)
+                if has_details and raw.description_html:
+                    fresh.append(raw)  # the listing already carries the whole posting
+                    continue
                 if job_key(raw) in known or c.is_internship is False or c.is_tech is False:
                     # Details only for possible tech internships: a first full sweep would
                     # otherwise fetch tens of thousands of pages (Accenture alone ~40k).

@@ -100,7 +100,7 @@ async def add_company(body: AddCompany, request: Request) -> AddResult:
         result = await ADAPTERS[d.adapter]().list_jobs(
             request.app.state.client, d.config, "incremental"
         )
-        problems = evaluate(result, "incremental")
+        problems = evaluate(result, "incremental", d.config)
     except Exception as e:  # noqa: BLE001 - any failure means "don't save", with the reason
         problems = [f"{type(e).__name__}: {e}"[:300]]
     if problems:

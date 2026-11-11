@@ -42,7 +42,7 @@ async def live_check(only: str | None, mode: str) -> int:
             adapter = ADAPTERS[src.adapter]()
             try:
                 result = await adapter.list_jobs(ctx.client, src.config, mode)
-                problems = evaluate(result, mode)
+                problems = evaluate(result, mode, src.config)
                 line = (
                     f"{src.key:28} {len(result.jobs):>6} {result.reported_total!s:>7} "
                     f"{result.complete!s:>8}  "

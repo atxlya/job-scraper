@@ -238,3 +238,13 @@ def test_raw_from_job_round_trip(session, setup):
         "Software Engineer Intern",
         ["Bengaluru, India"],
     )
+
+
+def test_empty_listing_closes_only_when_allowed(session, setup):
+    """allow_empty sources (Zerodha) really can go to 0 jobs; their jobs then close."""
+    _, a, _ = setup
+    a.config = {"allow_empty": True}
+    ingest(session, a, res(raw()), "full", T0)
+    for d in (1, 2):
+        ingest(session, a, res(complete=True, total=0), "full", T0 + timedelta(days=d))
+    assert jobs(session)[0].state == "closed"

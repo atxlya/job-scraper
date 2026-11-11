@@ -2,6 +2,7 @@
 
 Usage:
   uv run python scripts/record_fixture.py ADAPTER NAME METHOD URL [--json BODY] [--max-items 25]
+      [--header 'Accept: application/json' ...]
 
 Goes through PoliteClient, so robots.txt and pacing apply. JSON lists longer
 than --max-items are cut down to keep fixtures small; nothing else is edited.
@@ -36,16 +37,19 @@ async def main() -> None:
     ap.add_argument("url")
     ap.add_argument("--json", dest="body")
     ap.add_argument("--max-items", type=int, default=25)
+    ap.add_argument("--header", action="append", default=[], help="K: V, repeatable")
     a = ap.parse_args()
 
+    headers = dict(h.split(":", 1) for h in a.header)
+    headers = {k.strip(): v.strip() for k, v in headers.items()}
     client = PoliteClient(min_interval_s=2.5)
     try:
         if a.method == "POST":
             resp = await client.post_json(
-                a.url, json.loads(a.body or "{}"), headers={"Accept": "application/json"}
+                a.url, json.loads(a.body or "{}"), headers={"Accept": "application/json", **headers}
             )
         else:
-            resp = await client.get(a.url)
+            resp = await client.get(a.url, headers=headers or None)
     finally:
         await client.aclose()
 

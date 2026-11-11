@@ -55,7 +55,8 @@ def _problem(session: Session, source: Source, run: ScrapeRun) -> str | None:
             f"⚠️ <b>{source.key}</b> failed {source.consecutive_failures} runs in a row: "
             f"{(run.error or '')[:300]}"
         )
-    if run.status != "failed" and run.kind == "full":
+    allow_empty = (source.config or {}).get("allow_empty")
+    if run.status != "failed" and run.kind == "full" and not allow_empty:
         prev = _previous_full(session, run)
         if prev and prev.jobs_found and run.jobs_found < DROP_RATIO * prev.jobs_found:
             return (

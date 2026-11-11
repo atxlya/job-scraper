@@ -242,3 +242,59 @@ async def test_scraped_jobs_are_searchable_and_degree_flagged(ctx):
         job = s.scalars(select(Job)).one()
         assert [r[0] for r in hits] == [job.id]
         assert job.degree_only == "PhD"
+
+
+DETAILED_CALLS: Counter = Counter()
+
+
+@register
+class DetailedListingAdapter:
+    """A listing that already carries the description (Lever, Amazon, ...)."""
+
+    name = "fake-detailed"
+    listing_has_details = True
+
+    async def list_jobs(self, client, cfg, mode):
+        jobs = [
+            RawJob(
+                external_id=e,
+                title="Software Engineer Intern",
+                url=f"https://f/{e}",
+                description_html=desc,
+            )
+            for e, desc in cfg["jobs"]
+        ]
+        return ListingResult(jobs=jobs, reported_total=len(jobs), complete=mode == "full")
+
+    async def fetch_detail(self, client, cfg, job):
+        DETAILED_CALLS[job.external_id] += 1
+        return job.model_copy(update={"description_html": "<p>from detail</p>"})
+
+
+def _add_detailed(ctx, jobs):
+    with ctx.session_factory() as s:
+        c = Company(slug="det", name="Det")
+        s.add(c)
+        s.flush()
+        src = Source(company_id=c.id, key="det", adapter="fake-detailed", config={"jobs": jobs})
+        s.add(src)
+        s.commit()
+        return src.id
+
+
+async def test_listing_details_skip_detail_fetch(ctx):
+    DETAILED_CALLS.clear()
+    sid = _add_detailed(ctx, [["1", "<p>from listing</p>"]])
+    await run_source(ctx, sid, "incremental")
+    assert DETAILED_CALLS["1"] == 0
+    with ctx.session_factory() as s:
+        assert s.scalars(select(Job)).one().description_html == "<p>from listing</p>"
+
+
+async def test_listing_details_without_description_still_fetches(ctx):
+    DETAILED_CALLS.clear()
+    sid = _add_detailed(ctx, [["2", None]])
+    await run_source(ctx, sid, "incremental")
+    assert DETAILED_CALLS["2"] == 1
+    with ctx.session_factory() as s:
+        assert s.scalars(select(Job)).one().description_html == "<p>from detail</p>"

@@ -6,11 +6,12 @@ from app.worker.runner import _mismatch
 MISSING_LIMIT = 0.05
 
 
-def evaluate(result: ListingResult, mode: str) -> list[str]:
-    """Problems that make a check fail. Empty list means healthy."""
+def evaluate(result: ListingResult, mode: str, cfg: dict | None = None) -> list[str]:
+    """Problems that make a check fail. Empty list means healthy. A source whose config
+    has `allow_empty` (a site with no openings right now) may return 0 jobs."""
     n = len(result.jobs)
     if n == 0:
-        return ["0 jobs returned"]
+        return [] if (cfg or {}).get("allow_empty") else ["0 jobs returned"]
     problems = []
     if mode == "full" and _mismatch(n, result.reported_total):
         problems.append(f"count mismatch: read {n}, site reports {result.reported_total}")

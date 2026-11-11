@@ -182,7 +182,7 @@ def _close_missing(
         )
         if source.id in j.source_ids
     ]
-    if not result.jobs and open_jobs:
+    if not result.jobs and open_jobs and not (source.config or {}).get("allow_empty"):
         return []  # an empty "complete" listing is a broken page, not every job closing
     closed = []
     sid = str(source.id)

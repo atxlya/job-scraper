@@ -42,6 +42,10 @@ class ParseError(Exception):
 
 
 class Adapter(Protocol):
+    """`listing_has_details` (optional, default False): the listing already carries each
+    job's description, so the worker skips fetch_detail for jobs that have one. The
+    worker reads it with getattr, so adapters without it need no change."""
+
     name: ClassVar[str]
 
     async def list_jobs(self, client: PoliteClient, cfg: dict, mode: Mode) -> ListingResult: ...
