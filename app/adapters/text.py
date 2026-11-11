@@ -3,6 +3,7 @@
 import html
 import re
 from datetime import UTC, datetime
+from urllib.parse import unquote
 
 _BULLET = re.compile(r"^\s*[-•*]\s+")
 _MS = re.compile(r"-?\d+")
@@ -56,3 +57,10 @@ def join_sections(parts: list[tuple[str | None, str | None]]) -> str | None:
             continue
         out.append(f"<h3>{html.escape(heading)}</h3>{body}" if heading else body)
     return "\n".join(out) or None
+
+
+def slug_title(slug: str) -> str:
+    """A URL slug to a readable guess at a title: decode, dashes to spaces, first letter up."""
+    text = html.unescape(unquote(slug)).replace("-", " ").replace("_", " ")
+    text = " ".join(text.split())
+    return text[:1].upper() + text[1:]

@@ -22,6 +22,7 @@ class RawJob(BaseModel):
     posted_at: AwareDatetime | None = None
     description_html: str | None = None
     platform_flags: dict[str, bool] = Field(default_factory=dict)
+    title_from_url: bool = False  # title is a guess rebuilt from the URL slug
 
 
 class ListingResult(BaseModel):

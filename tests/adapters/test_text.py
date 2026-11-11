@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from app.adapters.text import from_ms, join_sections, text_to_html
+from app.adapters.text import from_ms, join_sections, slug_title, text_to_html
 
 
 def test_text_to_html_paragraphs_and_lists():
@@ -33,3 +33,15 @@ def test_join_sections_skips_blank():
 
 def test_join_sections_all_blank_is_none():
     assert join_sections([("A", None), (None, "")]) is None
+
+
+def test_slug_title():
+    assert slug_title("Bengaluru-Management-Trainee-IND-560035") == (
+        "Bengaluru Management Trainee IND 560035"
+    )
+    assert slug_title("Pune-SOLUTION-ARCHITECT-L1%28CONTRACT%29-IND-411005") == (
+        "Pune SOLUTION ARCHITECT L1(CONTRACT) IND 411005"
+    )
+    assert slug_title("software-engineering-internship-trizetto-product-house") == (
+        "Software engineering internship trizetto product house"
+    )

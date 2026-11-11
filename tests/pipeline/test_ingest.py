@@ -248,3 +248,23 @@ def test_empty_listing_closes_only_when_allowed(session, setup):
     for d in (1, 2):
         ingest(session, a, res(complete=True, total=0), "full", T0 + timedelta(days=d))
     assert jobs(session)[0].state == "closed"
+
+
+def test_guessed_title_never_overwrites_stored(session, setup):
+    _, a, _ = setup
+    ingest(session, a, res(raw(title="Management Trainee")), "incremental", T0)
+    guessed = raw(title="Bengaluru Management Trainee IND 560035", desc=None, title_from_url=True)
+    st = ingest(session, a, res(guessed), "incremental", T0)
+    [j] = jobs(session)
+    assert j.title == "Management Trainee" and st.updated_ids == []
+    assert session.scalars(select(JobChange)).all() == []
+
+
+def test_real_title_still_updates(session, setup):
+    _, a, _ = setup
+    ingest(session, a, res(raw(title="Management Trainee")), "incremental", T0)
+    real = raw(title="Bengaluru Management Trainee IND 560035", desc=None, title_from_url=False)
+    ingest(session, a, res(real), "incremental", T0)
+    [j] = jobs(session)
+    [ch] = session.scalars(select(JobChange)).all()
+    assert j.title == "Bengaluru Management Trainee IND 560035" and ch.fields == ["title"]

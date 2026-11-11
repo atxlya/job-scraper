@@ -61,6 +61,8 @@ def _merged(raw: RawJob, job: Job) -> RawJob:
     for field, (col, _) in TRACKED.items():
         if getattr(raw, field) in (None, "", []):
             update[field] = getattr(job, col)
+    if raw.title_from_url and job.title:
+        update["title"] = job.title  # a title guessed from the URL never replaces a stored one
     return raw.model_copy(update=update)
 
 
