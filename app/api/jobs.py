@@ -1,7 +1,10 @@
 """Job list, filters, job detail, tags, notes and "seen"."""
 
 import asyncio
+import csv
+import io
 import logging
+from collections.abc import Iterator
 from datetime import datetime, timedelta
 from typing import Annotated
 from urllib.parse import urljoin, urlparse
@@ -10,6 +13,7 @@ import httpx
 import nh3
 import pycountry
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi.responses import StreamingResponse
 from sqlalchemy import (
     Integer,
     Select,
@@ -26,11 +30,11 @@ from sqlalchemy import (
     type_coerce,
 )
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 
 import app.adapters  # noqa: F401  (registers adapters)
 from app.adapters.base import ADAPTERS, GONE
-from app.api.deps import get_session, ist_midnight, now, require_user
+from app.api.deps import IST, get_session, ist_midnight, now, require_user
 from app.api.place import place
 from app.api.schemas import (
     Application,
@@ -60,6 +64,7 @@ from app.core.models import (
     TagHistory,
     UTCDateTime,
 )
+from app.core.tags import STAGE_LABEL
 from app.http.client import RobotsDisallowed, RobotsUnavailable
 from app.pipeline.derived import fts_query
 from app.pipeline.ingest import apply_detail, mark_gone, raw_from_job
@@ -199,6 +204,85 @@ def list_jobs(
     rows = s.execute(stmt.order_by(_newest().desc(), Job.id.desc()).offset(offset).limit(limit))
     max_id = s.scalar(select(func.max(Job.id))) or 0
     return JobPage(total=total or 0, items=[card(*r) for r in rows], loaded_at=at, max_id=max_id)
+
+
+# --- CSV export ---------------------------------------------------------------------------
+
+EXPORT_BATCH = 500  # rows read from SQLite, and written out, at a time
+EXPORT_HEADER = [
+    "Company",
+    "Title",
+    "Locations",
+    "Posted",
+    "Tag",
+    "Stage",
+    "Eligibility",
+    "Apply URL",
+    "Dashboard URL",
+    "First seen (IST)",
+]
+ELIG_LABEL = {"ok": "Eligible", "warn": "Check needed", "pending": "Not checked"}
+TAG_LABEL = {"liked": "Liked", "applied": "Applied", "dismissed": "Dismissed"}
+# A spreadsheet runs a cell starting with one of these as a formula (OWASP's list). Titles
+# and locations come from other people's sites, so every text cell is guarded.
+FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _cell(value: str | None) -> str:
+    v = value or ""
+    return f"'{v}" if v.startswith(FORMULA_START) else v
+
+
+def _csv_rows(sf, stmt: Select, dashboard: str) -> Iterator[bytes]:
+    """Yields the file in pieces, one batch of rows each. Opens its own session: the
+    request's is closed before a streamed body is sent. The session holds rows weakly, so
+    a batch is freed once written."""
+    out = io.StringIO()
+    writer = csv.writer(out)
+    out.write("\ufeff")  # BOM: Excel otherwise reads UTF-8 as Latin-1
+    writer.writerow(EXPORT_HEADER)
+    with sf() as s:
+        result = s.execute(stmt.execution_options(yield_per=EXPORT_BATCH))
+        for batch in result.partitions():
+            for job, company, analysis, us in batch:
+                tag = us.tag if us else None
+                stage = us.stage if us and tag == "applied" else None
+                writer.writerow(
+                    [
+                        _cell(company.name),
+                        _cell(job.title),
+                        _cell("; ".join(job.locations or [])),
+                        job.posted_at.astimezone(IST).date().isoformat() if job.posted_at else "",
+                        TAG_LABEL.get(tag, ""),
+                        STAGE_LABEL.get(stage, ""),
+                        ELIG_LABEL[eligibility(job, analysis).status],
+                        _cell(job.apply_url or job.url),
+                        f"{dashboard}/jobs/{job.id}",
+                        job.first_seen_at.astimezone(IST).strftime("%Y-%m-%d %H:%M"),
+                    ]
+                )
+            yield out.getvalue().encode("utf-8")
+            out.seek(0)
+            out.truncate()
+    if out.tell():
+        yield out.getvalue().encode("utf-8")
+
+
+@router.get("/jobs.csv")
+def export_jobs(f: Annotated[JobFilters, Query()], request: Request, at: Now) -> StreamingResponse:
+    """The jobs the list shows for these filters, in the list's order, as a CSV file."""
+    stmt = (
+        _filtered(f, at)
+        .options(defer(Job.description_html), defer(JobAnalysis.sections))
+        .order_by(_newest().desc(), Job.id.desc())
+    )
+    base = (request.app.state.settings.dashboard_url or str(request.base_url)).rstrip("/")
+    name = f"jobs-{at.astimezone(IST).date().isoformat()}.csv"
+    return StreamingResponse(
+        _csv_rows(request.app.state.session_factory, stmt, base),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{name}"'},
+    )
 
 
 def _country_name(code: str) -> str:

@@ -19,6 +19,8 @@ type Props = {
   onClear: () => void;
   onMarkAllSeen?: () => void;
   markingSeen?: boolean;
+  /** /api/jobs.csv with the list's filters: the browser downloads it (streamed by the API). */
+  exportHref?: string;
   /** Shown next to the title, e.g. the phone's Filters button. */
   aside?: ReactNode;
   /** Shown under the title row, e.g. the phone's filter panel. */
@@ -43,6 +45,21 @@ export function JobList(p: Props) {
           <div className="text-[13px] whitespace-nowrap text-muted" aria-live="polite">
             {p.loading ? "Loading…" : `${total.toLocaleString("en-IN")} · newest first`}
           </div>
+          <div className="flex items-center gap-3.5 lg:gap-2">
+            {p.exportHref && total > 0 && (
+              <a
+                href={p.exportHref}
+                download
+                className="inline-flex min-h-9 items-center gap-1.5 text-[13px] font-medium text-accent no-underline hover:underline lg:h-9 lg:rounded-[10px] lg:border lg:border-line lg:bg-surface lg:px-3 lg:text-ink lg:hover:bg-chip lg:hover:no-underline"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="hidden lg:block">
+                  <path d="M12 4v11" />
+                  <path d="m7 10 5 5 5-5" />
+                  <path d="M5 20h14" />
+                </svg>
+                Export CSV
+              </a>
+            )}
           {p.onMarkAllSeen && (
             <button
               type="button"
@@ -53,6 +70,7 @@ export function JobList(p: Props) {
               {p.markingSeen ? "Marking…" : "Mark all as seen"}
             </button>
           )}
+          </div>
         </div>
       </div>
       {p.panel}

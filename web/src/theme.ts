@@ -20,9 +20,16 @@ function systemDark(): boolean {
   return !!window.matchMedia?.("(prefers-color-scheme: dark)").matches;
 }
 
+/** The header's color (--surface) per theme, for the phone's status bar (see index.html). */
+export const BAR = { light: "#ffffff", dark: "#171a21" } as const;
+
 function apply() {
   const dark = current === "dark" || (current === "system" && systemDark());
   document.documentElement.classList.toggle("dark", dark);
+  // index.html picks the bar color by the system theme; a theme chosen in the app wins.
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((m) => {
+    m.content = current === "system" ? ((m.getAttribute("media") ?? "").includes("dark") ? BAR.dark : BAR.light) : BAR[dark ? "dark" : "light"];
+  });
 }
 
 export function setTheme(mode: ThemeMode) {

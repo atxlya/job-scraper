@@ -77,7 +77,8 @@ def create_app(settings: Settings | None = None, web_dist: Path = WEB_DIST) -> F
 
 
 def _serve_web(app: FastAPI, dist: Path) -> None:
-    """The built React app: hashed assets cached forever, every other page gets index.html."""
+    """The built React app: hashed assets cached forever, every other page gets index.html.
+    Served without login, like the home-screen manifest and icons: none of it holds data."""
     index = dist / "index.html"
 
     @app.get("/{path:path}", include_in_schema=False)
@@ -88,7 +89,9 @@ def _serve_web(app: FastAPI, dist: Path) -> None:
         if path and f.is_file() and f.is_relative_to(dist):
             immutable = path.startswith("assets/")
             cache = "public, max-age=31536000, immutable" if immutable else "no-cache"
-            return FileResponse(f, headers={"Cache-Control": cache})
+            # Not left to the system's MIME table, which a slim image may not have.
+            media = "application/manifest+json" if f.suffix == ".webmanifest" else None
+            return FileResponse(f, headers={"Cache-Control": cache}, media_type=media)
         if path.startswith("assets/"):
             raise HTTPException(404, "Not Found")
         return FileResponse(index, headers={"Cache-Control": "no-cache"})

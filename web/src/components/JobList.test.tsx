@@ -44,3 +44,21 @@ it("puts an extra control, such as the phone's Filters button, next to the title
   show({ aside: <button type="button">Filters (2)</button> });
   expect(screen.getByRole("button", { name: "Filters (2)" })).toBeInTheDocument();
 });
+
+it("has an Export CSV link in the same row, which downloads", () => {
+  show({
+    exportHref: "/api/jobs.csv?company=google",
+    onMarkAllSeen: () => undefined,
+    pages: { pages: [{ total: 3, items: [], loaded_at: "2026-11-12T00:00:00Z", max_id: 3 }], pageParams: [0] },
+  });
+  const link = screen.getByRole("link", { name: "Export CSV" });
+  expect(link).toHaveAttribute("href", "/api/jobs.csv?company=google");
+  expect(link).toHaveAttribute("download");
+  const row = screen.getByRole("button", { name: "Mark all as seen" }).parentElement!;
+  expect(row).toContainElement(link);
+});
+
+it("has no Export CSV link while the list is empty", () => {
+  show({ exportHref: "/api/jobs.csv" });
+  expect(screen.queryByRole("link", { name: "Export CSV" })).not.toBeInTheDocument();
+});

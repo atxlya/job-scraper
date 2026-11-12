@@ -233,6 +233,7 @@ export function Dashboard() {
                 )
               }
               onMarkAllSeen={() => markSeen.mutate()}
+              exportHref={`/api/jobs.csv${query ? `?${query}` : ""}`}
               markingSeen={markSeen.isPending}
               aside={
                 !wide && (

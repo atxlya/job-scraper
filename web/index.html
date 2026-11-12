@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!-- Home-screen app. No service worker: every visit loads live data. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Jobs" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- The header's color (--surface) in each theme; theme.ts follows the in-app toggle. -->
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#171a21" media="(prefers-color-scheme: dark)" />
     <title>Job Scraper</title>
     <script>
       // Set the theme before first paint, so dark mode doesn't flash white.

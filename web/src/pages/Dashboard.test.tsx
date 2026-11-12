@@ -146,3 +146,10 @@ it("on a phone, nothing opens by itself", async () => {
   expect(screen.queryByRole("heading", { level: 2 })).not.toBeInTheDocument();
   expect(paths.some((p) => p === "GET /api/jobs/1")).toBe(false);
 });
+
+it("Export CSV carries the list's current filters", async () => {
+  serve();
+  show("/?company=google&tag=liked&q=data");
+  const link = await screen.findByRole("link", { name: "Export CSV" });
+  expect(link.getAttribute("href")).toBe("/api/jobs.csv?company=google&tag=liked&q=data");
+});
