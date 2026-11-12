@@ -178,3 +178,47 @@ def test_new_today_matches_the_stats_tile(client, app, db):
     assert ids(client, "?new=today") == [today.id]
     assert client.get("/api/stats").json()["new_today"] == 1
     assert client.get("/api/jobs?new=yesterday").status_code == 422
+
+
+def test_seen_and_tag_at_the_same_moment_both_succeed(app, db, monkeypatch):
+    """Keyboard triage sends "seen" and a tag for the same new job at once (prompt 4)."""
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+    from datetime import UTC, datetime
+
+    from app.api import jobs as jobs_api
+    from app.api.schemas import TagBody
+    from app.core.models import JobUserState
+
+    j = seed_job(db)
+    both_checked = threading.Barrier(2, timeout=5)
+    real_load = jobs_api._load
+
+    first_calls = iter(range(2))
+
+    def load_then_wait(s, job_id):
+        out = real_load(s, job_id)
+        if next(first_calls, None) is not None:  # only each request's first lookup
+            s.get(JobUserState, job_id)  # both look for the row before either creates it
+            both_checked.wait()
+        return out
+
+    monkeypatch.setattr(jobs_api, "_load", load_then_wait)
+    at = datetime(2026, 11, 12, tzinfo=UTC)
+    factory = app.state.session_factory
+
+    def seen():
+        with factory() as s:
+            jobs_api.mark_seen(j.id, s, at)
+
+    def tag():
+        with factory() as s:
+            jobs_api.set_tag(j.id, TagBody(tag="liked"), s, at)
+
+    with ThreadPoolExecutor(2) as pool:
+        for f in [pool.submit(seen), pool.submit(tag)]:
+            f.result()
+    monkeypatch.setattr(jobs_api, "_load", real_load)
+    db.expire_all()
+    us = db.get(JobUserState, j.id)
+    assert us.seen_at is not None and us.tag == "liked"

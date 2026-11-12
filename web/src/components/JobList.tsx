@@ -1,7 +1,9 @@
 import type { InfiniteData } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import type { JobPage } from "../types";
+import type { JobCard as Card } from "../types";
 import { JobCard } from "./JobCard";
+import { type SwipeDir, SwipeCard } from "./SwipeCard";
 import { Button } from "./ui";
 
 type Props = {
@@ -21,6 +23,10 @@ type Props = {
   aside?: ReactNode;
   /** Shown under the title row, e.g. the phone's filter panel. */
   panel?: ReactNode;
+  /** Phones: swipe a card right to Like, left to Dismiss. */
+  onSwipe?: (job: Card, dir: SwipeDir) => void;
+  /** Shown under the list, e.g. the laptop's "Press ? for shortcuts". */
+  footer?: ReactNode;
 };
 
 export function JobList(p: Props) {
@@ -61,9 +67,17 @@ export function JobList(p: Props) {
           <Button onClick={p.onClear}>Clear filters</Button>
         </div>
       )}
-      {items.map((j) => (
-        <JobCard key={j.id} job={j} to={p.linkFor(j.id)} selected={p.selected === j.id} />
-      ))}
+      {items.map((j) => {
+        const c = <JobCard key={j.id} job={j} to={p.linkFor(j.id)} selected={p.selected === j.id} />;
+        const onSwipe = p.onSwipe;
+        return onSwipe ? (
+          <SwipeCard key={j.id} onSwipe={(dir) => onSwipe(j, dir)}>
+            {c}
+          </SwipeCard>
+        ) : (
+          c
+        );
+      })}
       {items.length > 0 && (
         <div className="p-2 text-center text-[13px] text-muted">
           Showing {items.length.toLocaleString("en-IN")} of {total.toLocaleString("en-IN")}
@@ -77,6 +91,7 @@ export function JobList(p: Props) {
           )}
         </div>
       )}
+      {p.footer}
     </section>
   );
 }

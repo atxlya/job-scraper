@@ -314,11 +314,14 @@ def job_detail(s: Session, job_id: int) -> JobDetail:
 
 def _user_state(s: Session, job_id: int) -> JobUserState:
     _load(s, job_id)  # 404 for unknown jobs
-    us = s.get(JobUserState, job_id)
-    if us is None:
-        us = JobUserState(job_id=job_id)
-        s.add(us)
-    return us
+    # Insert-or-ignore, not get-then-add: "seen" and a tag change for a new job can arrive
+    # at the same moment (keyboard triage), and both would try to create the row.
+    s.execute(
+        sqlite_insert(JobUserState)
+        .values(job_id=job_id)
+        .on_conflict_do_nothing(index_elements=["job_id"])
+    )
+    return s.get(JobUserState, job_id, populate_existing=True)
 
 
 @router.post("/jobs/mark-seen")

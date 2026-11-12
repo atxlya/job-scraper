@@ -124,3 +124,22 @@ button {
   border: 1px solid var(--line);
   padding: 4px 6px;
 }
+
+/* The Undo toast's time-left bar. */
+@keyframes toast-timer {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0;
+  }
+}
+.toast-timer {
+  animation: toast-timer linear forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast-timer {
+    animation: none;
+    width: 0;
+  }
+}

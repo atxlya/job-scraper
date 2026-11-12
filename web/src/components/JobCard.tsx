@@ -12,6 +12,8 @@ export function JobCard({ job, to, selected, now }: Props) {
   return (
     <Link
       to={to}
+      data-job={job.id}
+      draggable={false} // a mouse drag must swipe, not start dragging the link
       aria-current={selected ? "true" : undefined}
       className={`grid w-full grid-cols-1 items-start gap-x-3 gap-y-2 rounded-xl border bg-surface px-4 py-3 text-ink no-underline sm:grid-cols-[auto_1fr_auto] ${
         selected ? "border-accent ring-3 ring-ring" : "border-line hover:border-muted/40"
