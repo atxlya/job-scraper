@@ -45,6 +45,7 @@ from app.api.schemas import (
     TagBody,
     TagEvent,
 )
+from app.core import tags
 from app.core.eligibility import eligibility
 from app.core.models import (
     Company,
@@ -314,14 +315,7 @@ def job_detail(s: Session, job_id: int) -> JobDetail:
 
 def _user_state(s: Session, job_id: int) -> JobUserState:
     _load(s, job_id)  # 404 for unknown jobs
-    # Insert-or-ignore, not get-then-add: "seen" and a tag change for a new job can arrive
-    # at the same moment (keyboard triage), and both would try to create the row.
-    s.execute(
-        sqlite_insert(JobUserState)
-        .values(job_id=job_id)
-        .on_conflict_do_nothing(index_elements=["job_id"])
-    )
-    return s.get(JobUserState, job_id, populate_existing=True)
+    return tags.user_state(s, job_id)
 
 
 @router.post("/jobs/mark-seen")
@@ -356,19 +350,8 @@ def mark_seen(job_id: int, s: Sess, at: Now) -> Response:
 
 @router.put("/jobs/{job_id}/tag")
 def set_tag(job_id: int, body: TagBody, s: Sess, at: Now) -> JobDetail:
-    us = _user_state(s, job_id)
-    if us.tag != body.tag:
-        s.add(
-            TagHistory(
-                job_id=job_id,
-                from_tag=us.tag,
-                to_tag=body.tag,
-                at=at,
-                event_date=body.event_date,
-                note=body.note,
-            )
-        )
-        us.tag = body.tag
+    _load(s, job_id)  # 404 for unknown jobs
+    tags.set_tag(s, job_id, body.tag, at, event_date=body.event_date, note=body.note)
     s.commit()
     return job_detail(s, job_id)
 

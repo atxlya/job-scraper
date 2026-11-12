@@ -93,6 +93,11 @@ async def main() -> None:
         log.warning("Gemini not configured: jobs are stored without eligibility checks")
     sched = build_scheduler(ctx)
     sched.start()
+    tasks = []  # held here so the event loop's weak reference isn't the only one
+    if ctx.channel is not None:
+        from app.worker.poller import poll_forever  # noqa: PLC0415
+
+        tasks.append(asyncio.create_task(poll_forever(ctx)))  # the alerts' tag buttons
     await run_all(ctx, "incremental")  # do not wait 30 min for the first run
     await asyncio.Event().wait()
 

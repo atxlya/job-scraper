@@ -51,13 +51,14 @@ class FakeAdapter:
 class SlowChannel:
     def __init__(self):
         self.sent: list[str] = []
+        self.message_lock = asyncio.Lock()
 
-    async def send(self, html):
+    async def send(self, html, buttons=None):
         await asyncio.sleep(0.01)
         self.sent.append(html)
         return len(self.sent)
 
-    async def edit(self, message_id, html):
+    async def edit(self, message_id, html, buttons=None):
         await asyncio.sleep(0.01)
 
 
@@ -211,7 +212,7 @@ async def test_details_skipped_for_non_candidates(ctx):
 
 
 class BrokenChannel(SlowChannel):
-    async def send(self, html):
+    async def send(self, html, buttons=None):
         raise RuntimeError("unexpected")
 
 
@@ -416,3 +417,39 @@ async def test_every_detail_failing_marks_the_run_partial(ctx):
     )
     run = await run_source(ctx, sid, "incremental")
     assert run.status == "partial" and "2 of 2 job pages failed" in run.error
+
+
+async def test_liked_job_closed_by_two_missed_sweeps_sends_one_message(ctx):
+    sid = add_source(ctx, "c", jobs=[["1", "Software Intern"], ["2", "Data Intern"]])
+    await run_all(ctx, "full")
+    with ctx.session_factory() as s:
+        for job in s.scalars(select(Job)):
+            s.add(JobUserState(job_id=job.id, tag="liked"))
+        src = s.get(Source, sid)
+        src.config = {**src.config, "jobs": []}
+        src.config = {**src.config, "allow_empty": True}
+        s.commit()
+    ctx.channel.sent.clear()
+    await run_all(ctx, "full")
+    assert ctx.channel.sent == []  # one missed sweep is not enough
+    await run_all(ctx, "full")
+    assert len(ctx.channel.sent) == 1
+    assert ctx.channel.sent[0].startswith("🔒 <b>2 jobs you liked or applied to have closed</b>")
+    await run_all(ctx, "full")
+    assert len(ctx.channel.sent) == 1
+
+
+async def test_applied_job_gone_on_recheck_sends_closed_message(ctx):
+    sid = add_source(ctx, "t", jobs=[["1", "Software Intern"]])
+    await run_source(ctx, sid, "incremental")
+    with ctx.session_factory() as s:
+        job = s.scalars(select(Job)).one()
+        s.add(JobUserState(job_id=job.id, tag="applied"))
+        src = s.get(Source, sid)
+        src.config = {**src.config, "gone": ["1"]}
+        s.commit()
+    ctx.channel.sent.clear()
+    await run_all(ctx, "tracked")
+    assert ctx.channel.sent == [
+        '🔒 Closed: <b>t</b> · Software Intern\n<a href="https://f/1">Posting</a>'
+    ]

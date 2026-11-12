@@ -57,9 +57,10 @@ The user is a B.Tech CSE student looking for internships. Graduation year does n
 | `job_user_state` | job, `seen_at` (empty means new), tag (`liked` / `applied` / `dismissed` / none), note |
 | `tag_history` | job, from → to, timestamp, optional date + note |
 | `alerts` | job (unique, so never alerted twice), Telegram message ID, sent_at, edited_at |
+| `closed_alerts` | job (unique, so a "closed" message is sent at most once), Telegram message ID, sent_at |
 | `scrape_runs` | source, kind (incremental / full / tracked), start, end, status, jobs read, site-reported total, new / updated / closed counts, error |
 | `llm_usage` | per-day request and token counts, used for pacing |
-| `settings` | tech keyword list, alert switches, model name, pacing limits |
+| `settings` | tech keyword list, alert switches, model name, pacing limits, the Telegram `getUpdates` offset |
 
 **Deduplication:** unique on (`company`, `external_id`). If a source has no stable ID, fall back to the canonical URL, then to title + location.
 
@@ -86,6 +87,12 @@ Free-tier inputs may be used by Google to improve its products. This is acceptab
 
 - **Trigger:** a newly discovered job with `is_internship ∧ is_tech`. All locations count.
 - **Message:** 🏢 company · title · 📍 location · 🗓 posted date · apply link · dashboard link · `🔍 checking eligibility…`. Once the analysis finishes, **the same message is edited** to show ✅ or ⚠️ with the quoted line.
+- **Tag buttons:** each alert sent on its own has ❤️ Like · ✅ Applied · 🗑 Dismiss under it. A press sets the tag exactly as the dashboard does (the same function writes the `tag_history` row; Applied is dated today, IST), Telegram shows "Liked" / "Applied" / "Dismissed" / "Tag removed", and the buttons are redrawn: the current tag shows as "✓ Liked", and pressing it again removes it. Every edit of an alert redraws the whole message from the database, so the eligibility line and the buttons are both kept, whichever edit comes last.
+  - **How presses arrive:** the worker long-polls `getUpdates` (no webhook, because the Pi is only on Tailscale). The next offset is stored in `settings`, in the same commit as the tag change, so nothing is handled twice after a restart.
+  - **Who can press:** only presses in the chat `TELEGRAM_CHAT_ID` names count. Others get no answer.
+  - **No buttons** on grouped burst messages, first-run summaries, health warnings or "closed" messages. Alerts sent before this was added have none either, until the eligibility edit adds them.
+  - A tag changed on the dashboard shows on the buttons only at that alert's next edit. A button's press always sets what its label says, so an out-of-date button can't undo a dashboard change.
+- **Closed jobs:** when a job you liked or applied to closes (either rule in §3), you get "🔒 Closed: company · title" with the dashboard link. Several in one round go in one grouped message. At most one per job, ever (`closed_alerts` is unique on the job). A job tagged only after it had closed doesn't count. See [telegram-buttons-notes.md](telegram-buttons-notes.md).
 - **First run per source:** stores everything quietly and sends one summary ("Loaded N existing internships").
 - **Bursts:** more than 10 new internships in one run are sent as one grouped message.
 - **No repeats:** each job gets at most one alert, even if it closes and reopens (the `alerts` table has a unique key on the job).

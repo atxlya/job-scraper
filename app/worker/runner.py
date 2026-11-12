@@ -1,4 +1,5 @@
-"""Runs one source end to end: fetch → store → classify → alert → health.
+"""Runs one source end to end: fetch → store → classify → alert → health. After a whole
+round, it also reports liked/applied jobs that closed.
 
 Database rule: a write is never left open while waiting on the network. Each run
 fetches everything first, then writes and commits in one step, then sends alerts.
@@ -20,6 +21,7 @@ from app.core.models import Company, Job, JobUserState, ScrapeRun, Source
 from app.http.client import PoliteClient, RobotsDisallowed
 from app.llm.queue import run_analysis_batch
 from app.notify.alerts import process_new, refresh_after_analysis
+from app.notify.closed import notify_closed
 from app.notify.health import notify_round, record_run
 from app.pipeline.classify import Keywords, classify
 from app.pipeline.derived import refresh_derived
@@ -250,6 +252,12 @@ async def run_all(ctx: Ctx, mode: RunKind, only: str | None = None) -> list[Scra
             s.commit()
     except Exception:  # noqa: BLE001 - health messages must not break the schedule
         log.exception("health notifications failed")
+    try:
+        with ctx.session_factory() as s:
+            await notify_closed(s, ctx.channel, _now(), _dash(ctx))
+            s.commit()
+    except Exception:  # noqa: BLE001 - owed "closed" messages are retried next round
+        log.exception("closed-job notifications failed")
     return list(runs)
 
 

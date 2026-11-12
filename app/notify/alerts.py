@@ -3,6 +3,11 @@
 Every job gets an `Alert` row once it has been dealt with, whether it was sent alone,
 sent in a group, or quietly recorded during a source's first load. A job without
 an Alert row is still owed one, which is how failed sends get retried.
+
+A job sent alone carries Like / Applied / Dismiss buttons (app/notify/buttons.py). Its
+message is always drawn whole by render_alert, from what the database says now, so an
+edit for the eligibility result keeps the buttons and an edit for a press keeps the
+eligibility line.
 """
 
 import html
@@ -14,8 +19,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.eligibility import eligibility
-from app.core.models import Alert, Company, Job, JobAnalysis, Source
-from app.notify.telegram import TelegramChannel, TelegramError
+from app.core.models import Alert, Company, Job, JobAnalysis, JobUserState, Source
+from app.notify.telegram import Buttons, TelegramChannel, TelegramError
 
 log = logging.getLogger(__name__)
 IST = ZoneInfo("Asia/Kolkata")
@@ -91,6 +96,35 @@ def _links(job: Job, dashboard_url: str | None) -> str:
     return f'{apply} · <a href="{_e(dashboard_url.rstrip("/"))}/jobs/{job.id}">Dashboard</a>'
 
 
+# tag: (code in the button's data, label, label while it is the job's tag)
+TAG_BUTTONS = {
+    "liked": ("l", "❤️ Like", "✓ Liked"),
+    "applied": ("a", "✅ Applied", "✓ Applied"),
+    "dismissed": ("d", "🗑 Dismiss", "✓ Dismissed"),
+}
+REMOVE = "-"
+
+
+def tag_buttons(job_id: int, tag: str | None) -> Buttons:
+    """One row of three. The data says what a press sets ("t:12:l" = liked, "t:12:-" =
+    no tag), not "toggle", so a press handled twice, or on an out-of-date message,
+    can't flip the tag back."""
+    row = []
+    for t, (code, label, current) in TAG_BUTTONS.items():
+        if t == tag:
+            row.append((current, f"t:{job_id}:{REMOVE}"))
+        else:
+            row.append((label, f"t:{job_id}:{code}"))
+    return [row]
+
+
+def render_alert(session: Session, job: Job, dashboard_url: str | None) -> tuple[str, Buttons]:
+    company = session.get(Company, job.company_id)
+    us = session.get(JobUserState, job.id, populate_existing=True)
+    text = format_alert(job, company, _analysis(session, job.id), dashboard_url)
+    return text, tag_buttons(job.id, us.tag if us else None)
+
+
 def format_group(rows: list[tuple[Job, Company]]) -> str:
     out = [f"🆕 <b>{len(rows)} new tech internships</b>"]
     for job, company in rows[:GROUP_LINES]:
@@ -159,8 +193,8 @@ async def process_new(
             sent = [(j.id, message_id, True) for j in owed]
         else:
             for j in owed:
-                text = format_alert(j, company, _analysis(session, j.id), dashboard_url)
-                message_id = await channel.send(text)
+                text, buttons = render_alert(session, j, dashboard_url)
+                message_id = await channel.send(text, buttons)
                 sent.append((j.id, message_id, False))
     except TelegramError as e:
         log.warning("telegram send failed for %s: %s (will retry)", source.key, e)
@@ -177,22 +211,23 @@ async def refresh_after_analysis(
     now: datetime,
     dashboard_url: str | None = None,
 ) -> None:
+    """Pass a fresh session: the message is read from the database while the lock is held."""
     if channel is None:
         return
-    job = session.get(Job, job_id)
-    if job is None:
-        return
-    company = session.get(Company, job.company_id)
-    alert = session.scalars(select(Alert).where(Alert.job_id == job_id)).first()
-    text = format_alert(job, company, _analysis(session, job_id), dashboard_url)
-    try:
-        if alert is None:
-            if _alertable(job):  # classified as a tech internship only after analysis
-                mid = await channel.send(text)
-                session.add(Alert(job_id=job.id, message_id=mid, grouped=False, sent_at=now))
-        elif not alert.grouped and alert.message_id is not None:
-            await channel.edit(alert.message_id, text)
-            alert.edited_at = now
-    except TelegramError as e:
-        log.warning("telegram update failed for job %s: %s", job_id, e)
-    session.flush()
+    async with channel.message_lock:
+        job = session.get(Job, job_id)
+        if job is None:
+            return
+        alert = session.scalars(select(Alert).where(Alert.job_id == job_id)).first()
+        text, buttons = render_alert(session, job, dashboard_url)
+        try:
+            if alert is None:
+                if _alertable(job):  # classified as a tech internship only after analysis
+                    mid = await channel.send(text, buttons)
+                    session.add(Alert(job_id=job.id, message_id=mid, grouped=False, sent_at=now))
+            elif not alert.grouped and alert.message_id is not None:
+                await channel.edit(alert.message_id, text, buttons)
+                alert.edited_at = now
+        except TelegramError as e:
+            log.warning("telegram update failed for job %s: %s", job_id, e)
+        session.flush()

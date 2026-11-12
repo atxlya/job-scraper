@@ -146,6 +146,17 @@ class Alert(Base):
     edited_at: Mapped[datetime | None]
 
 
+class ClosedAlert(Base):
+    """A "🔒 Closed" message for a liked or applied job. Unique on the job, like `alerts`,
+    so a job that closes, reopens and closes again is reported once."""
+
+    __tablename__ = "closed_alerts"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    job_id: Mapped[int] = mapped_column(ForeignKey("jobs.id"), unique=True)
+    message_id: Mapped[int | None]  # empty for jobs that had closed before migration 0005
+    sent_at: Mapped[datetime]
+
+
 class ScrapeRun(Base):
     __tablename__ = "scrape_runs"
     # Migration 0004: each source's newest runs, and nightly full runs across sources.
