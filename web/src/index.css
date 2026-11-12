@@ -18,6 +18,7 @@
   --warn-fg: #8a3b00;
   --warn-bg: #fff4e5;
   --warn-bd: #f5c98b;
+  --bad: #c2410c; /* a failed night on the Sources chart */
   --chip: #f1f3f5;
   --ring: #dce4fd;
   color-scheme: light;
@@ -38,6 +39,7 @@
   --warn-fg: #f5c98b;
   --warn-bg: #3a2610;
   --warn-bd: #6b4518;
+  --bad: #fb923c;
   --chip: #222733;
   --ring: #2b3a6b;
   color-scheme: dark;
@@ -58,6 +60,7 @@
   --color-warn-fg: var(--warn-fg);
   --color-warn-bg: var(--warn-bg);
   --color-warn-bd: var(--warn-bd);
+  --color-bad: var(--bad);
   --color-chip: var(--chip);
   --color-ring: var(--ring);
   --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;

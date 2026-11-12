@@ -9,6 +9,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -147,6 +148,11 @@ class Alert(Base):
 
 class ScrapeRun(Base):
     __tablename__ = "scrape_runs"
+    # Migration 0004: each source's newest runs, and nightly full runs across sources.
+    __table_args__ = (
+        Index("ix_scrape_runs_source_started", "source_id", "started_at"),
+        Index("ix_scrape_runs_kind_started", "kind", "started_at"),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     source_id: Mapped[int] = mapped_column(ForeignKey("sources.id"), index=True)
     kind: Mapped[str] = mapped_column(String(12))  # incremental | full | tracked

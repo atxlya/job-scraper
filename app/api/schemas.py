@@ -118,17 +118,47 @@ class Stats(BaseModel):
     last_applied_at: datetime | None
 
 
+class LastRun(BaseModel):
+    kind: str
+    status: str
+    started_at: datetime
+    duration_s: int | None
+
+
+class Night(BaseModel):
+    day: str  # IST date of the nightly full sweep
+    count: int | None  # jobs it read; None when there was no full run that night
+    status: str | None  # ok | partial | failed
+
+
 class SourceHealth(BaseModel):
     key: str
     company: str
     adapter: str
     origin: str
     enabled: bool
-    status: Literal["ok", "failing", "never_run"]
+    # failing: failed runs in a row; partial: last run partial; warning: job count dropped
+    status: Literal["failing", "partial", "warning", "ok", "never_run"]
     last_success_at: datetime | None
     last_job_count: int | None
     last_error: str | None
     consecutive_failures: int
+    last_run: LastRun | None
+    nights: list[Night]
+
+
+class RunOut(LastRun):
+    jobs_found: int
+    reported_total: int | None
+    new_count: int
+    updated_count: int
+    closed_count: int
+    error: str | None
+
+
+class Schedule(BaseModel):
+    next_full_at: datetime
+    incremental_minutes: int
 
 
 class UrlBody(BaseModel):

@@ -100,11 +100,44 @@ export interface SourceHealth {
   adapter: string;
   origin: string;
   enabled: boolean;
-  status: "ok" | "failing" | "never_run";
+  /** failing: failed runs in a row; partial: last run partial; warning: job count dropped. */
+  status: "failing" | "partial" | "warning" | "ok" | "never_run";
   last_success_at: string | null;
   last_job_count: number | null;
   last_error: string | null;
   consecutive_failures: number;
+  last_run: LastRun | null;
+  /** The last 14 nights (IST), oldest first: the full sweep's read count. */
+  nights: Night[];
+}
+
+export type RunStatus = "ok" | "partial" | "failed";
+
+export interface LastRun {
+  kind: "incremental" | "full" | "tracked";
+  status: RunStatus;
+  started_at: string;
+  duration_s: number | null;
+}
+
+export interface Night {
+  day: string;
+  count: number | null;
+  status: RunStatus | null;
+}
+
+export interface Run extends LastRun {
+  jobs_found: number;
+  reported_total: number | null;
+  new_count: number;
+  updated_count: number;
+  closed_count: number;
+  error: string | null;
+}
+
+export interface Schedule {
+  next_full_at: string;
+  incremental_minutes: number;
 }
 
 export interface Detected {

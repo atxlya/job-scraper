@@ -14,13 +14,13 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from app.core.db import make_engine, make_session_factory
 from app.core.registry import load_registry, sync_registry
+from app.core.schedule import FULL_AT, INCREMENTAL_MINUTES, TRACKED_AT, TZ
 from app.core.settings import Settings, get_settings
 from app.http.client import PoliteClient
 from app.pipeline.classify import load_keywords
 from app.worker.runner import Ctx, analysis_tick, run_all
 
 ROOT = Path(__file__).resolve().parents[2]
-TZ = "Asia/Kolkata"
 log = logging.getLogger(__name__)
 
 
@@ -55,17 +55,21 @@ def build_scheduler(ctx: Ctx) -> AsyncIOScheduler:
     common = {"max_instances": 1, "coalesce": True, "misfire_grace_time": 600}
     sched.add_job(
         run_all,
-        IntervalTrigger(minutes=30, timezone=TZ),
+        IntervalTrigger(minutes=INCREMENTAL_MINUTES, timezone=TZ),
         args=[ctx, "incremental"],
         id="incremental",
         **common,
     )
     sched.add_job(
-        run_all, CronTrigger(hour=2, minute=0, timezone=TZ), args=[ctx, "full"], id="full", **common
+        run_all,
+        CronTrigger(hour=FULL_AT.hour, minute=FULL_AT.minute, timezone=TZ),
+        args=[ctx, "full"],
+        id="full",
+        **common,
     )
     sched.add_job(
         run_all,
-        CronTrigger(hour=4, minute=0, timezone=TZ),
+        CronTrigger(hour=TRACKED_AT.hour, minute=TRACKED_AT.minute, timezone=TZ),
         args=[ctx, "tracked"],
         id="tracked",
         **common,

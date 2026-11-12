@@ -1,8 +1,9 @@
 """Stats strip, scraper health and "Add company" (docs/DESIGN.md §3, §7)."""
 
 import re
-from datetime import datetime
+from datetime import UTC, datetime, time, timedelta
 from typing import Annotated
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func, select
@@ -12,8 +13,20 @@ from sqlalchemy.orm import Session
 import app.adapters  # noqa: F401  (registers adapters)
 from app.adapters.base import ADAPTERS
 from app.api.deps import get_session, ist_midnight, now, require_user
-from app.api.schemas import AddCompany, AddResult, DetectedOut, SourceHealth, Stats, UrlBody
-from app.core.models import Company, Job, JobUserState, Source, TagHistory
+from app.api.schemas import (
+    AddCompany,
+    AddResult,
+    DetectedOut,
+    LastRun,
+    Night,
+    RunOut,
+    Schedule,
+    SourceHealth,
+    Stats,
+    UrlBody,
+)
+from app.core.models import Company, Job, JobUserState, ScrapeRun, Source, TagHistory
+from app.core.schedule import INCREMENTAL_MINUTES, TZ, next_full_at
 from app.sources import detect as detection
 from app.sources.checks import evaluate
 
@@ -45,31 +58,131 @@ def stats(s: Sess, at: Now) -> Stats:
     )
 
 
-def _status(src: Source) -> str:
+NIGHTS = 14  # how many nights each source's chart covers
+RUNS = 20  # how many runs a source's history shows
+# Failing first, then partial runs and count-drop warnings, then OK; never run last.
+_RANK = {"failing": 0, "partial": 1, "warning": 1, "ok": 2, "never_run": 3}
+
+
+def _status(src: Source, last: ScrapeRun | None) -> str:
     if src.consecutive_failures:
         return "failing"
-    return "ok" if src.last_success_at else "never_run"
+    if not src.last_success_at:
+        return "never_run"
+    if last and last.status == "partial":
+        return "partial"
+    return "warning" if src.warning_active else "ok"
+
+
+def _duration(run: ScrapeRun) -> int | None:
+    return int((run.finished_at - run.started_at).total_seconds()) if run.finished_at else None
+
+
+def _last_run(run: ScrapeRun | None) -> LastRun | None:
+    if run is None:
+        return None
+    return LastRun(
+        kind=run.kind, status=run.status, started_at=run.started_at, duration_s=_duration(run)
+    )
+
+
+def _nights(s: Session, at: datetime) -> tuple[list[str], dict[tuple[int, str], Night]]:
+    """The last NIGHTS IST dates, and each source's full sweep on each (the latest that day)."""
+    tz = ZoneInfo(TZ)
+    today = at.astimezone(tz).date()
+    days = [today - timedelta(days=d) for d in range(NIGHTS - 1, -1, -1)]
+    start = datetime.combine(days[0], time(), tz)
+    rows = s.execute(
+        select(ScrapeRun.source_id, ScrapeRun.started_at, ScrapeRun.jobs_found, ScrapeRun.status)
+        .where(ScrapeRun.kind == "full", ScrapeRun.started_at >= start)
+        .order_by(ScrapeRun.started_at)
+    )
+    found: dict[tuple[int, str], Night] = {}
+    for source_id, started, count, status in rows:
+        day = started.astimezone(tz).date().isoformat()
+        found[(source_id, day)] = Night(day=day, count=count, status=status)
+    return [d.isoformat() for d in days], found
 
 
 @router.get("/sources")
-def sources(s: Sess) -> list[SourceHealth]:
-    rows = [
-        SourceHealth(
-            key=src.key,
-            company=name,
-            adapter=src.adapter,
-            origin=src.origin,
-            enabled=src.enabled,
-            status=_status(src),
-            last_success_at=src.last_success_at,
-            last_job_count=src.last_job_count,
-            last_error=src.last_error,
-            consecutive_failures=src.consecutive_failures,
+def sources(s: Sess, at: Now) -> list[SourceHealth]:
+    # Each source's newest run: one index seek per source on (source_id, started_at).
+    newest = (
+        select(ScrapeRun.id)
+        .where(ScrapeRun.source_id == Source.id)
+        .order_by(ScrapeRun.started_at.desc(), ScrapeRun.id.desc())
+        .limit(1)
+        .scalar_subquery()
+    )
+    ids = select(newest).select_from(Source)
+    last = {r.source_id: r for r in s.scalars(select(ScrapeRun).where(ScrapeRun.id.in_(ids)))}
+    days, nights = _nights(s, at)
+    rows = []
+    for src, name in s.execute(select(Source, Company.name).join(Company)):
+        run = last.get(src.id)
+        rows.append(
+            SourceHealth(
+                key=src.key,
+                company=name,
+                adapter=src.adapter,
+                origin=src.origin,
+                enabled=src.enabled,
+                status=_status(src, run),
+                last_success_at=src.last_success_at,
+                last_job_count=src.last_job_count,
+                last_error=src.last_error,
+                consecutive_failures=src.consecutive_failures,
+                last_run=_last_run(run),
+                nights=[
+                    nights.get((src.id, d), Night(day=d, count=None, status=None)) for d in days
+                ],
+            )
         )
-        for src, name in s.execute(select(Source, Company.name).join(Company))
+    return sorted(
+        rows,
+        key=lambda r: (
+            not r.enabled,
+            _RANK[r.status],
+            -r.consecutive_failures,
+            r.company.lower(),
+            r.key,
+        ),
+    )
+
+
+@router.get("/sources/{key}/runs")
+def source_runs(key: str, s: Sess) -> list[RunOut]:
+    src = s.scalar(select(Source).where(Source.key == key))
+    if src is None:
+        raise HTTPException(404, "No such source.")
+    runs = s.scalars(
+        select(ScrapeRun)
+        .where(ScrapeRun.source_id == src.id)
+        .order_by(ScrapeRun.started_at.desc(), ScrapeRun.id.desc())
+        .limit(RUNS)
+    )
+    return [
+        RunOut(
+            kind=r.kind,
+            status=r.status,
+            started_at=r.started_at,
+            duration_s=_duration(r),
+            jobs_found=r.jobs_found,
+            reported_total=r.reported_total,
+            new_count=r.new_count,
+            updated_count=r.updated_count,
+            closed_count=r.closed_count,
+            error=r.error,
+        )
+        for r in runs
     ]
-    order = {"failing": 0, "ok": 1, "never_run": 2}
-    return sorted(rows, key=lambda r: (order[r.status], r.company.lower(), r.key))
+
+
+@router.get("/schedule")
+def schedule(at: Now) -> Schedule:
+    return Schedule(
+        next_full_at=next_full_at(at).astimezone(UTC), incremental_minutes=INCREMENTAL_MINUTES
+    )
 
 
 @router.post("/sources/detect")

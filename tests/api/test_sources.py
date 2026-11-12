@@ -187,3 +187,155 @@ def test_same_site_with_extra_registry_keys_is_still_a_duplicate(
     fake_adapter.listing = listing(3)
     r = client.post("/api/sources", json={"company_name": "Acme 2", "url": "https://acme.example"})
     assert r.status_code == 409 and "acme-reg" in r.json()["detail"]
+
+
+# --- Sources page: status order, nightly chart, last run, run history (prompt 3) ---
+
+
+def _sources(db):
+    return {s.key: s for s in db.scalars(select(Source))}
+
+
+def _run(db, src, kind, started, *, status="ok", minutes=2, found=10, total=None, error=None):
+    from datetime import timedelta
+
+    from app.core.models import ScrapeRun
+
+    r = ScrapeRun(
+        source_id=src.id,
+        kind=kind,
+        status=status,
+        started_at=started,
+        finished_at=started + timedelta(minutes=minutes),
+        jobs_found=found,
+        reported_total=total,
+        new_count=1,
+        updated_count=2,
+        closed_count=3,
+        error=error,
+    )
+    db.add(r)
+    db.commit()
+    return r
+
+
+def test_sources_order_failing_by_streak_then_partial_and_warning_then_ok(client, app, db):
+    app.dependency_overrides[now] = lambda: NOW
+    for name in ["Zeta", "Alpha", "Beta", "Gamma", "Delta", "Eta", "Theta"]:
+        seed_job(db, company=name)
+    s = _sources(db)
+    for k in s:
+        s[k].last_success_at = NOW - HOUR
+    s["alpha"].consecutive_failures = 2
+    s["zeta"].consecutive_failures = 5
+    s["gamma"].warning_active = True
+    s["theta"].last_success_at = None
+    s["eta"].enabled = False
+    db.commit()
+    _run(
+        db,
+        s["delta"],
+        "incremental",
+        NOW - HOUR,
+        status="partial",
+        error="2 of 51 job pages failed",
+    )
+    _run(db, s["beta"], "incremental", NOW - 2 * HOUR, status="partial")
+    _run(
+        db, s["beta"], "incremental", NOW - HOUR, status="ok"
+    )  # recovered: only the last run counts
+    rows = client.get("/api/sources").json()
+    assert [(r["key"], r["status"]) for r in rows] == [
+        ("zeta", "failing"),
+        ("alpha", "failing"),
+        ("delta", "partial"),
+        ("gamma", "warning"),
+        ("beta", "ok"),
+        ("theta", "never_run"),
+        ("eta", "ok"),  # turned off: last, whatever its state
+    ]
+
+
+def test_sources_last_run_kind_and_duration(client, app, db):
+    app.dependency_overrides[now] = lambda: NOW
+    seed_job(db, company="Alpha")
+    src = _sources(db)["alpha"]
+    _run(db, src, "full", NOW - 8 * HOUR, minutes=90)
+    _run(db, src, "incremental", NOW - HOUR, minutes=2)
+    row = client.get("/api/sources").json()[0]
+    assert row["last_run"] == {
+        "kind": "incremental",
+        "status": "ok",
+        "started_at": "2026-11-11T03:30:00Z",
+        "duration_s": 120,
+    }
+
+
+def test_sources_nights_one_point_per_ist_night_from_full_runs(client, app, db):
+    from datetime import timedelta
+
+    app.dependency_overrides[now] = lambda: NOW  # 10:00 IST on 11 Nov
+    seed_job(db, company="Alpha")
+    src = _sources(db)["alpha"]
+    two_am_ist = datetime(2026, 11, 10, 20, 30, tzinfo=UTC)  # 02:00 IST on 11 Nov
+    _run(db, src, "full", two_am_ist, found=40)  # 11 Nov
+    _run(db, src, "full", two_am_ist - DAY, found=30, status="failed", error="boom")  # 10 Nov
+    _run(db, src, "full", two_am_ist - 2 * DAY, found=10)  # 9 Nov: an earlier run…
+    _run(
+        db, src, "full", two_am_ist - 2 * DAY + timedelta(hours=3), found=38
+    )  # …and the later one wins
+    _run(db, src, "incremental", two_am_ist + HOUR, found=5)  # ignored
+    _run(db, src, "full", two_am_ist - 14 * DAY, found=99)  # 28 Oct: older than 14 nights
+    nights = client.get("/api/sources").json()[0]["nights"]
+    assert len(nights) == 14
+    assert nights[0]["day"] == "2026-10-29" and nights[-1]["day"] == "2026-11-11"
+    assert nights[-1] == {"day": "2026-11-11", "count": 40, "status": "ok"}
+    assert nights[-2] == {"day": "2026-11-10", "count": 30, "status": "failed"}
+    assert nights[-3] == {"day": "2026-11-09", "count": 38, "status": "ok"}
+    assert nights[-4] == {"day": "2026-11-08", "count": None, "status": None}
+
+
+def test_source_runs_newest_first_at_most_20(client, app, db):
+    from datetime import timedelta
+
+    seed_job(db, company="Alpha")
+    src = _sources(db)["alpha"]
+    for i in range(25):
+        _run(db, src, "incremental", NOW - timedelta(minutes=30 * i), found=i, total=95)
+    _run(
+        db, src, "full", NOW + HOUR, minutes=91, status="failed", error="ParseError: x", total=None
+    )
+    runs = client.get("/api/sources/alpha/runs").json()
+    assert len(runs) == 20
+    assert runs[0] == {
+        "kind": "full",
+        "status": "failed",
+        "started_at": "2026-11-11T05:30:00Z",
+        "duration_s": 91 * 60,
+        "jobs_found": 10,
+        "reported_total": None,
+        "new_count": 1,
+        "updated_count": 2,
+        "closed_count": 3,
+        "error": "ParseError: x",
+    }
+    assert [r["jobs_found"] for r in runs[1:4]] == [0, 1, 2]
+
+
+def test_source_runs_unknown_source(client):
+    assert client.get("/api/sources/nope/runs").status_code == 404
+
+
+@pytest.mark.parametrize(
+    ("at", "expected"),
+    [
+        (NOW, "2026-11-11T20:30:00Z"),  # 10:00 IST → 02:00 IST tomorrow
+        (datetime(2026, 11, 10, 19, 30, tzinfo=UTC), "2026-11-10T20:30:00Z"),  # 01:00 IST → today
+    ],
+)
+def test_schedule_next_full_sweep(client, app, at, expected):
+    app.dependency_overrides[now] = lambda: at
+    assert client.get("/api/schedule").json() == {
+        "next_full_at": expected,
+        "incremental_minutes": 30,
+    }

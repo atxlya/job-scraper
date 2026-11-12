@@ -51,3 +51,28 @@ export function companyHue(slug: string): number {
   }
   return (h >>> 0) % 360;
 }
+
+/** A run's length: "31 s", "2 min", "1 h 31 min". */
+export function duration(seconds: number | null): string {
+  if (seconds === null) return "—";
+  if (seconds < 60) return `${Math.round(seconds)} s`;
+  const min = Math.round(seconds / 60);
+  if (min < 60) return `${min} min`;
+  return `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ""}`;
+}
+
+/** "in 4 h 12 min" until a future time. */
+export function until(iso: string, now: Date = new Date()): string {
+  const s = (new Date(iso).getTime() - now.getTime()) / 1000;
+  return s < 60 ? "any minute" : `in ${duration(s)}`;
+}
+
+/** "02:00": a time of day in IST. */
+export function clockIST(iso: string): string {
+  return new Date(iso).toLocaleTimeString("en-GB", { timeZone: IST, hour: "2-digit", minute: "2-digit" });
+}
+
+/** "12 Nov, 21:30" in IST. */
+export function dayTimeIST(iso: string): string {
+  return `${new Date(iso).toLocaleDateString("en-GB", { timeZone: IST, day: "numeric", month: "short" })}, ${clockIST(iso)}`;
+}

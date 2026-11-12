@@ -103,6 +103,7 @@ Free-tier inputs may be used by Google to improve its products. This is acceptab
 - **Stats strip:** new today · open tech internships · liked · applied. Each one is a button that shows the jobs it counts (it replaces the other filters, so the list matches the number). Tiles on laptop and tablet, one sideways-scrolling row of chips on a phone.
 - **Header:** phone: logo, search and one ⋯ menu (Add company, Sources, Theme, Log out, Log out everywhere). Laptop: search, Add company, theme and an Account menu. See [phone-header-notes.md](phone-header-notes.md).
 - **Health panel:** one row per source: last success, job count, last error, failure streak.
+- **Sources page:** a summary line ("62 OK · 1 partial · 1 failing") and the next full sweep; failing sources first (longest streak first), then partial runs and count-drop warnings, then OK by company. Each source has a 14-night chart of its full sweep's read count (a failed night is an orange dot), its last run's kind and duration, and its last 20 runs on a click. Cards on a phone. See [sources-page-notes.md](sources-page-notes.md).
 - **"Add company" form:** see §3.
 - **Look:** chosen from 2–3 mockups before any UI code is written. Light and dark themes; works on phone and laptop.
 - **Access:** single-user password login (argon2 hash, HTTP-only session cookie), reachable over Tailscale. Nothing is exposed to the public internet.
