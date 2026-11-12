@@ -30,7 +30,7 @@ from sqlalchemy.orm import Session
 
 import app.adapters  # noqa: F401  (registers adapters)
 from app.adapters.base import ADAPTERS, GONE
-from app.api.deps import get_session, now, require_user
+from app.api.deps import get_session, ist_midnight, now, require_user
 from app.api.schemas import (
     Change,
     FilterOptions,
@@ -132,6 +132,8 @@ def _filtered(f: JobFilters, at: datetime) -> Select:
         stmt = stmt.where(or_(*(_elig_condition(e) for e in f.elig)))
     if f.posted != "any":
         stmt = stmt.where(_newest() >= at - POSTED[f.posted])
+    if f.new == "today":
+        stmt = stmt.where(Job.first_seen_at >= ist_midnight(at))
     if f.tag:
         conds = [JobUserState.tag == t for t in f.tag if t != "untagged"]
         if "untagged" in f.tag:

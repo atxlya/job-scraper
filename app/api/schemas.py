@@ -17,6 +17,7 @@ class JobFilters(BaseModel):
     posted: Literal["1d", "7d", "30d", "any"] = "any"
     tag: list[Literal["liked", "applied", "untagged"]] = Field(default_factory=list)
     dismissed: bool = False
+    new: Literal["today"] | None = None  # first seen since midnight IST, like the stats tile
     q: str | None = None
 
 

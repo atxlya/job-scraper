@@ -158,3 +158,18 @@ def test_filter_options_count_a_repeated_country_once(client, db):
     opts = client.get("/api/filters").json()
     assert {"value": "IN", "label": "India", "count": 1} in opts["countries"]
     assert opts["companies"] == [{"value": "google", "label": "Google", "count": 1}]
+
+
+def test_new_today_matches_the_stats_tile(client, app, db):
+    from datetime import UTC, datetime
+
+    from app.api.deps import now
+
+    at = datetime(2026, 11, 11, 4, 30, tzinfo=UTC)  # 10:00 IST
+    app.dependency_overrides[now] = lambda: at
+    today = seed_job(db, first_seen=datetime(2026, 11, 10, 18, 31, tzinfo=UTC))  # 00:01 IST
+    seed_job(db, first_seen=datetime(2026, 11, 10, 18, 29, tzinfo=UTC))  # 23:59 IST yesterday
+    seed_job(db, title="HR Intern", tech=False, first_seen=at)  # not tech
+    assert ids(client, "?new=today") == [today.id]
+    assert client.get("/api/stats").json()["new_today"] == 1
+    assert client.get("/api/jobs?new=yesterday").status_code == 422

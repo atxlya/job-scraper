@@ -65,23 +65,12 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen bg-bg">
-      <Header
-        q={f.q}
-        onSearch={onSearch}
-        onMarkAllSeen={() => markSeen.mutate()}
-        markingSeen={markSeen.isPending}
-        onAddCompany={() => setAdding(true)}
-      />
-      <main className="mx-auto flex max-w-[1360px] flex-col gap-5 px-4 pt-5 pb-10 lg:px-6">
-        <StatsStrip />
-        {!wide && (
-          <Button onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters} className="self-start">
-            {showFilters ? "Hide filters" : `Filters${n ? ` (${n})` : ""}`}
-          </Button>
-        )}
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
-          {(wide || showFilters) && (
-            <div className="lg:w-[240px] lg:shrink-0">
+      <Header q={f.q} onSearch={onSearch} onAddCompany={() => setAdding(true)} />
+      <main className="mx-auto flex max-w-[1360px] flex-col gap-4 px-4 pt-3 pb-10 md:pt-5 lg:gap-5 lg:px-6">
+        <StatsStrip f={f} set={set} />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-5">
+          {wide && (
+            <div className="w-[240px] shrink-0">
               <FilterPanel f={f} set={set}>
                 <HealthPanel />
               </FilterPanel>
@@ -99,6 +88,30 @@ export function Dashboard() {
               linkFor={linkFor}
               selected={selected}
               onClear={() => set({ ...DEFAULTS, view: f.view })}
+              onMarkAllSeen={() => markSeen.mutate()}
+              markingSeen={markSeen.isPending}
+              aside={
+                !wide && (
+                  <Button
+                    onClick={() => setShowFilters(!showFilters)}
+                    aria-expanded={showFilters}
+                    aria-controls="filters"
+                    className="h-9 px-3 text-[13px]"
+                  >
+                    {showFilters ? "Hide filters" : `Filters${n ? ` (${n})` : ""}`}
+                  </Button>
+                )
+              }
+              panel={
+                !wide &&
+                showFilters && (
+                  <div id="filters">
+                    <FilterPanel f={f} set={set}>
+                      <HealthPanel />
+                    </FilterPanel>
+                  </div>
+                )
+              }
             />
           </div>
           {wide && (

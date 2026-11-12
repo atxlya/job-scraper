@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULTS, type Filters, fromParams, toParams } from "./filters";
+import { DEFAULTS, type Filters, fromParams, isPreset, PRESETS, toParams } from "./filters";
 
 const sets: Filters[] = [
   DEFAULTS,
   { ...DEFAULTS, view: "all", company: ["google", "nvidia"], loc: "india", q: "ml" },
   { ...DEFAULTS, elig: ["ok", "warn"], posted: "7d", tag: ["liked", "untagged"], dismissed: true },
+  { ...DEFAULTS, newToday: true },
 ];
 
 describe("filters", () => {
@@ -31,5 +32,24 @@ describe("filters", () => {
 
   it("accepts a two-letter country", () => {
     expect(fromParams(new URLSearchParams("loc=GB")).loc).toBe("GB");
+  });
+
+  it("writes new=today, the API's name for the New today filter", () => {
+    expect(toParams({ ...DEFAULTS, newToday: true }).toString()).toBe("new=today");
+    expect(fromParams(new URLSearchParams("new=yes")).newToday).toBe(false);
+  });
+
+  it("each stat preset is a whole filter set, so the list matches the tile's number", () => {
+    expect(toParams(PRESETS.open).toString()).toBe("");
+    expect(toParams(PRESETS.new).toString()).toBe("new=today");
+    expect(toParams(PRESETS.liked).toString()).toBe("view=all&tag=liked");
+    expect(toParams(PRESETS.applied).toString()).toBe("view=all&tag=applied");
+  });
+
+  it("a preset is active only while the filters match it exactly", () => {
+    expect(isPreset(DEFAULTS, PRESETS.open)).toBe(true);
+    expect(isPreset({ ...PRESETS.liked }, PRESETS.liked)).toBe(true);
+    expect(isPreset({ ...PRESETS.liked, company: ["google"] }, PRESETS.liked)).toBe(false);
+    expect(isPreset({ ...DEFAULTS, q: "ml" }, PRESETS.open)).toBe(false);
   });
 });

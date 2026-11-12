@@ -2,12 +2,15 @@
 
 import hashlib
 from collections.abc import Iterator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.core.models import Setting
+
+IST = ZoneInfo("Asia/Kolkata")
 
 # Bumped by "log out everywhere": sessions signed with an older epoch are refused.
 EPOCH_KEY = "session_epoch"
@@ -53,3 +56,8 @@ def require_user(request: Request) -> None:
 
 def now() -> datetime:
     return datetime.now(UTC)
+
+
+def ist_midnight(at: datetime) -> datetime:
+    """Start of today in India: where "New today" begins, for the stats tile and the filter."""
+    return datetime.combine(at.astimezone(IST).date(), time(), IST)

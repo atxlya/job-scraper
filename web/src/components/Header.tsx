@@ -1,25 +1,29 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { api } from "../api";
+import { useMedia, WIDE } from "../hooks";
 import { type ThemeMode, useTheme } from "../theme";
 import { Logo } from "./Logo";
+import { Menu, MenuItem, MenuSeparator } from "./Menu";
 import { Button } from "./ui";
 
 const NEXT: Record<ThemeMode, ThemeMode> = { system: "light", light: "dark", dark: "system" };
 const THEME_LABEL: Record<ThemeMode, string> = { system: "System", light: "Light", dark: "Dark" };
+const square = "h-11 w-11 rounded-[10px] border border-line bg-surface text-ink hover:bg-chip lg:h-10 lg:w-10";
 
 type Props = {
   q: string;
   onSearch: (q: string) => void;
-  onMarkAllSeen?: () => void;
-  markingSeen?: boolean;
   onAddCompany?: () => void;
 };
 
-export function Header({ q, onSearch, onMarkAllSeen, markingSeen, onAddCompany }: Props) {
+/** Phone: logo, search and one ⋯ menu. Laptop: search, Add company, theme and an Account menu. */
+export function Header({ q, onSearch, onAddCompany }: Props) {
   const [text, setText] = useState(q);
   const [theme, setTheme] = useTheme();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const wide = useMedia(WIDE);
 
   useEffect(() => setText(q), [q]);
   useEffect(() => {
@@ -35,14 +39,23 @@ export function Header({ q, onSearch, onMarkAllSeen, markingSeen, onAddCompany }
     navigate("/login");
   }
 
+  const logouts = (
+    <>
+      <MenuItem onSelect={() => logout()}>Log out</MenuItem>
+      <MenuItem danger onSelect={() => logout(true)}>
+        Log out everywhere…
+      </MenuItem>
+    </>
+  );
+
   return (
     <header className="border-b border-line bg-surface">
-      <div className="mx-auto flex max-w-[1360px] flex-wrap items-center gap-3 px-4 py-3 lg:gap-4 lg:px-6">
-        <Link to="/" className="flex shrink-0 items-center gap-2.5 text-ink no-underline">
+      <div className="mx-auto flex max-w-[1360px] items-center gap-2 px-4 py-2.5 lg:gap-4 lg:px-6 lg:py-3">
+        <Link to="/" className="flex shrink-0 items-center gap-2.5 text-ink no-underline" aria-label="Job Scraper, all jobs">
           <Logo />
-          <span className="text-base font-bold">Job Scraper</span>
+          {wide && <span className="text-base font-bold">Job Scraper</span>}
         </Link>
-        <div className="flex h-11 min-w-0 flex-[1_1_280px] items-center gap-2 rounded-[10px] border border-line bg-bg px-3 lg:h-10">
+        <div className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-[10px] border border-line bg-bg px-3 lg:h-10">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" className="shrink-0 text-muted">
             <circle cx="11" cy="11" r="7" />
             <path d="m20 20-3.5-3.5" />
@@ -59,34 +72,60 @@ export function Header({ q, onSearch, onMarkAllSeen, markingSeen, onAddCompany }
             className="h-full min-w-0 flex-1 border-0 bg-transparent text-ink outline-none placeholder:text-muted"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {onMarkAllSeen && (
-            <Button onClick={onMarkAllSeen} disabled={markingSeen}>
-              {markingSeen ? "Marking…" : "Mark all as seen"}
-            </Button>
-          )}
-          {onAddCompany && (
-            <Button primary onClick={onAddCompany}>
-              Add company
-            </Button>
-          )}
-          <Button
-            onClick={() => setTheme(NEXT[theme])}
-            aria-label={`Theme: ${THEME_LABEL[theme]}. Switch to ${THEME_LABEL[NEXT[theme]]}`}
-            title={`Theme: ${THEME_LABEL[theme]}`}
-            className="w-11 px-0 lg:w-10"
-          >
-            <ThemeIcon mode={theme} />
-          </Button>
-          <Button onClick={() => logout()} title="Log out of this browser">
-            Log out
-          </Button>
-          <Button onClick={() => logout(true)} title="Log out on every device, phone included">
-            Everywhere
-          </Button>
-        </div>
+        {wide ? (
+          <div className="flex shrink-0 items-center gap-2">
+            {onAddCompany && (
+              <Button primary onClick={onAddCompany}>
+                Add company
+              </Button>
+            )}
+            <button
+              type="button"
+              onClick={() => setTheme(NEXT[theme])}
+              aria-label={`Theme: ${THEME_LABEL[theme]}. Switch to ${THEME_LABEL[NEXT[theme]]}`}
+              title={`Theme: ${THEME_LABEL[theme]}`}
+              className={square}
+            >
+              <ThemeIcon mode={theme} />
+            </button>
+            <Menu
+              label="Account"
+              trigger={
+                <span className="flex items-center gap-1.5">
+                  Account
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </span>
+              }
+              buttonClassName="h-10 rounded-[10px] border border-line bg-surface px-3.5 font-medium text-ink hover:bg-chip"
+            >
+              {logouts}
+            </Menu>
+          </div>
+        ) : (
+          <Menu label="More actions" trigger={<MoreIcon />} buttonClassName={`${square} shrink-0`}>
+            {onAddCompany && <MenuItem onSelect={onAddCompany}>Add company</MenuItem>}
+            {pathname !== "/sources" && <MenuItem onSelect={() => navigate("/sources")}>Sources</MenuItem>}
+            <MenuItem keepOpen onSelect={() => setTheme(NEXT[theme])}>
+              Theme: {THEME_LABEL[theme]}
+            </MenuItem>
+            <MenuSeparator />
+            {logouts}
+          </Menu>
+        )}
       </div>
     </header>
+  );
+}
+
+function MoreIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="mx-auto">
+      <circle cx="5" cy="12" r="1.8" />
+      <circle cx="12" cy="12" r="1.8" />
+      <circle cx="19" cy="12" r="1.8" />
+    </svg>
   );
 }
 

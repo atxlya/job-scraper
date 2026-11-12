@@ -1,9 +1,8 @@
 """Stats strip, scraper health and "Add company" (docs/DESIGN.md §3, §7)."""
 
 import re
-from datetime import datetime, time
+from datetime import datetime
 from typing import Annotated
-from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func, select
@@ -12,14 +11,13 @@ from sqlalchemy.orm import Session
 
 import app.adapters  # noqa: F401  (registers adapters)
 from app.adapters.base import ADAPTERS
-from app.api.deps import get_session, now, require_user
+from app.api.deps import get_session, ist_midnight, now, require_user
 from app.api.schemas import AddCompany, AddResult, DetectedOut, SourceHealth, Stats, UrlBody
 from app.core.models import Company, Job, JobUserState, Source, TagHistory
 from app.sources import detect as detection
 from app.sources.checks import evaluate
 
 router = APIRouter(prefix="/api", dependencies=[Depends(require_user)])
-IST = ZoneInfo("Asia/Kolkata")
 Sess = Annotated[Session, Depends(get_session)]
 Now = Annotated[datetime, Depends(now)]
 NOT_SUPPORTED = "Not a Workday, Eightfold, Oracle HCM, Lever or Greenhouse careers URL."
@@ -31,7 +29,7 @@ def _tech():
 
 @router.get("/stats")
 def stats(s: Sess, at: Now) -> Stats:
-    midnight = datetime.combine(at.astimezone(IST).date(), time(), IST)
+    midnight = ist_midnight(at)
     tags = dict(s.execute(select(JobUserState.tag, func.count()).group_by(JobUserState.tag)).all())
     return Stats(
         new_today=s.scalar(select(func.count()).where(*_tech(), Job.first_seen_at >= midnight)),

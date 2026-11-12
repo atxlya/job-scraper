@@ -100,6 +100,11 @@ export function FilterPanel({ f, set, children }: Props) {
             <option value="7d">Last 7 days</option>
             <option value="30d">Last 30 days</option>
           </select>
+          <div className="mt-2">
+            <Chip on={f.newToday} onClick={() => set({ newToday: !f.newToday })}>
+              First seen today
+            </Chip>
+          </div>
         </div>
 
         <fieldset>

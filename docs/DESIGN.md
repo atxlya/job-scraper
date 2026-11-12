@@ -98,8 +98,9 @@ Free-tier inputs may be used by Google to improve its products. This is acceptab
 - **Default view:** tech internships, newest first, with "new" badges. A toggle switches to all jobs.
 - **Filters:** company, location/country, eligibility (✅ / ⚠️ / unknown), posted date, tag, full-text search (SQLite FTS5), "show dismissed".
 - **Job page:** sections, eligibility result with quote, original and apply links, change log, buttons for Like / Applied / Dismiss / remove tag, and a note.
-- **Bulk action:** "Mark all as seen".
-- **Stats strip:** new today · open tech internships · liked · applied.
+- **Bulk action:** "Mark all as seen", in the list's title row.
+- **Stats strip:** new today · open tech internships · liked · applied. Each one is a button that shows the jobs it counts (it replaces the other filters, so the list matches the number). Tiles on laptop and tablet, one sideways-scrolling row of chips on a phone.
+- **Header:** phone: logo, search and one ⋯ menu (Add company, Sources, Theme, Log out, Log out everywhere). Laptop: search, Add company, theme and an Account menu. See [phone-header-notes.md](phone-header-notes.md).
 - **Health panel:** one row per source: last success, job count, last error, failure streak.
 - **"Add company" form:** see §3.
 - **Look:** chosen from 2–3 mockups before any UI code is written. Light and dark themes; works on phone and laptop.
