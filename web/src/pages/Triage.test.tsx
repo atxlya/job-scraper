@@ -28,6 +28,7 @@ function card(id: number, title: string): JobCard {
     is_new: true,
     eligibility: "pending",
     tag: null,
+    stage: null,
     closed: false,
   };
 }
@@ -58,6 +59,7 @@ function detail(c: JobCard): JobDetail {
     note: null,
     changes: [],
     tag_history: [],
+    steps: [],
   };
 }
 
@@ -315,5 +317,27 @@ describe("swipes, on a phone", () => {
     await waitFor(() => expect(screen.getByRole("status")).toBeInTheDocument());
     act(() => vi.advanceTimersByTime(5100));
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+});
+
+describe("a job with a stage after Applied", () => {
+  beforeEach(laptop);
+
+  it("keys that would clear its stage do nothing and say why", async () => {
+    tags[1] = "applied";
+    const real = mockApi.getMockImplementation()!;
+    mockApi.mockImplementation(async (path: string, init?: { method?: string; json?: unknown }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const out = (await real(path, init as never)) as any;
+      if (path === "/api/jobs/1") return { ...out, tag: "applied", stage: "interview" };
+      if (path.startsWith("/api/jobs?") || path === "/api/jobs")
+        return { ...out, items: out.items.map((c: JobCard) => (c.id === 1 ? { ...c, tag: "applied", stage: "interview" } : c)) };
+      return out;
+    });
+    show();
+    await heading("First Intern");
+    for (const k of ["l", "a", "d", "u"]) await press(k);
+    expect(puts).toEqual([]);
+    expect(await screen.findByRole("status")).toHaveTextContent("At Interview: change it on the job page");
   });
 });

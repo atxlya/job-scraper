@@ -33,6 +33,7 @@ from app.adapters.base import ADAPTERS, GONE
 from app.api.deps import get_session, ist_midnight, now, require_user
 from app.api.place import place
 from app.api.schemas import (
+    Application,
     Change,
     FilterOptions,
     JobCard,
@@ -42,6 +43,8 @@ from app.api.schemas import (
     MarkSeenBody,
     NoteBody,
     Option,
+    StageBody,
+    Step,
     TagBody,
     TagEvent,
 )
@@ -178,6 +181,7 @@ def card(job: Job, company: Company, analysis: JobAnalysis | None, us: JobUserSt
         is_new=us is None or us.seen_at is None,
         eligibility=eligibility(job, analysis).status,
         tag=us.tag if us else None,
+        stage=us.stage if us and us.tag == "applied" else None,
         closed=job.state == "closed",
     )
 
@@ -280,8 +284,8 @@ def job_detail(s: Session, job_id: int) -> JobDetail:
     changes = s.scalars(
         select(JobChange).where(JobChange.job_id == job_id).order_by(JobChange.changed_at)
     )
-    history = s.scalars(
-        select(TagHistory).where(TagHistory.job_id == job_id).order_by(TagHistory.id)
+    history = list(
+        s.scalars(select(TagHistory).where(TagHistory.job_id == job_id).order_by(TagHistory.id))
     )
     return JobDetail(
         **card(job, company, analysis, us).model_dump(),
@@ -306,11 +310,22 @@ def job_detail(s: Session, job_id: int) -> JobDetail:
         changes=[Change(at=c.changed_at, fields=c.fields) for c in changes],
         tag_history=[
             TagEvent(
-                at=h.at, from_tag=h.from_tag, to_tag=h.to_tag, event_date=h.event_date, note=h.note
+                at=h.at,
+                from_tag=h.from_tag,
+                to_tag=h.to_tag,
+                from_stage=h.from_stage,
+                to_stage=h.to_stage,
+                event_date=h.event_date,
+                note=h.note,
             )
             for h in history
         ],
+        steps=_steps(history),
     )
+
+
+def _steps(history: list[TagHistory]) -> list[Step]:
+    return [Step(**vars(st)) for st in tags.application_steps(history)]
 
 
 def _user_state(s: Session, job_id: int) -> JobUserState:
@@ -354,6 +369,53 @@ def set_tag(job_id: int, body: TagBody, s: Sess, at: Now) -> JobDetail:
     tags.set_tag(s, job_id, body.tag, at, event_date=body.event_date, note=body.note)
     s.commit()
     return job_detail(s, job_id)
+
+
+@router.put("/jobs/{job_id}/stage")
+def set_stage(job_id: int, body: StageBody, s: Sess, at: Now) -> JobDetail:
+    _load(s, job_id)  # 404 for unknown jobs
+    try:
+        tags.set_stage(s, job_id, body.stage, at, event_date=body.event_date, note=body.note)
+    except tags.NotApplied as e:
+        s.rollback()
+        raise HTTPException(409, "Mark it Applied first.") from e
+    s.commit()
+    return job_detail(s, job_id)
+
+
+@router.get("/applications")
+def applications(s: Sess) -> list[Application]:
+    """Every applied job, whatever its stage or state (closed ones too), newest step first."""
+    rows = s.execute(
+        select(Job, Company, JobUserState)
+        .join(Company, Company.id == Job.company_id)
+        .join(JobUserState, JobUserState.job_id == Job.id)
+        .where(JobUserState.tag == "applied")
+    ).all()
+    by_job: dict[int, list[TagHistory]] = {}
+    for h in s.scalars(
+        select(TagHistory)
+        .where(TagHistory.job_id.in_([job.id for job, _, _ in rows]))
+        .order_by(TagHistory.id)
+    ):
+        by_job.setdefault(h.job_id, []).append(h)
+    out = []
+    for job, company, us in rows:
+        steps = _steps(by_job.get(job.id, []))
+        out.append(
+            Application(
+                id=job.id,
+                company=company.name,
+                company_slug=company.slug,
+                title=job.title,
+                closed=job.state == "closed",
+                stage=us.stage,
+                steps=steps,
+                # An applied job with no history (tagged before history existed): first seen.
+                last_on=steps[-1].on if steps else job.first_seen_at.astimezone(tags.IST).date(),
+            )
+        )
+    return sorted(out, key=lambda a: (a.last_on, a.id), reverse=True)
 
 
 @router.put("/jobs/{job_id}/note", status_code=204)

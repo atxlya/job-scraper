@@ -122,6 +122,9 @@ class JobUserState(Base):
     job_id: Mapped[int] = mapped_column(ForeignKey("jobs.id"), primary_key=True)
     seen_at: Mapped[datetime | None]
     tag: Mapped[str | None] = mapped_column(String(20))  # liked | applied | dismissed
+    # Only while tag is "applied": oa | interview | offer | rejected; empty = just applied.
+    # A separate field, so every "applied" rule (never hidden, counted, re-checked) still holds.
+    stage: Mapped[str | None] = mapped_column(String(20))
     note: Mapped[str | None] = mapped_column(Text)
 
 
@@ -131,6 +134,9 @@ class TagHistory(Base):
     job_id: Mapped[int] = mapped_column(ForeignKey("jobs.id"), index=True)
     from_tag: Mapped[str | None] = mapped_column(String(20))
     to_tag: Mapped[str | None] = mapped_column(String(20))
+    # A stage step is a row with from_tag = to_tag = "applied" (migration 0006).
+    from_stage: Mapped[str | None] = mapped_column(String(20))
+    to_stage: Mapped[str | None] = mapped_column(String(20))
     at: Mapped[datetime]
     event_date: Mapped[date | None] = mapped_column(Date)
     note: Mapped[str | None] = mapped_column(Text)

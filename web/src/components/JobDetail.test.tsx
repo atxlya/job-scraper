@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { beforeEach, expect, it, vi } from "vitest";
@@ -26,6 +26,7 @@ const base: Detail = {
   is_new: true,
   eligibility: "ok",
   tag: null,
+  stage: null,
   closed: false,
   external_id: "123",
   locations: ["Bengaluru, India"],
@@ -45,6 +46,7 @@ const base: Detail = {
   note: null,
   changes: [],
   tag_history: [],
+  steps: [],
 };
 
 type Call = { path: string; method: string; json?: unknown };
@@ -59,7 +61,12 @@ function serve(overrides: Partial<Detail> = {}, failDescription?: ApiError) {
     calls.push({ path, method, json: init.json });
     if (path.endsWith("/tag")) {
       const body = init.json as { tag: Detail["tag"] };
-      job = { ...job, tag: body.tag };
+      job = { ...job, tag: body.tag, stage: body.tag === "applied" ? job.stage : null };
+      return job;
+    }
+    if (path.endsWith("/stage")) {
+      const body = init.json as { stage: Detail["stage"] };
+      job = { ...job, stage: body.stage };
       return job;
     }
     if (path.endsWith("/description")) {
@@ -216,4 +223,111 @@ it("a non-tech notice says eligibility is only checked for tech internships", as
   serve({ eligibility: "pending", unchecked: "notice", tech_internship: false });
   show();
   expect(await screen.findByText("Eligibility is only checked for tech internships.")).toBeInTheDocument();
+});
+
+
+// --- stages after Applied ----------------------------------------------------------------
+
+/** The tag buttons' Applied, not the stage picker's "Applied" step. */
+async function appliedTag() {
+  await screen.findByRole("group", { name: "Application stage" });
+  return screen.getAllByRole("button", { name: "Applied" }).find((b) => !b.closest('[role="group"]'))!;
+}
+
+const applied: Partial<Detail> = {
+  tag: "applied",
+  stage: "oa",
+  steps: [
+    { stage: "applied", on: "2026-11-03", at: "2026-11-03T10:00:00Z", note: "via referral" },
+    { stage: "oa", on: "2026-11-08", at: "2026-11-08T10:00:00Z", note: "HackerRank" },
+  ],
+  tag_history: [
+    { at: "2026-11-03T10:00:00Z", from_tag: null, to_tag: "applied", from_stage: null, to_stage: null, event_date: "2026-11-03", note: "via referral" },
+    { at: "2026-11-08T10:00:00Z", from_tag: "applied", to_tag: "applied", from_stage: null, to_stage: "oa", event_date: "2026-11-08", note: "HackerRank" },
+  ],
+};
+
+it("shows no stage picker until the job is Applied", async () => {
+  serve({ tag: "liked" });
+  show();
+  await screen.findByRole("button", { name: "Like" });
+  expect(screen.queryByRole("group", { name: "Application stage" })).not.toBeInTheDocument();
+});
+
+it("an applied job shows its stage and a timeline, newest first", async () => {
+  serve(applied);
+  show();
+  const stages = await screen.findByRole("group", { name: "Application stage" });
+  expect(within(stages).getByRole("button", { name: "OA" })).toHaveAttribute("aria-pressed", "true");
+  expect(within(stages).getByRole("button", { name: "Interview" })).toHaveAttribute("aria-pressed", "false");
+  const steps = within(screen.getByRole("list", { name: "Application timeline" })).getAllByRole("listitem");
+  expect(steps.map((li) => li.textContent)).toEqual([
+    expect.stringMatching(/OA.*HackerRank.*8 Nov/),
+    expect.stringMatching(/Applied.*via referral.*3 Nov/),
+  ]);
+});
+
+it("picking a stage asks for its date and note, then saves it", async () => {
+  serve(applied);
+  show();
+  const stages = await screen.findByRole("group", { name: "Application stage" });
+  await userEvent.click(within(stages).getByRole("button", { name: "Interview" }));
+  const date = screen.getByLabelText("Interview on") as HTMLInputElement;
+  await userEvent.clear(date);
+  await userEvent.type(date, "2026-11-12");
+  await userEvent.type(screen.getByLabelText("Note (optional)"), "Round 1");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(sent("/stage")).toHaveLength(1));
+  expect(sent("/stage")[0].json).toEqual({ stage: "interview", event_date: "2026-11-12", note: "Round 1" });
+  await waitFor(() => expect(within(stages).getByRole("button", { name: "Interview" })).toHaveAttribute("aria-pressed", "true"));
+});
+
+it("Rejected can be picked from any stage", async () => {
+  serve({ ...applied, stage: null });
+  show();
+  const stages = await screen.findByRole("group", { name: "Application stage" });
+  await userEvent.click(within(stages).getByRole("button", { name: "Rejected" }));
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(sent("/stage")).toHaveLength(1));
+  expect(sent("/stage")[0].json).toMatchObject({ stage: "rejected" });
+});
+
+it("removing Applied from a job with a stage asks first", async () => {
+  serve(applied);
+  show();
+  const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+  await userEvent.click(await appliedTag());
+  expect(confirm).toHaveBeenLastCalledWith(expect.stringContaining("at OA"));
+  expect(sent("/tag")).toHaveLength(0);
+  await userEvent.click(await appliedTag());
+  await waitFor(() => expect(sent("/tag")).toHaveLength(1));
+  expect(sent("/tag")[0].json).toEqual({ tag: null });
+  confirm.mockRestore();
+});
+
+it("Like and Dismiss on a job with a stage ask first too", async () => {
+  serve(applied);
+  show();
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  await userEvent.click(await screen.findByRole("button", { name: "Like" }));
+  await userEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+  expect(sent("/tag")).toEqual([]);
+  expect(confirm).toHaveBeenCalledTimes(2);
+  confirm.mockRestore();
+});
+
+it("Applied without a stage is removed without asking, as before", async () => {
+  serve({ ...applied, stage: null });
+  show();
+  const confirm = vi.spyOn(window, "confirm");
+  await userEvent.click(await appliedTag());
+  await waitFor(() => expect(sent("/tag")).toHaveLength(1));
+  expect(confirm).not.toHaveBeenCalled();
+  confirm.mockRestore();
+});
+
+it("the change log names stage steps", async () => {
+  serve(applied);
+  show();
+  expect(await screen.findByText(/OA \(8 Nov 2026\) — HackerRank/)).toBeInTheDocument();
 });

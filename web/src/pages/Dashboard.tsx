@@ -14,7 +14,7 @@ import { Toast, type ToastData } from "../components/Toast";
 import { StatsStrip } from "../components/StatsStrip";
 import { Button } from "../components/ui";
 import { activeCount, DEFAULTS, toParams, useFilters } from "../filters";
-import { todayIST } from "../format";
+import { STAGE_LABEL, todayIST } from "../format";
 import { useMedia, useShortcuts, WIDE } from "../hooks";
 import { type TagBody, useTagJob } from "../tagging";
 import type { JobCard, JobDetail as Detail, JobPage, Tag } from "../types";
@@ -94,6 +94,13 @@ export function Dashboard() {
     qc.getQueryData<Detail>(["job", id])?.tag ?? items.find((j) => j.id === id)?.tag ?? null;
   const save = (id: number, body: TagBody) =>
     tagJob(id, body).catch((e) => say(e instanceof ApiError ? e.detail : "Couldn't save the tag."));
+  /** A job with a stage after Applied: keys and swipes would clear it in one go, so they don't. */
+  const locked = (id: number): boolean => {
+    const d = qc.getQueryData<Detail>(["job", id]);
+    const stage = d ? (d.tag === "applied" ? d.stage : null) : (items.find((j) => j.id === id)?.stage ?? null);
+    if (stage) say(`At ${STAGE_LABEL[stage]}: change it on the job page`);
+    return Boolean(stage);
+  };
 
   // The open job as the keys see it: `pick` moves it at once, so keys pressed before the page
   // re-renders (j j l) act on the job the last key moved to, not the one on screen.
@@ -120,6 +127,7 @@ export function Dashboard() {
 
   /** Dismiss with Undo. `move` goes on to the next job (keyboard); a swiped card just leaves. */
   const dismiss = (job: JobCard, move: boolean) => {
+    if (locked(job.id)) return;
     const before = tagOf(job.id);
     if (before === "dismissed") return save(job.id, { tag: null });
     const at = items.findIndex((j) => j.id === job.id);
@@ -150,11 +158,12 @@ export function Dashboard() {
           k: () => step(-1),
           l: () => {
             const job = current();
-            if (job) save(job.id, { tag: tagOf(job.id) === "liked" ? null : "liked" });
+            if (job && !locked(job.id)) save(job.id, { tag: tagOf(job.id) === "liked" ? null : "liked" });
           },
           a: () => {
             const job = current();
-            if (job) save(job.id, tagOf(job.id) === "applied" ? { tag: null } : { tag: "applied", event_date: todayIST() });
+            if (job && !locked(job.id))
+              save(job.id, tagOf(job.id) === "applied" ? { tag: null } : { tag: "applied", event_date: todayIST() });
           },
           d: () => {
             const job = current();
@@ -162,7 +171,7 @@ export function Dashboard() {
           },
           u: () => {
             const job = current();
-            if (job) save(job.id, { tag: null });
+            if (job && !locked(job.id)) save(job.id, { tag: null });
           },
           z: () => {
             toast?.undo?.();
@@ -182,6 +191,7 @@ export function Dashboard() {
 
   const onSwipe = (job: JobCard, dir: SwipeDir) => {
     if (dir === "left") return dismiss(job, false);
+    if (locked(job.id)) return;
     const before = tagOf(job.id);
     if (before === "liked") return;
     save(job.id, { tag: "liked" });

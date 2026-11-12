@@ -444,3 +444,24 @@ async def test_press_during_a_slow_eligibility_edit_ends_with_both(sf, tg, ctx, 
     await asyncio.gather(eligibility(), pressed())
     last = body(tg.edit.calls.last)
     assert "✅ Eligible" in last["text"] and buttons(last)[0] == ("✓ Liked", f"t:{j}:-")
+
+
+# --- a job with a stage after Applied ----------------------------------------------------
+
+
+@pytest.mark.parametrize("data", ["l", "d", "-"])
+async def test_a_job_with_a_stage_is_not_changed_from_telegram(sf, tg, ctx, channel, data):
+    from app.core.tags import set_stage  # noqa: PLC0415
+
+    [j] = await alert(sf, channel)
+    with sf() as s:
+        set_tag(s, j, "applied", T0)
+        set_stage(s, j, "interview", T0)
+        s.commit()
+    tg.updates.mock(return_value=updates(press(1, f"t:{j}:{data}")))
+    await poll_once(ctx, now=T0)
+    with sf() as s:
+        us = s.get(JobUserState, j)
+        assert (us.tag, us.stage) == ("applied", "interview")
+    assert body(tg.answer.calls.last)["text"] == "At Interview: change it on the dashboard"
+    assert buttons(body(tg.edit.calls.last))[1] == ("✓ Applied", f"t:{j}:-")

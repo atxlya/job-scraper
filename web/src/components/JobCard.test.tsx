@@ -22,6 +22,7 @@ const base: Card = {
   is_new: false,
   eligibility: "ok",
   tag: null,
+  stage: null,
   closed: false,
 };
 

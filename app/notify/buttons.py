@@ -17,8 +17,8 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.core.models import Job, Setting
-from app.core.tags import set_tag
+from app.core.models import Job, JobUserState, Setting
+from app.core.tags import STAGE_LABEL, set_tag
 from app.notify.alerts import REMOVE, TAG_BUTTONS, render_alert
 from app.notify.telegram import TelegramChannel, TelegramError
 
@@ -64,6 +64,13 @@ def _apply(s: Session, chat_id: str, update: dict, now: datetime) -> _Reply | No
     job_id, tag = int(m.group(1)), CODES[m.group(2)]
     if s.get(Job, job_id) is None:
         return _Reply(cq["id"], "Job not found")
+    us = s.get(JobUserState, job_id)
+    if us is not None and us.tag == "applied" and us.stage and tag != "applied":
+        # One tap would throw the stage away (you chose: confirm on the job page instead).
+        label = STAGE_LABEL[us.stage]
+        return _Reply(
+            cq["id"], f"At {label}: change it on the dashboard", message.get("message_id"), job_id
+        )
     # The dashboard's form dates "Applied" with today; the keyboard's `a` does the same.
     event_date = now.astimezone(IST).date() if tag == "applied" else None
     set_tag(s, job_id, tag, now, event_date=event_date)

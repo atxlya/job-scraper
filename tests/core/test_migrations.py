@@ -1,7 +1,9 @@
 """Migrations build the same schema the models describe."""
 
 import sqlite3
+from pathlib import Path
 
+import pytest
 from alembic import command
 from alembic.config import Config
 
@@ -43,3 +45,67 @@ def test_closed_alerts_table_starts_with_jobs_already_closed(tmp_path, monkeypat
     command.downgrade(Config("alembic.ini"), "0004")
     tables = {r[0] for r in sqlite3.connect(db).execute("SELECT name FROM sqlite_master")}
     assert "closed_alerts" not in tables
+
+
+def test_stage_columns_added_and_removed(tmp_path, monkeypatch):
+    db = tmp_path / "jobs.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db}")
+    command.upgrade(Config("alembic.ini"), "head")
+
+    def cols(table):
+        return {r[1] for r in sqlite3.connect(db).execute(f"PRAGMA table_info('{table}')")}
+
+    assert "stage" in cols("job_user_state")
+    assert {"from_stage", "to_stage"} <= cols("tag_history")
+    command.downgrade(Config("alembic.ini"), "0005")
+    assert "stage" not in cols("job_user_state") and "to_stage" not in cols("tag_history")
+
+
+REAL_DB = Path(__file__).resolve().parents[2] / "data" / "jobs.db"
+
+
+@pytest.mark.skipif(not REAL_DB.exists(), reason="no data/jobs.db on this machine")
+def test_stage_migration_on_a_copy_of_the_real_database(tmp_path, monkeypatch):
+    """Runs on a backup copy (sqlite3 .backup), never on data/jobs.db itself."""
+    copy = tmp_path / "jobs.db"
+    src = sqlite3.connect(f"file:{REAL_DB}?mode=ro", uri=True)
+    dst = sqlite3.connect(copy)
+    src.backup(dst)
+    src.close(), dst.close()
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{copy}")
+    command.upgrade(Config("alembic.ini"), "0005")  # where the real database is, or before
+    con = sqlite3.connect(copy)
+    before = {
+        "states": con.execute("SELECT job_id, tag, seen_at, note FROM job_user_state").fetchall(),
+        "history": con.execute(
+            "SELECT id, job_id, from_tag, to_tag, at, event_date, note FROM tag_history"
+        ).fetchall(),
+        "jobs": con.execute("SELECT count(*) FROM jobs").fetchone(),
+    }
+    con.close()
+
+    command.upgrade(Config("alembic.ini"), "head")
+    con = sqlite3.connect(copy)
+    assert (
+        con.execute("SELECT job_id, tag, seen_at, note FROM job_user_state").fetchall()
+        == (before["states"])
+    )
+    assert (
+        con.execute(
+            "SELECT id, job_id, from_tag, to_tag, at, event_date, note FROM tag_history"
+        ).fetchall()
+        == before["history"]
+    )
+    assert con.execute("SELECT count(*) FROM jobs").fetchone() == before["jobs"]
+    assert con.execute(
+        "SELECT count(*) FROM job_user_state WHERE stage IS NOT NULL"
+    ).fetchone() == (0,)
+    con.close()
+
+    command.downgrade(Config("alembic.ini"), "0005")
+    con = sqlite3.connect(copy)
+    assert (
+        con.execute("SELECT job_id, tag, seen_at, note FROM job_user_state").fetchall()
+        == (before["states"])
+    )
+    con.close()

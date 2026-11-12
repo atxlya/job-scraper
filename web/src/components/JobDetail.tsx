@@ -1,8 +1,8 @@
 import { type InfiniteData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "../api";
-import { day, TAG_LABEL, todayIST } from "../format";
-import type { JobDetail as Detail, JobPage, Sections, Tag } from "../types";
+import { day, shortDay, since, STAGE_LABEL, TAG_LABEL, todayIST } from "../format";
+import type { JobDetail as Detail, JobPage, Sections, Stage, Tag } from "../types";
 import { Button, card } from "./ui";
 
 const HEAD = {
@@ -85,6 +85,16 @@ export function JobDetail({ id, onClose, picked = true }: Props) {
     },
   });
 
+  const stage = useMutation({
+    mutationFn: (body: { stage: Stage | null; event_date?: string; note?: string }) =>
+      api<Detail>(`/api/jobs/${id}/stage`, { method: "PUT", json: body }),
+    onSuccess: (d) => {
+      qc.setQueryData(key, d);
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+      qc.invalidateQueries({ queryKey: ["applications"] });
+    },
+  });
+
   if (error) {
     return (
       <article className={`${card} p-6`} role="alert">
@@ -96,7 +106,11 @@ export function JobDetail({ id, onClose, picked = true }: Props) {
     return <article className={`${card} p-6 text-muted`}>Loading…</article>;
   }
 
-  const setTag = (t: Tag) => tag.mutate({ tag: job.tag === t ? null : t });
+  const setTag = (t: Tag) => {
+    const to = job.tag === t ? null : t;
+    if (!keepsStage(job, to)) return;
+    tag.mutate({ tag: to });
+  };
 
   return (
     <article aria-label="Job details" className={`${card} flex flex-col gap-4 p-5 lg:p-[22px]`}>
@@ -149,12 +163,16 @@ export function JobDetail({ id, onClose, picked = true }: Props) {
         <TagButton on={job.tag === "liked"} onClick={() => setTag("liked")} disabled={tag.isPending}>
           Like
         </TagButton>
-        <AppliedButton job={job} busy={tag.isPending} onSave={(b) => tag.mutate(b)} />
+        <AppliedButton job={job} busy={tag.isPending} onSave={(b) => keepsStage(job, b.tag) && tag.mutate(b)} />
         <TagButton on={job.tag === "dismissed"} onClick={() => setTag("dismissed")} disabled={tag.isPending}>
           Dismiss
         </TagButton>
       </div>
       {tag.error && <p role="alert" className="text-[13px] text-warn-fg">{errorText(tag.error, "Couldn't save the tag.")}</p>}
+
+      {job.tag === "applied" && (
+        <StagePanel key={`stage-${job.id}`} job={job} busy={stage.isPending} error={stage.error} onSave={(b) => stage.mutate(b)} />
+      )}
 
       <Body job={job} fetching={fetchDesc.isPending} fetchError={fetchDesc.error} onFetch={picked ? undefined : () => fetchDesc.mutate()} />
 
@@ -162,6 +180,164 @@ export function JobDetail({ id, onClose, picked = true }: Props) {
 
       <History job={job} />
     </article>
+  );
+}
+
+/**
+ * True when the tag change can go ahead. Leaving Applied clears the stage, so a job that has
+ * one asks first (the steps stay in the change log).
+ */
+function keepsStage(job: Detail, to: Tag | null): boolean {
+  if (job.tag !== "applied" || !job.stage || to === "applied") return true;
+  const what = to === null ? "Remove Applied" : `Mark it ${TAG_LABEL[to]}`;
+  return window.confirm(
+    `This job is at ${STAGE_LABEL[job.stage]}. ${what}? Its stage is cleared; the steps stay in the change log.`,
+  );
+}
+
+const PIPELINE: ("applied" | Stage)[] = ["applied", "oa", "interview", "offer"];
+
+/** Once a job is Applied: pick its stage (with a date and note), and see the steps so far. */
+function StagePanel({
+  job,
+  busy,
+  error,
+  onSave,
+}: {
+  job: Detail;
+  busy: boolean;
+  error: unknown;
+  onSave: (b: { stage: Stage | null; event_date?: string; note?: string }) => void;
+}) {
+  const current = job.stage ?? "applied";
+  const [picking, setPicking] = useState<"applied" | Stage | null>(null);
+  const [date, setDate] = useState(todayIST());
+  const [note, setNote] = useState("");
+  const last = job.steps[job.steps.length - 1];
+
+  function open(s: "applied" | Stage) {
+    if (s === current) return setPicking(null);
+    setPicking(s);
+    setDate(todayIST());
+    setNote("");
+  }
+
+  function save(e: FormEvent) {
+    e.preventDefault();
+    if (!picking) return;
+    onSave({ stage: picking === "applied" ? null : picking, event_date: date, note: note.trim() || undefined });
+    setPicking(null);
+  }
+
+  const chip = (s: "applied" | Stage) => {
+    const on = s === current;
+    const tone =
+      s === "rejected"
+        ? on
+          ? "border-warn-bd bg-warn-bg font-semibold text-warn-fg"
+          : "border-warn-bd bg-surface text-warn-fg hover:bg-warn-bg"
+        : on
+          ? "border-ok-bd bg-ok-bg font-semibold text-ok-fg"
+          : picking === s
+            ? "border-ink bg-surface text-ink"
+            : "border-line bg-surface text-ink hover:bg-chip";
+    return (
+      <button
+        key={s}
+        type="button"
+        aria-pressed={on}
+        disabled={busy}
+        onClick={() => open(s)}
+        className={`h-11 rounded-[10px] border px-3 text-[13px] disabled:opacity-60 lg:h-9 ${tone}`}
+      >
+        {STAGE_LABEL[s]}
+      </button>
+    );
+  };
+
+  return (
+    <section aria-labelledby={`app-${job.id}`} className="rounded-xl border border-line p-3.5">
+      <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-2">
+        <h3 id={`app-${job.id}`} className="m-0 text-[13px] font-semibold">
+          Your application
+        </h3>
+        {last && (
+          <span className="text-xs text-muted">
+            {current === "applied" ? "Applied" : STAGE_LABEL[current]} {since(last.on) === "today" ? "today" : `for ${since(last.on)}`}
+          </span>
+        )}
+      </div>
+      <div role="group" aria-label="Application stage" className="flex flex-wrap items-center gap-1.5">
+        {PIPELINE.map((s, i) => (
+          <span key={s} className="flex items-center gap-1.5">
+            {i > 0 && (
+              <span aria-hidden="true" className="hidden text-muted lg:inline">
+                ›
+              </span>
+            )}
+            {chip(s)}
+          </span>
+        ))}
+        <span className="w-2" aria-hidden="true" />
+        {chip("rejected")}
+      </div>
+
+      {picking && (
+        <form onSubmit={save} className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-line bg-bg p-3">
+          <div>
+            <label htmlFor={`stage-on-${job.id}`} className="mb-1 block text-xs font-semibold text-muted">
+              {STAGE_LABEL[picking]} on
+            </label>
+            <input
+              id={`stage-on-${job.id}`}
+              type="date"
+              required
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="h-11 rounded-lg border border-line bg-surface px-2 text-ink lg:h-10"
+            />
+          </div>
+          <div className="min-w-[160px] flex-1">
+            <label htmlFor={`stage-note-${job.id}`} className="mb-1 block text-xs font-semibold text-muted">
+              Note (optional)
+            </label>
+            <input
+              id={`stage-note-${job.id}`}
+              value={note}
+              maxLength={2000}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={picking === "oa" ? "HackerRank, 90 min" : picking === "interview" ? "Round 1, DSA" : ""}
+              className="h-11 w-full rounded-lg border border-line bg-surface px-2 text-ink lg:h-10"
+            />
+          </div>
+          <Button primary type="submit">
+            Save
+          </Button>
+          <Button onClick={() => setPicking(null)}>Cancel</Button>
+        </form>
+      )}
+      {error ? <p role="alert" className="mt-2 mb-0 text-[13px] text-warn-fg">{errorText(error, "Couldn't save the stage.")}</p> : null}
+
+      {job.steps.length > 0 && (
+        <ol aria-label="Application timeline" className="m-0 mt-3 flex list-none flex-col gap-1.5 p-0">
+          {[...job.steps].reverse().map((st, i) => (
+            <li key={`${st.at}-${i}`} className="grid grid-cols-[12px_minmax(0,1fr)_auto] items-baseline gap-x-2 text-[13px]">
+              <span aria-hidden="true" className={i === 0 ? (st.stage === "rejected" ? "text-warn-fg" : "text-accent") : "text-muted"}>
+                ●
+              </span>
+              {/* Phone: the note goes under the stage. Laptop: beside it, in one line. */}
+              <span className="min-w-0 lg:flex lg:gap-2">
+                <span className="font-semibold lg:w-[76px] lg:shrink-0">{STAGE_LABEL[st.stage]}</span>
+                {st.note && <span className="block text-muted lg:min-w-0 lg:truncate">{st.note}</span>}
+              </span>
+              <span className="whitespace-nowrap text-muted">
+                {shortDay(st.on)} · {since(st.on) === "today" ? "today" : `${since(st.on)} ago`}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
   );
 }
 
@@ -396,12 +572,20 @@ const FIELD = {
 
 function History({ job }: { job: Detail }) {
   const events = [
-    ...job.tag_history.map((e) => ({
-      at: e.at,
-      text: e.to_tag
-        ? `${TAG_LABEL[e.to_tag]}${e.event_date ? ` (${day(e.event_date)})` : ""}${e.note ? ` — ${e.note}` : ""}`
-        : `Removed ${e.from_tag ? TAG_LABEL[e.from_tag] : "tag"}`,
-    })),
+    ...job.tag_history.map((e) => {
+      const when = `${e.event_date ? ` (${day(e.event_date)})` : ""}${e.note ? ` — ${e.note}` : ""}`;
+      const step = e.from_tag === "applied" && e.to_tag === "applied";
+      return {
+        at: e.at,
+        text: step
+          ? e.to_stage
+            ? `${STAGE_LABEL[e.to_stage]}${when}`
+            : `Back to Applied${when}`
+          : e.to_tag
+            ? `${TAG_LABEL[e.to_tag]}${when}`
+            : `Removed ${e.from_tag ? TAG_LABEL[e.from_tag] : "tag"}`,
+      };
+    }),
     ...job.changes.map((c) => ({ at: c.at, text: c.fields.map((f) => FIELD[f] ?? `${f} changed`).join(", ") })),
   ].sort((a, b) => b.at.localeCompare(a.at));
   return (

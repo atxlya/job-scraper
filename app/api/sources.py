@@ -6,7 +6,7 @@ from typing import Annotated
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -53,7 +53,11 @@ def stats(s: Sess, at: Now) -> Stats:
         liked=tags.get("liked", 0),
         applied=tags.get("applied", 0),
         last_applied_at=s.scalar(
-            select(func.max(TagHistory.at)).where(TagHistory.to_tag == "applied")
+            # The move into Applied, not a later stage step (from_tag = to_tag = "applied").
+            select(func.max(TagHistory.at)).where(
+                TagHistory.to_tag == "applied",
+                or_(TagHistory.from_tag.is_(None), TagHistory.from_tag != "applied"),
+            )
         ),
     )
 

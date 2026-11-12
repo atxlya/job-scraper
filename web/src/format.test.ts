@@ -36,3 +36,13 @@ it("shows a time in IST", async () => {
   expect(clockIST("2026-11-12T20:30:00Z")).toBe("02:00");
   expect(clockIST("2026-11-12T16:00:00Z")).toBe("21:30");
 });
+
+
+it("says how long since a step's date, in IST days", async () => {
+  const { since, shortDay } = await import("./format");
+  const now = new Date("2026-11-12T20:00:00Z"); // 01:30 on the 13th in India
+  expect(since("2026-11-13", now)).toBe("today");
+  expect(since("2026-11-12", now)).toBe("1 day");
+  expect(since("2026-11-03", now)).toBe("10 days");
+  expect(shortDay("2026-11-03")).toBe("3 Nov");
+});

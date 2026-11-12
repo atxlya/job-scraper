@@ -7,6 +7,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useNavigate } from "react-router";
 import { ApiError, setNavigate } from "./api";
 import { useTheme } from "./theme";
+import { Applications } from "./pages/Applications";
 import { Dashboard } from "./pages/Dashboard";
 import { JobPage } from "./pages/JobPage";
 import { Login } from "./pages/Login";
@@ -38,6 +39,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/login" element={<Login />} />
           <Route path="/jobs/:id" element={<JobPage />} />
           <Route path="/sources" element={<Sources />} />
+          <Route path="/applications" element={<Applications />} />
           <Route path="*" element={<Dashboard />} />
         </Routes>
       </BrowserRouter>

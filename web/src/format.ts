@@ -35,6 +35,22 @@ export function initials(company: string): string {
 
 export const ELIG_LABEL = { ok: "Eligible", warn: "Check needed", pending: "Not checked" } as const;
 export const TAG_LABEL = { liked: "Liked", applied: "Applied", dismissed: "Dismissed" } as const;
+export const STAGE_LABEL = { applied: "Applied", oa: "OA", interview: "Interview", offer: "Offer", rejected: "Rejected" } as const;
+
+/** "3 Nov" from a YYYY-MM-DD date. */
+export function shortDay(ymd: string): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short" });
+}
+
+/** Whole days from a YYYY-MM-DD date to today in IST: "today", "1 day", "10 days". */
+export function since(ymd: string, now: Date = new Date()): string {
+  const [ty, tm, td] = todayIST(now).split("-").map(Number);
+  const [y, m, d] = ymd.split("-").map(Number);
+  const days = Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(y, m - 1, d)) / 86_400_000);
+  if (days <= 0) return "today";
+  return days === 1 ? "1 day" : `${days} days`;
+}
 
 /** "DE" → 🇩🇪 (regional indicator letters). Windows shows the two letters instead. */
 export function flag(code: string | null): string {

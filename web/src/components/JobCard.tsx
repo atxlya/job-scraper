@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { ago, companyHue, flag, initials, TAG_LABEL } from "../format";
+import { ago, companyHue, flag, initials, STAGE_LABEL, TAG_LABEL } from "../format";
 import { logoFor } from "../logos";
 import type { JobCard as Card } from "../types";
 import { EligBadge } from "./ui";
@@ -91,7 +91,11 @@ function Badges({ job }: { job: Card }) {
       {job.closed && (
         <span className="rounded-full border border-line bg-chip px-2 py-px text-xs text-muted">Closed</span>
       )}
-      {job.tag && <span className="rounded-full border border-line px-2 py-px text-xs">{TAG_LABEL[job.tag]}</span>}
+      {job.tag && (
+        <span className="rounded-full border border-line px-2 py-px text-xs">
+          {job.tag === "applied" && job.stage ? STAGE_LABEL[job.stage] : TAG_LABEL[job.tag]}
+        </span>
+      )}
     </div>
   );
 }

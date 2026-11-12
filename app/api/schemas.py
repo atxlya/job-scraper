@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 EligStatus = Literal["ok", "warn", "pending"]
 Tag = Literal["liked", "applied", "dismissed"]
+Stage = Literal["oa", "interview", "offer", "rejected"]  # after Applied (app/core/tags.py)
 
 
 class JobFilters(BaseModel):
@@ -37,6 +38,7 @@ class JobCard(BaseModel):
     is_new: bool
     eligibility: EligStatus
     tag: Tag | None
+    stage: Stage | None  # only while tag is "applied"
     closed: bool
 
 
@@ -67,7 +69,18 @@ class TagEvent(BaseModel):
     at: datetime
     from_tag: str | None
     to_tag: str | None
+    from_stage: str | None  # a stage step has from_tag = to_tag = "applied"
+    to_stage: str | None
     event_date: date | None
+    note: str | None
+
+
+class Step(BaseModel):
+    """One step of the current application: Applied, then each stage it moved to."""
+
+    stage: Literal["applied", "oa", "interview", "offer", "rejected"]
+    on: date
+    at: datetime
     note: str | None
 
 
@@ -90,10 +103,28 @@ class JobDetail(JobCard):
     note: str | None
     changes: list[Change]  # oldest first
     tag_history: list[TagEvent]  # oldest first
+    steps: list[Step]  # the current application, oldest first; empty unless applied
+
+
+class Application(BaseModel):
+    id: int
+    company: str
+    company_slug: str
+    title: str
+    closed: bool
+    stage: Stage | None
+    steps: list[Step]  # oldest first
+    last_on: date  # the latest step's date: "how long since"
 
 
 class TagBody(BaseModel):
     tag: Tag | None
+    event_date: date | None = None
+    note: str | None = Field(None, max_length=2000)
+
+
+class StageBody(BaseModel):
+    stage: Stage | None  # None: back to "just applied"
     event_date: date | None = None
     note: str | None = Field(None, max_length=2000)
 

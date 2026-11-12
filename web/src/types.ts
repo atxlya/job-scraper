@@ -2,6 +2,8 @@
 
 export type Elig = "ok" | "warn" | "pending";
 export type Tag = "liked" | "applied" | "dismissed";
+/** After Applied. A separate field: an applied job keeps the tag "applied" whatever its stage. */
+export type Stage = "oa" | "interview" | "offer" | "rejected";
 
 export interface JobCard {
   id: number;
@@ -22,6 +24,8 @@ export interface JobCard {
   is_new: boolean;
   eligibility: Elig;
   tag: Tag | null;
+  /** Only while tag is "applied". */
+  stage: Stage | null;
   closed: boolean;
 }
 
@@ -60,8 +64,31 @@ export interface TagEvent {
   at: string;
   from_tag: Tag | null;
   to_tag: Tag | null;
+  /** A stage step has from_tag = to_tag = "applied". */
+  from_stage: Stage | null;
+  to_stage: Stage | null;
   event_date: string | null;
   note: string | null;
+}
+
+/** One step of the current application. `on` is a YYYY-MM-DD date. */
+export interface Step {
+  stage: "applied" | Stage;
+  on: string;
+  at: string;
+  note: string | null;
+}
+
+export interface Application {
+  id: number;
+  company: string;
+  company_slug: string;
+  title: string;
+  closed: boolean;
+  stage: Stage | null;
+  /** Oldest first. */
+  steps: Step[];
+  last_on: string;
 }
 
 export interface JobDetail extends JobCard {
@@ -83,6 +110,8 @@ export interface JobDetail extends JobCard {
   note: string | null;
   changes: Change[];
   tag_history: TagEvent[];
+  /** The current application's steps, oldest first; empty unless applied. */
+  steps: Step[];
 }
 
 export interface Stats {

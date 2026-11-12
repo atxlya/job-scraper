@@ -40,6 +40,7 @@ def test_card_fields(client, db):
         "is_new": True,
         "eligibility": "pending",
         "tag": None,
+        "stage": None,
         "closed": False,
     }
 

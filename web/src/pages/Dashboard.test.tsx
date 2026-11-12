@@ -27,6 +27,7 @@ function card(id: number, title: string): JobCard {
     is_new: true,
     eligibility: "pending",
     tag: null,
+    stage: null,
     closed: false,
   };
 }
@@ -54,6 +55,7 @@ function detail(c: JobCard): JobDetail {
     note: null,
     changes: [],
     tag_history: [],
+    steps: [],
   };
 }
 

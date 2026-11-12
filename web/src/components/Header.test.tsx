@@ -59,7 +59,7 @@ describe("phone header", () => {
     show({ onAddCompany: () => undefined });
     await userEvent.click(screen.getByRole("button", { name: "More actions" }));
     const items = screen.getAllByRole("menuitem").map((i) => i.textContent);
-    expect(items).toEqual(["Add company", "Sources", "Theme: System", "Log out", "Log out everywhere…"]);
+    expect(items).toEqual(["Add company", "Your applications", "Sources", "Theme: System", "Log out", "Log out everywhere…"]);
   });
 
   it("Add company calls its handler and closes the menu", async () => {
@@ -78,6 +78,15 @@ describe("phone header", () => {
     expect(screen.getByTestId("where")).toHaveTextContent("/sources");
     await userEvent.click(screen.getByRole("button", { name: "More actions" }));
     expect(screen.queryByRole("menuitem", { name: "Sources" })).not.toBeInTheDocument();
+  });
+
+  it("Your applications goes to that page, and isn't offered there", async () => {
+    show();
+    await userEvent.click(screen.getByRole("button", { name: "More actions" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Your applications" }));
+    expect(screen.getByTestId("where")).toHaveTextContent("/applications");
+    await userEvent.click(screen.getByRole("button", { name: "More actions" }));
+    expect(screen.queryByRole("menuitem", { name: "Your applications" })).not.toBeInTheDocument();
   });
 
   it("Theme cycles and keeps the menu open", async () => {
@@ -109,16 +118,17 @@ describe("phone header", () => {
     await userEvent.click(screen.getByRole("button", { name: "More actions" }));
     expect(screen.getByRole("menuitem", { name: "Add company" })).toHaveFocus();
     await userEvent.keyboard("{ArrowDown}");
-    expect(screen.getByRole("menuitem", { name: "Sources" })).toHaveFocus();
+    expect(screen.getByRole("menuitem", { name: "Your applications" })).toHaveFocus();
     await userEvent.keyboard("{ArrowUp}{ArrowUp}");
     expect(screen.getByRole("menuitem", { name: "Log out everywhere…" })).toHaveFocus();
   });
 });
 
 describe("laptop header", () => {
-  it("has search, Add company, theme and an Account menu, and nothing else", () => {
+  it("has search, Applications, Add company, theme and an Account menu, and nothing else", () => {
     laptop();
     show({ onAddCompany: () => undefined });
+    expect(screen.getByRole("link", { name: "Applications" })).toHaveAttribute("href", "/applications");
     expect(screen.getByRole("button", { name: "Add company" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Theme: / })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Account" })).toBeInTheDocument();

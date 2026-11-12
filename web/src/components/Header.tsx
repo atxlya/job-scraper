@@ -74,6 +74,13 @@ export function Header({ q, onSearch, onAddCompany }: Props) {
         </div>
         {wide ? (
           <div className="flex shrink-0 items-center gap-2">
+            <Link
+              to="/applications"
+              aria-current={pathname === "/applications" ? "page" : undefined}
+              className="inline-flex h-10 items-center rounded-[10px] border border-line bg-surface px-3.5 font-medium text-ink no-underline hover:bg-chip aria-[current=page]:border-ok-bd aria-[current=page]:bg-ok-bg aria-[current=page]:text-ok-fg"
+            >
+              Applications
+            </Link>
             {onAddCompany && (
               <Button primary onClick={onAddCompany}>
                 Add company
@@ -106,6 +113,9 @@ export function Header({ q, onSearch, onAddCompany }: Props) {
         ) : (
           <Menu label="More actions" trigger={<MoreIcon />} buttonClassName={`${square} shrink-0`}>
             {onAddCompany && <MenuItem onSelect={onAddCompany}>Add company</MenuItem>}
+            {pathname !== "/applications" && (
+              <MenuItem onSelect={() => navigate("/applications")}>Your applications</MenuItem>
+            )}
             {pathname !== "/sources" && <MenuItem onSelect={() => navigate("/sources")}>Sources</MenuItem>}
             <MenuItem keepOpen onSelect={() => setTheme(NEXT[theme])}>
               Theme: {THEME_LABEL[theme]}
