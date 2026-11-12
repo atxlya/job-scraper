@@ -28,6 +28,15 @@ describe("api", () => {
     expect(nav).toHaveBeenCalledWith("/login?next=%2Fjobs%2F3");
   });
 
+  it("a 401 while already on the login page doesn't nest another redirect", async () => {
+    const nav = vi.fn();
+    setNavigate(nav);
+    window.history.pushState({}, "", "/login?next=%2F");
+    respond(401, { detail: "Not logged in" });
+    await expect(api("/api/stats")).rejects.toBeInstanceOf(ApiError);
+    expect(nav).not.toHaveBeenCalled();
+  });
+
   it("throws the server's detail message", async () => {
     respond(422, { detail: "Not a Workday, Eightfold or Oracle HCM careers URL." });
     await expect(api("/api/sources/detect")).rejects.toMatchObject({

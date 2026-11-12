@@ -5,7 +5,9 @@ import { Logo } from "../components/Logo";
 
 function safeNext(next: string | null): string {
   // Only same-site paths, never "//evil.com" or "https://…".
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+  // Never back to /login itself, or a correct password would leave you on this page.
+  const ok = next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/login");
+  return ok ? next : "/";
 }
 
 export function Login() {

@@ -42,6 +42,12 @@ it("never redirects off-site", async () => {
   expect(await screen.findByTestId("where")).toHaveTextContent(/^\/$/);
 });
 
+it("never sends you back to the login page itself", async () => {
+  renderAt("/login?next=%2Flogin%3Fnext%3D%252Flogin%253Fnext%253D%25252F");
+  await signIn(204);
+  expect(await screen.findByTestId("where")).toHaveTextContent(/^\/$/);
+});
+
 it("shows the server's message", async () => {
   renderAt("/login");
   await signIn(503, "No dashboard password is set. Run: python -m app.cli set-password");

@@ -28,8 +28,11 @@ export async function api<T>(path: string, init: Init = {}): Promise<T> {
   }
   const res = await fetch(path, { ...rest, headers, body, credentials: "same-origin" });
   if (res.status === 401 && !path.startsWith("/api/login")) {
-    const here = window.location.pathname + window.location.search;
-    navigate(`/login?next=${encodeURIComponent(here)}`);
+    // Already on the login page: several 401s at once must not nest ?next=/login?next=…
+    if (window.location.pathname !== "/login") {
+      const here = window.location.pathname + window.location.search;
+      navigate(`/login?next=${encodeURIComponent(here)}`);
+    }
     throw new ApiError(401, "Not logged in");
   }
   if (!res.ok) throw new ApiError(res.status, await detailOf(res));
