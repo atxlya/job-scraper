@@ -35,3 +35,19 @@ export function initials(company: string): string {
 
 export const ELIG_LABEL = { ok: "Eligible", warn: "Check needed", pending: "Not checked" } as const;
 export const TAG_LABEL = { liked: "Liked", applied: "Applied", dismissed: "Dismissed" } as const;
+
+/** "DE" → 🇩🇪 (regional indicator letters). Windows shows the two letters instead. */
+export function flag(code: string | null): string {
+  if (!code || !/^[a-z]{2}$/i.test(code)) return "";
+  return [...code.toUpperCase()].map((c) => String.fromCodePoint(0x1f1a5 + c.charCodeAt(0))).join("");
+}
+
+/** A hue (0–359) that is always the same for a company, so its icon keeps its color. */
+export function companyHue(slug: string): number {
+  let h = 2166136261; // FNV-1a
+  for (const ch of slug) {
+    h ^= ch.charCodeAt(0);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) % 360;
+}

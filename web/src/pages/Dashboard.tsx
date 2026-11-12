@@ -61,6 +61,9 @@ export function Dashboard() {
   );
   const onSearch = useCallback((q: string) => set({ q }), [set]);
   const n = activeCount(f);
+  // On a laptop the first job opens by itself when none is picked; it isn't marked seen.
+  const first = jobs.data?.pages[0]?.items[0]?.id ?? null;
+  const shown = selected ?? (wide ? first : null);
   const error = jobs.error instanceof ApiError ? jobs.error.detail : jobs.error ? "Couldn't load jobs." : null;
 
   return (
@@ -76,7 +79,7 @@ export function Dashboard() {
               </FilterPanel>
             </div>
           )}
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 lg:flex-[2_1_0%]">
             <JobList
               title={f.view === "tech" ? "Tech internships" : "All jobs"}
               pages={jobs.data}
@@ -86,7 +89,7 @@ export function Dashboard() {
               loadingMore={jobs.isFetchingNextPage}
               onMore={() => jobs.fetchNextPage()}
               linkFor={linkFor}
-              selected={selected}
+              selected={shown}
               onClear={() => set({ ...DEFAULTS, view: f.view })}
               onMarkAllSeen={() => markSeen.mutate()}
               markingSeen={markSeen.isPending}
@@ -115,15 +118,20 @@ export function Dashboard() {
             />
           </div>
           {wide && (
-            <div className="min-w-0 flex-1 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
-              {selected ? (
+            <div className="min-w-0 flex-[3_1_0%] lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+              {shown ? (
                 <JobDetail
-                  id={selected}
-                  onClose={() => {
-                    const p = new URLSearchParams(params);
-                    p.delete("job");
-                    setParams(p, { replace: true });
-                  }}
+                  id={shown}
+                  picked={selected !== null}
+                  onClose={
+                    selected === null
+                      ? undefined
+                      : () => {
+                          const p = new URLSearchParams(params);
+                          p.delete("job");
+                          setParams(p, { replace: true });
+                        }
+                  }
                 />
               ) : (
                 <div className="rounded-xl border border-dashed border-line px-6 py-16 text-center text-muted">

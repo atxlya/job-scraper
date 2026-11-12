@@ -16,6 +16,11 @@ const base: Detail = {
   company_slug: "google",
   title: "Software Engineering Intern",
   location: "Bengaluru, India",
+  place: "Bengaluru, India",
+  country: "IN",
+  more_places: 0,
+  india: true,
+  remote: false,
   posted_at: "2026-11-10T08:00:00Z",
   first_seen_at: "2026-11-10T08:00:00Z",
   is_new: true,
@@ -67,15 +72,17 @@ function serve(overrides: Partial<Detail> = {}, failDescription?: ApiError) {
   });
 }
 
-function show() {
+function show(picked = true) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  render(
+  const ui = (seen: boolean) => (
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <JobDetail id={7} />
+        <JobDetail id={7} picked={seen} />
       </MemoryRouter>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
+  const { rerender } = render(ui(picked));
+  return (seen: boolean) => rerender(ui(seen));
 }
 
 const sent = (suffix: string) => calls.filter((c) => c.path.endsWith(suffix));
@@ -127,6 +134,15 @@ it("fetches a missing description once and shows it", async () => {
   expect(sent("/description")).toHaveLength(1);
 });
 
+it("a job opened for you doesn't fetch its description until you ask", async () => {
+  serve({ has_description: false, sections: null });
+  show(false);
+  await userEvent.click(await screen.findByRole("button", { name: "Fetch description" }));
+  expect(await screen.findByText("Fetched now")).toBeInTheDocument();
+  expect(sent("/description")).toHaveLength(1);
+  expect(sent("/seen")).toHaveLength(0);
+});
+
 it("shows why a description couldn't be fetched", async () => {
   serve({ has_description: false, sections: null }, new ApiError(502, "Couldn't reach careers.google.com. Try again later."));
   show();
@@ -145,6 +161,15 @@ it("eligibility box shows the degree line and the quote", async () => {
 it("marks the job as seen when opened", async () => {
   serve();
   show();
+  await waitFor(() => expect(sent("/seen")).toHaveLength(1));
+});
+
+it("doesn't mark the job seen when it was opened for you, only once you pick it", async () => {
+  serve();
+  const pick = show(false);
+  expect(await screen.findByRole("heading", { name: base.title })).toBeInTheDocument();
+  expect(sent("/seen")).toHaveLength(0);
+  pick(true);
   await waitFor(() => expect(sent("/seen")).toHaveLength(1));
 });
 

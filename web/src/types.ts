@@ -8,7 +8,15 @@ export interface JobCard {
   company: string;
   company_slug: string;
   title: string;
+  /** Every location, joined: the card's tooltip. */
   location: string;
+  /** "City, Country" of the first location. */
+  place: string;
+  /** ISO code of that country, for its flag. */
+  country: string | null;
+  more_places: number;
+  india: boolean;
+  remote: boolean;
   posted_at: string | null;
   first_seen_at: string;
   is_new: boolean;

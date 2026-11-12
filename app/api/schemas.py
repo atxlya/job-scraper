@@ -27,6 +27,11 @@ class JobCard(BaseModel):
     company_slug: str
     title: str
     location: str
+    place: str  # "City, Country" of the first location
+    country: str | None  # its ISO code, for the flag
+    more_places: int
+    india: bool
+    remote: bool
     posted_at: datetime | None
     first_seen_at: datetime
     is_new: bool

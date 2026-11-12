@@ -1,15 +1,22 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import type { JobCard as Card } from "../types";
 import { JobCard } from "./JobCard";
+
+vi.mock("../logos", () => ({ logoFor: (slug: string) => (slug === "intel" ? "/assets/intel.svg" : null) }));
 
 const base: Card = {
   id: 7,
   company: "Google",
   company_slug: "google",
   title: "Software Engineering Intern",
-  location: "Bengaluru, India",
+  location: "Bengaluru, Karnataka, India",
+  place: "Bengaluru, India",
+  country: "IN",
+  more_places: 0,
+  india: true,
+  remote: false,
   posted_at: "2026-11-10T08:00:00Z",
   first_seen_at: "2026-11-10T08:00:00Z",
   is_new: false,
@@ -44,10 +51,15 @@ it("hides NEW for seen jobs", () => {
 it.each([
   ["ok", "Eligible"],
   ["warn", "Check needed"],
-  ["pending", "Not checked"],
-] as const)("eligibility %s reads %s", (eligibility, label) => {
+] as const)("eligibility %s shows a %s badge", (eligibility, label) => {
   show({ eligibility });
   expect(screen.getByText(label)).toBeInTheDocument();
+});
+
+it("shows no eligibility badge while a job isn't checked yet", () => {
+  show({ eligibility: "pending" });
+  for (const label of ["Not checked", "Eligible", "Check needed"])
+    expect(screen.queryByText(label)).not.toBeInTheDocument();
 });
 
 it("marks closed jobs and shows the tag", () => {
@@ -56,7 +68,41 @@ it("marks closed jobs and shows the tag", () => {
   expect(screen.getByText("Applied")).toBeInTheDocument();
 });
 
-it("shows company, location and age", () => {
+it("shows company, flag and City, Country, and age", () => {
+  show({ india: false });
+  expect(screen.getByRole("link")).toHaveTextContent("Google · 🇮🇳 Bengaluru, India · 2h ago");
+});
+
+it("counts the other locations, and keeps the full list as a tooltip", () => {
+  show({ more_places: 2, location: "Bengaluru, India · Pune, India +1" });
+  expect(screen.getByText("+2")).toBeInTheDocument();
+  expect(screen.getByTitle("Bengaluru, India · Pune, India +1")).toBeInTheDocument();
+});
+
+it("marks India and remote jobs", () => {
+  show({ india: true, remote: true });
+  expect(screen.getByText("India")).toBeInTheDocument();
+  expect(screen.getByText("Remote")).toBeInTheDocument();
+});
+
+it("shows neither mark otherwise", () => {
+  show({ india: false, remote: false });
+  expect(screen.queryByText("India")).not.toBeInTheDocument();
+  expect(screen.queryByText("Remote")).not.toBeInTheDocument();
+});
+
+it("has no flag when the country is unknown", () => {
+  show({ country: null, place: "Belen", india: false });
+  expect(screen.getByRole("link")).toHaveTextContent("Google · Belen · 2h ago");
+});
+
+it("uses the company's logo when there is one", () => {
+  show({ company: "Intel", company_slug: "intel" });
+  expect(screen.getByRole("link").querySelector("img")).toHaveAttribute("src", "/assets/intel.svg");
+});
+
+it("otherwise shows initials on the company's own color", () => {
   show();
-  expect(screen.getByRole("link")).toHaveTextContent("Google · Bengaluru, India · 2h ago");
+  const icon = screen.getByText("G");
+  expect(icon.style.getPropertyValue("--hue")).toMatch(/^\d+$/);
 });

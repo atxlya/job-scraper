@@ -96,6 +96,7 @@ Free-tier inputs may be used by Google to improve its products. This is acceptab
 ## 7. Dashboard
 
 - **Default view:** tech internships, newest first, with "new" badges. A toggle switches to all jobs.
+- **Job cards:** company icon (a logo file from `web/src/logos/`, else initials on the company's own color), title (2 lines at most), company · flag + "City, Country" · "+N" more locations · age, an India or Remote chip, and an eligibility badge only once there is a result (Eligible / Check needed). On a laptop the list and the details split 40/60, and the first job opens by itself; it isn't marked seen and its description isn't fetched until you pick it. See [job-list-notes.md](job-list-notes.md).
 - **Filters:** company, location/country, eligibility (✅ / ⚠️ / unknown), posted date, tag, full-text search (SQLite FTS5), "show dismissed".
 - **Job page:** sections, eligibility result with quote, original and apply links, change log, buttons for Like / Applied / Dismiss / remove tag, and a note.
 - **Bulk action:** "Mark all as seen", in the list's title row.

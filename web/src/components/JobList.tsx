@@ -28,13 +28,13 @@ export function JobList(p: Props) {
   const total = p.pages?.pages[0]?.total ?? 0;
   return (
     <section aria-label="Jobs" className="flex min-w-0 flex-col gap-2.5">
-      <div className="flex flex-col gap-1 px-0.5 lg:flex-row lg:items-center lg:justify-between lg:gap-3">
+      <div className="flex flex-col gap-1 px-0.5">
         <div className="flex min-h-9 items-center justify-between gap-2">
           <h1 className="m-0 text-lg font-bold">{p.title}</h1>
           {p.aside}
         </div>
         <div className="flex items-center justify-between gap-3">
-          <div className="text-[13px] text-muted" aria-live="polite">
+          <div className="text-[13px] whitespace-nowrap text-muted" aria-live="polite">
             {p.loading ? "Loading…" : `${total.toLocaleString("en-IN")} · newest first`}
           </div>
           {p.onMarkAllSeen && (

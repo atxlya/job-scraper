@@ -31,6 +31,7 @@ from sqlalchemy.orm import Session
 import app.adapters  # noqa: F401  (registers adapters)
 from app.adapters.base import ADAPTERS, GONE
 from app.api.deps import get_session, ist_midnight, now, require_user
+from app.api.place import place
 from app.api.schemas import (
     Change,
     FilterOptions,
@@ -159,12 +160,18 @@ def _location(locations: list[str]) -> str:
 
 
 def card(job: Job, company: Company, analysis: JobAnalysis | None, us: JobUserState | None):
+    where = place(job.locations or [], job.country_codes or [], job.remote_type)
     return JobCard(
         id=job.id,
         company=company.name,
         company_slug=company.slug,
         title=job.title,
         location=_location(job.locations or []),
+        place=where.text,
+        country=where.country,
+        more_places=where.more,
+        india=where.india,
+        remote=where.remote,
         posted_at=job.posted_at,
         first_seen_at=job.first_seen_at,
         is_new=us is None or us.seen_at is None,

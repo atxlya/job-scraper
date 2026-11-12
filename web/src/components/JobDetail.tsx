@@ -23,7 +23,17 @@ function errorText(e: unknown, fallback: string): string {
   return e instanceof ApiError ? e.detail : fallback;
 }
 
-export function JobDetail({ id, onClose }: { id: number; onClose?: () => void }) {
+type Props = {
+  id: number;
+  onClose?: () => void;
+  /**
+   * False when the dashboard opened the job by itself. Only a job you pick is marked seen
+   * and has a missing description fetched from the company's site.
+   */
+  picked?: boolean;
+};
+
+export function JobDetail({ id, onClose, picked = true }: Props) {
   const qc = useQueryClient();
   const key = ["job", id];
   const { data: job, error } = useQuery({
@@ -34,7 +44,7 @@ export function JobDetail({ id, onClose }: { id: number; onClose?: () => void })
   // Opening a job marks it seen, and clears its NEW badge in the list without a refetch.
   const seenFor = useRef<number | null>(null);
   useEffect(() => {
-    if (seenFor.current === id) return;
+    if (!picked || seenFor.current === id) return;
     seenFor.current = id;
     api(`/api/jobs/${id}/seen`, { method: "POST" })
       .then(() => {
@@ -51,7 +61,7 @@ export function JobDetail({ id, onClose }: { id: number; onClose?: () => void })
         );
       })
       .catch(() => undefined);
-  }, [id, qc]);
+  }, [id, qc, picked]);
 
   // A job stored without a description fetches it once when opened (plan D8).
   const fetchDesc = useMutation({
@@ -60,10 +70,10 @@ export function JobDetail({ id, onClose }: { id: number; onClose?: () => void })
   });
   const fetchedFor = useRef<number | null>(null);
   useEffect(() => {
-    if (!job || job.has_description || job.closed || fetchedFor.current === id) return;
+    if (!picked || !job || job.has_description || job.closed || fetchedFor.current === id) return;
     fetchedFor.current = id;
     fetchDesc.mutate();
-  }, [job, id, fetchDesc]);
+  }, [job, id, fetchDesc, picked]);
 
   const tag = useMutation({
     mutationFn: (body: { tag: Tag | null; event_date?: string; note?: string }) =>
@@ -146,7 +156,7 @@ export function JobDetail({ id, onClose }: { id: number; onClose?: () => void })
       </div>
       {tag.error && <p role="alert" className="text-[13px] text-warn-fg">{errorText(tag.error, "Couldn't save the tag.")}</p>}
 
-      <Body job={job} fetching={fetchDesc.isPending} fetchError={fetchDesc.error} />
+      <Body job={job} fetching={fetchDesc.isPending} fetchError={fetchDesc.error} onFetch={picked ? undefined : () => fetchDesc.mutate()} />
 
       <NoteBox key={job.id} id={job.id} initial={job.note ?? ""} />
 
@@ -266,7 +276,9 @@ const SECTION_ORDER: [keyof Sections, string][] = [
   ["eligibility", "Eligibility"],
 ];
 
-function Body({ job, fetching, fetchError }: { job: Detail; fetching: boolean; fetchError: unknown }) {
+type BodyProps = { job: Detail; fetching: boolean; fetchError: unknown; onFetch?: () => void };
+
+function Body({ job, fetching, fetchError, onFetch }: BodyProps) {
   const h3 = "m-0 mb-1 text-[13px] font-semibold uppercase tracking-wide text-muted";
   if (job.sections) {
     return (
@@ -302,6 +314,13 @@ function Body({ job, fetching, fetchError }: { job: Detail; fetching: boolean; f
       <p role="alert" className="m-0 rounded-lg border border-warn-bd bg-warn-bg px-3 py-2 text-[13px] text-warn-fg">
         {errorText(fetchError, "Couldn't fetch the description.")} Open the original posting to read it.
       </p>
+    );
+  if (onFetch && !job.has_description && !job.closed)
+    return (
+      <div className="flex flex-wrap items-center gap-3 text-muted">
+        <span>The description is read from {job.company} when you open this job.</span>
+        <Button onClick={onFetch}>Fetch description</Button>
+      </div>
     );
   return <p className="m-0 text-muted">No description stored for this job.</p>;
 }
