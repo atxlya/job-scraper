@@ -15,7 +15,7 @@ It runs 24/7 on a Raspberry Pi 5 with Docker Compose. [docs/DESIGN.md](docs/DESI
 
 **Scraping**
 - **Platform adapters:** Workday, Eightfold, Oracle HCM, Lever, Greenhouse, SuccessFactors, RSS, government notice pages and more, plus company-specific adapters for sites with their own job API.
-- **Schedule:** a quick check every 30 minutes, a full sweep every night (which also detects closed jobs), and a daily re-check of the jobs you're tracking.
+- **Schedule:** a quick check every 30 minutes, a full sweep every night (which also detects closed jobs), and a daily re-check of the jobs you're tracking. All three can be changed from the dashboard.
 - **Polite by design:** robots.txt is checked before every request, each host is rate-limited, and there's an honest User-Agent. It never gets around bot protection.
 - **Accuracy checks:** each run compares its count with the total the site reports. A job is closed only when its page says "not found", or after it's missing from two complete sweeps.
 
@@ -33,7 +33,7 @@ It runs 24/7 on a Raspberry Pi 5 with Docker Compose. [docs/DESIGN.md](docs/DESI
 - **Finding jobs:** filters (company, country, eligibility, posted date, tag) and full-text search.
 - **Triage:** keyboard shortcuts on a laptop and swipes on a phone, with Undo.
 - **Applications:** stages after Applied (OA → Interview → Offer / Rejected), a timeline, and a "Your applications" page.
-- **Sources:** a health page for every source, with 14-night charts.
+- **Sources:** a health page for every source, with 14-night charts, and the scraping schedule, which you can edit.
 - **More:** CSV export of any filtered list, and you can add it to your phone's home screen.
 - **Login:** single-user password login (argon2).
 

@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router";
 import { api } from "../api";
 import { Header } from "../components/Header";
 import { NightsChart } from "../components/NightsChart";
+import { ScheduleCard } from "../components/ScheduleCard";
 import { card } from "../components/ui";
 import { ago, clockIST, dayTimeIST, duration, until } from "../format";
 import { useMedia, WIDE } from "../hooks";
@@ -201,6 +202,7 @@ export function Sources() {
         <h1 className="m-0 text-lg font-bold">Sources</h1>
         {error && <p role="alert">Couldn't load sources.</p>}
         {data && <Summary rows={rows} />}
+        <ScheduleCard />
         {wide ? (
           <div className={card}>
             <table className="w-full border-collapse text-[13px]">

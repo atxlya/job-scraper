@@ -1,15 +1,17 @@
 import asyncio
 from collections import Counter
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
 from pathlib import Path
 
 import httpx
 import pytest
+from apscheduler.util import iscoroutinefunction_partial
 from sqlalchemy import select
 
 from app.adapters.base import GONE, ListingResult, ParseError, RawJob, register
 from app.core.db import make_engine, make_session_factory
 from app.core.models import Alert, Base, Company, Job, JobUserState, ScrapeRun, Source
+from app.core.schedule import ScheduleConfig, save_schedule
 from app.http.client import PoliteClient
 from app.pipeline.classify import load_keywords
 from app.pipeline.derived import create_fts
@@ -186,12 +188,48 @@ async def test_tracked_marks_gone(ctx):
 def test_scheduler_jobs_registered(ctx):
     sched = build_scheduler(ctx)
     jobs = {j.id: j for j in sched.get_jobs()}
-    assert set(jobs) == {"incremental", "full", "tracked", "analysis"}
+    assert set(jobs) == {"incremental", "full", "tracked", "analysis", "schedule"}
     assert jobs["incremental"].trigger.interval.total_seconds() == 1800
     assert jobs["analysis"].trigger.interval.total_seconds() == 60
     assert str(jobs["full"].trigger.timezone) == "Asia/Kolkata"
     assert "hour='2'" in str(jobs["full"].trigger) and "hour='4'" in str(jobs["tracked"].trigger)
     assert jobs["incremental"].max_instances == 1 and jobs["incremental"].coalesce is True
+
+
+def _saved(ctx, cfg):
+    with ctx.session_factory() as s:
+        save_schedule(s, cfg)
+        s.commit()
+
+
+def test_scheduler_uses_saved_schedule(ctx):
+    _saved(ctx, ScheduleConfig(45, time(1, 30), time(5, 15)))
+    jobs = {j.id: j for j in build_scheduler(ctx).get_jobs()}
+    assert jobs["incremental"].trigger.interval.total_seconds() == 45 * 60
+    assert "hour='1', minute='30'" in str(jobs["full"].trigger)
+    assert "hour='5', minute='15'" in str(jobs["tracked"].trigger)
+
+
+async def test_schedule_change_picked_up_without_restart(ctx):
+    sched = build_scheduler(ctx)
+    sched.start(paused=True)
+    try:
+        watch = sched.get_job("schedule")
+        assert watch.trigger.interval.total_seconds() == 60
+        assert iscoroutinefunction_partial(watch.func)  # else APScheduler runs it unawaited
+        assert await watch.func() is False  # nothing changed
+
+        _saved(ctx, ScheduleConfig(20, time(3, 0), time(6, 45)))
+        assert await watch.func() is True
+        jobs = {j.id: j for j in sched.get_jobs()}
+        assert jobs["incremental"].trigger.interval.total_seconds() == 20 * 60
+        assert "hour='3', minute='0'" in str(jobs["full"].trigger)
+        assert "hour='6', minute='45'" in str(jobs["tracked"].trigger)
+        assert jobs["full"].args[1] == "full" and jobs["full"].max_instances == 1
+
+        assert await watch.func() is False  # applied once, not every minute
+    finally:
+        sched.shutdown(wait=False)
 
 
 async def test_details_skipped_for_non_candidates(ctx):

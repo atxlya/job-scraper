@@ -29,9 +29,17 @@ The user is a B.Tech CSE student looking for internships. Graduation year does n
 ### Schedule
 | Run | When | What |
 |---|---|---|
-| Incremental | every 30 min, all sources | newest-first, filtered searches; fetch details only for job IDs not seen before |
-| Full sweep | nightly, off-peak (≈02:00 IST) | crawl every page of every source; detect closed jobs and changed descriptions |
-| Tracked re-check | daily | re-fetch detail pages of Liked/Applied jobs; this is how Google detects closed jobs |
+| Incremental | every 30 min by default, all sources | newest-first, filtered searches; fetch details only for job IDs not seen before |
+| Full sweep | nightly, off-peak (02:00 IST by default) | crawl every page of every source; detect closed jobs and changed descriptions |
+| Tracked re-check | daily (04:00 IST by default) | re-fetch detail pages of Liked/Applied jobs; this is how Google detects closed jobs |
+
+The three can be changed on the dashboard's Sources page (**Schedule › Edit**):
+- **Storage:** the values are saved in the `settings` table under the key `schedule`. With no row, or a row that can't be used, the defaults above apply.
+- **Pick-up:** the worker re-reads them every 60 s and moves its jobs with `reschedule_job`, so a change takes effect within a minute, with no restart. Changing the quick-check interval restarts its count from that moment.
+- **Limits:**
+  - the quick check is 15–360 minutes apart, so that 100+ sites are never hit harder than every 15 minutes;
+  - the full sweep and the re-check start at least an hour apart.
+  - The API answers 422 with the reason, and the page shows it.
 
 ### Politeness and compliance
 - robots.txt is fetched, cached for 24 h, and **checked before every request**. A disallowed URL is never fetched.

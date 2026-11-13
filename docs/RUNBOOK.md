@@ -74,7 +74,7 @@ After an update that changes the search or the degree rules, rebuild the whole i
 docker compose run --rm migrate python -m app.cli reindex
 ```
 
-The worker's schedule (all times IST):
+The worker's default schedule (all times IST):
 
 | When | Run |
 |---|---|
@@ -82,6 +82,10 @@ The worker's schedule (all times IST):
 | 02:00 | Full sweep of every source |
 | 04:00 | Re-check Liked/Applied jobs and Google jobs for closures |
 | Every 60 s | Gemini analysis of queued jobs |
+
+The first three can be changed on the dashboard's **Sources** page (**Schedule › Edit**). The worker picks the change up within a minute; it doesn't need a restart. The limits:
+- the quick check is 15–360 minutes apart;
+- the full sweep and the re-check start at least an hour apart.
 
 ### On the Raspberry Pi
 1. Install Raspberry Pi OS 64-bit, then Docker:

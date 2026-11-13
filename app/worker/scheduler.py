@@ -14,7 +14,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from app.core.db import make_engine, make_session_factory
 from app.core.registry import load_registry, sync_registry
-from app.core.schedule import FULL_AT, INCREMENTAL_MINUTES, TRACKED_AT, TZ
+from app.core.schedule import TZ, ScheduleConfig, load_schedule
 from app.core.settings import Settings, get_settings
 from app.http.client import PoliteClient
 from app.pipeline.classify import load_keywords
@@ -50,32 +50,49 @@ def build_ctx(settings: Settings) -> Ctx:
     )
 
 
+COMMON = {"max_instances": 1, "coalesce": True, "misfire_grace_time": 600}
+
+
+def _triggers(cfg: ScheduleConfig) -> dict[str, IntervalTrigger | CronTrigger]:
+    return {
+        "incremental": IntervalTrigger(minutes=cfg.incremental_minutes, timezone=TZ),
+        "full": CronTrigger(hour=cfg.full_at.hour, minute=cfg.full_at.minute, timezone=TZ),
+        "tracked": CronTrigger(hour=cfg.tracked_at.hour, minute=cfg.tracked_at.minute, timezone=TZ),
+    }
+
+
+class ScheduleWatch:
+    """Re-reads the schedule saved from the dashboard and moves the jobs when it changes."""
+
+    def __init__(self, sched: AsyncIOScheduler, ctx: Ctx, current: ScheduleConfig) -> None:
+        self.sched, self.ctx, self.current = sched, ctx, current
+
+    async def check(self) -> bool:
+        with self.ctx.session_factory() as s:
+            cfg = load_schedule(s)
+        if cfg == self.current:
+            return False
+        for job_id, trigger in _triggers(cfg).items():
+            self.sched.reschedule_job(job_id, trigger=trigger)
+        log.info("schedule changed: %s", cfg)
+        self.current = cfg
+        return True
+
+
 def build_scheduler(ctx: Ctx) -> AsyncIOScheduler:
+    with ctx.session_factory() as s:
+        cfg = load_schedule(s)
     sched = AsyncIOScheduler(timezone=TZ)
-    common = {"max_instances": 1, "coalesce": True, "misfire_grace_time": 600}
+    for job_id, trigger in _triggers(cfg).items():
+        sched.add_job(run_all, trigger, args=[ctx, job_id], id=job_id, **COMMON)
     sched.add_job(
-        run_all,
-        IntervalTrigger(minutes=INCREMENTAL_MINUTES, timezone=TZ),
-        args=[ctx, "incremental"],
-        id="incremental",
-        **common,
+        analysis_tick, IntervalTrigger(seconds=60, timezone=TZ), args=[ctx], id="analysis", **COMMON
     )
     sched.add_job(
-        run_all,
-        CronTrigger(hour=FULL_AT.hour, minute=FULL_AT.minute, timezone=TZ),
-        args=[ctx, "full"],
-        id="full",
-        **common,
-    )
-    sched.add_job(
-        run_all,
-        CronTrigger(hour=TRACKED_AT.hour, minute=TRACKED_AT.minute, timezone=TZ),
-        args=[ctx, "tracked"],
-        id="tracked",
-        **common,
-    )
-    sched.add_job(
-        analysis_tick, IntervalTrigger(seconds=60, timezone=TZ), args=[ctx], id="analysis", **common
+        ScheduleWatch(sched, ctx, cfg).check,  # a bound async method: APScheduler awaits it
+        IntervalTrigger(seconds=60, timezone=TZ),
+        id="schedule",
+        **COMMON,
     )
     return sched
 
@@ -98,7 +115,7 @@ async def main() -> None:
         from app.worker.poller import poll_forever  # noqa: PLC0415
 
         tasks.append(asyncio.create_task(poll_forever(ctx)))  # the alerts' tag buttons
-    await run_all(ctx, "incremental")  # do not wait 30 min for the first run
+    await run_all(ctx, "incremental")  # do not wait for the first interval
     await asyncio.Event().wait()
 
 

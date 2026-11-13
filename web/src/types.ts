@@ -165,8 +165,11 @@ export interface Run extends LastRun {
 }
 
 export interface Schedule {
-  next_full_at: string;
   incremental_minutes: number;
+  full_at: string; // "02:00" IST
+  tracked_at: string;
+  next_full_at: string;
+  next_tracked_at: string;
 }
 
 export interface Detected {

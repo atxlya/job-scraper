@@ -21,12 +21,20 @@ from app.api.schemas import (
     Night,
     RunOut,
     Schedule,
+    ScheduleBody,
     SourceHealth,
     Stats,
     UrlBody,
 )
 from app.core.models import Company, Job, JobUserState, ScrapeRun, Source, TagHistory
-from app.core.schedule import INCREMENTAL_MINUTES, TZ, next_full_at
+from app.core.schedule import (
+    TZ,
+    ScheduleConfig,
+    ScheduleError,
+    load_schedule,
+    next_daily,
+    save_schedule,
+)
 from app.sources import detect as detection
 from app.sources.checks import evaluate
 
@@ -182,11 +190,35 @@ def source_runs(key: str, s: Sess) -> list[RunOut]:
     ]
 
 
-@router.get("/schedule")
-def schedule(at: Now) -> Schedule:
+def _schedule_out(cfg: ScheduleConfig, at: datetime) -> Schedule:
     return Schedule(
-        next_full_at=next_full_at(at).astimezone(UTC), incremental_minutes=INCREMENTAL_MINUTES
+        incremental_minutes=cfg.incremental_minutes,
+        full_at=cfg.full_at.strftime("%H:%M"),
+        tracked_at=cfg.tracked_at.strftime("%H:%M"),
+        next_full_at=next_daily(at, cfg.full_at).astimezone(UTC),
+        next_tracked_at=next_daily(at, cfg.tracked_at).astimezone(UTC),
     )
+
+
+@router.get("/schedule")
+def schedule(s: Sess, at: Now) -> Schedule:
+    return _schedule_out(load_schedule(s), at)
+
+
+@router.put("/schedule")
+def change_schedule(body: ScheduleBody, s: Sess, at: Now) -> Schedule:
+    """Saved here; the worker picks it up within a minute (app.worker.scheduler)."""
+    cfg = ScheduleConfig(
+        body.incremental_minutes,
+        time.fromisoformat(body.full_at),
+        time.fromisoformat(body.tracked_at),
+    )
+    try:
+        save_schedule(s, cfg)
+    except ScheduleError as e:
+        raise HTTPException(422, str(e)) from None
+    s.commit()
+    return _schedule_out(cfg, at)
 
 
 @router.post("/sources/detect")

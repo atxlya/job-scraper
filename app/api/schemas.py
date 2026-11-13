@@ -187,9 +187,18 @@ class RunOut(LastRun):
     error: str | None
 
 
-class Schedule(BaseModel):
-    next_full_at: datetime
+HHMM = r"^([01]\d|2[0-3]):[0-5]\d$"
+
+
+class ScheduleBody(BaseModel):
     incremental_minutes: int
+    full_at: str = Field(pattern=HHMM)  # IST, "02:00"
+    tracked_at: str = Field(pattern=HHMM)
+
+
+class Schedule(ScheduleBody):
+    next_full_at: datetime
+    next_tracked_at: datetime
 
 
 class UrlBody(BaseModel):

@@ -77,7 +77,14 @@ const runs: Run[] = [
 function serve() {
   mockApi.mockImplementation(async (path: string) => {
     if (path === "/api/sources") return rows;
-    if (path === "/api/schedule") return { next_full_at: "2099-01-01T20:30:00Z", incremental_minutes: 30 };
+    if (path === "/api/schedule")
+      return {
+        incremental_minutes: 30,
+        full_at: "02:00",
+        tracked_at: "04:00",
+        next_full_at: "2099-01-01T20:30:00Z",
+        next_tracked_at: "2099-01-01T22:30:00Z",
+      };
     if (path === "/api/sources/accenture/runs") return runs;
     return undefined;
   });

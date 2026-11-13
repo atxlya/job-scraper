@@ -338,4 +338,44 @@ def test_schedule_next_full_sweep(client, app, at, expected):
     assert client.get("/api/schedule").json() == {
         "next_full_at": expected,
         "incremental_minutes": 30,
+        "full_at": "02:00",
+        "tracked_at": "04:00",
+        "next_tracked_at": "2026-11-11T22:30:00Z" if at == NOW else "2026-11-10T22:30:00Z",
     }
+
+
+def test_schedule_change_is_saved(client, app):
+    app.dependency_overrides[now] = lambda: NOW  # 10:00 IST
+    body = {"incremental_minutes": 45, "full_at": "01:30", "tracked_at": "11:00"}
+    r = client.put("/api/schedule", json=body)
+    assert r.status_code == 200
+    assert r.json() == {
+        **body,
+        "next_full_at": "2026-11-11T20:00:00Z",  # 01:30 IST tomorrow
+        "next_tracked_at": "2026-11-11T05:30:00Z",  # 11:00 IST today
+    }
+    assert client.get("/api/schedule").json() == r.json()
+
+
+@pytest.mark.parametrize(
+    ("body", "detail"),
+    [
+        ({"incremental_minutes": 5, "full_at": "02:00", "tracked_at": "04:00"}, "at least 15"),
+        ({"incremental_minutes": 30, "full_at": "02:00", "tracked_at": "02:20"}, "an hour apart"),
+    ],
+)
+def test_schedule_change_rejected(client, body, detail):
+    r = client.put("/api/schedule", json=body)
+    assert r.status_code == 422 and detail in r.json()["detail"]
+    assert client.get("/api/schedule").json()["incremental_minutes"] == 30  # unchanged
+
+
+@pytest.mark.parametrize("bad", ["2:00", "24:00", "02:60", "noon"])
+def test_schedule_bad_time_format(client, bad):
+    body = {"incremental_minutes": 30, "full_at": bad, "tracked_at": "04:00"}
+    assert client.put("/api/schedule", json=body).status_code == 422
+
+
+def test_schedule_change_needs_login(anon):
+    body = {"incremental_minutes": 45, "full_at": "01:30", "tracked_at": "11:00"}
+    assert anon.put("/api/schedule", json=body).status_code == 401
