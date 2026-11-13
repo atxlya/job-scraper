@@ -55,7 +55,7 @@ def test_shipped_registry_valid():
     specs = load_registry(SHIPPED)
     supported = [c for c in specs if c.supported]
     unsupported = [c for c in specs if not c.supported]
-    assert len(supported) == 61
+    assert len(supported) == 106
     assert len(unsupported) == 17 and all(c.reason for c in unsupported)
     assert all(c.sources and all(s.enabled for s in c.sources) for c in supported)
     assert all(s.adapter in ADAPTERS for c in supported for s in c.sources)

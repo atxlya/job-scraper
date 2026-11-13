@@ -1,6 +1,6 @@
 # Job Scraper
 
-A self-hosted tracker for **tech internships**. It reads the official careers sites of 61 companies, stores every job it finds, and sends a Telegram alert for each new tech internship, with an eligibility check for a student based in India. A dashboard, reachable over Tailscale, is for browsing, tagging and tracking applications.
+A self-hosted tracker for **tech internships**. It reads the official careers sites of 106 companies, stores every job it finds, and sends a Telegram alert for each new tech internship, with an eligibility check for a student based in India. A dashboard, reachable over Tailscale, is for browsing, tagging and tracking applications.
 
 It is built to run 24/7 on a Raspberry Pi 5 with Docker Compose. [docs/DESIGN.md](docs/DESIGN.md) is the source of truth for what it does and why.
 

@@ -4,7 +4,7 @@ Agreed on 2026-11-10. This is the source of truth for what we are building. Per-
 
 ## 1. What it does
 
-A service running 24/7 on a Raspberry Pi 5. It reads the official careers sites of 61 companies, stores every job it finds, and sends a Telegram alert for each new **tech internship**, including an eligibility check for a student based in **India**. A dashboard, reachable from anywhere through Tailscale, is used to browse jobs, tag them (Liked / Applied / Dismissed) and see whether each scraper is healthy.
+A service running 24/7 on a Raspberry Pi 5. It reads the official careers sites of 106 companies, stores every job it finds, and sends a Telegram alert for each new **tech internship**, including an eligibility check for a student based in **India**. A dashboard, reachable from anywhere through Tailscale, is used to browse jobs, tag them (Liked / Applied / Dismissed) and see whether each scraper is healthy.
 
 The user is a B.Tech CSE student looking for internships. Graduation year does not matter.
 
@@ -182,5 +182,6 @@ docs/
 | **R2** | Dashboard (after mockups); Lever, Greenhouse and the remaining company-specific JSON adapters | 43 |
 | **R3** | SuccessFactors sitemaps, RSS, government/notice pages, partial sources | 55 |
 | **R4** | Last 7 sites (planned as headless; all plain HTTP) | 61 |
+| **Added 2026-11-13** | 45 more on Greenhouse and Workday: quant and trading firms, banks, chip makers, big tech ([candidate-companies.md](candidate-companies.md)) | 106 |
 
 Each release is checked against the live sites before the next one starts. Development and testing happen on the Mac, then the same Compose stack is deployed to the Pi.

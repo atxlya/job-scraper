@@ -132,6 +132,65 @@ robots.txt: careers.techmahindra.com, sharechat.mynexthire.com, careers.ril.com 
 
 ---
 
+## Added 2026-11-13: +45 (106 total), Greenhouse and Workday
+
+Found and checked as described in [candidate-companies.md](candidate-companies.md): each board was read once through the Add company path, then every source passed `live-check --mode full` (complete, and the count matches the site's total). The intern search for Workday boards is the text `intern`; no intern facet IDs were set up. "Jobs" is what the full check read on 2026-11-13.
+
+| Company | Key | Adapter | Board | Jobs |
+|---|---|---|---|---|
+| Databricks | `databricks` | `greenhouse` | databricks | 907 |
+| Stripe | `stripe` | `greenhouse` | stripe | 788 |
+| Coinbase | `coinbase` | `greenhouse` | coinbase | 270 |
+| Rubrik | `rubrik` | `greenhouse` | rubrik | 181 |
+| MongoDB | `mongodb` | `greenhouse` | mongodb | 386 |
+| Datadog | `datadog` | `greenhouse` | datadog | 386 |
+| Twilio | `twilio` | `greenhouse` | twilio | 116 |
+| Figma | `figma` | `greenhouse` | figma | 143 |
+| Airbnb | `airbnb` | `greenhouse` | airbnb | 214 |
+| Pinterest | `pinterest` | `greenhouse` | pinterest | 166 |
+| Robinhood | `robinhood` | `greenhouse` | robinhood | 160 |
+| Dropbox | `dropbox` | `greenhouse` | dropbox | 42 |
+| Reddit | `reddit` | `greenhouse` | reddit | 146 |
+| Instacart | `instacart` | `greenhouse` | instacart | 90 |
+| Lyft | `lyft` | `greenhouse` | lyft | 152 |
+| Discord | `discord` | `greenhouse` | discord | 25 |
+| Tower Research Capital | `tower-research` | `greenhouse` | towerresearchcapital | 93 |
+| Graviton Research Capital | `graviton` | `greenhouse` | gravitonresearchcapital | 21 |
+| IMC Trading | `imc` | `greenhouse` | imc | 158 |
+| Jump Trading | `jump-trading` | `greenhouse` | jumptrading | 92 |
+| Squarepoint Capital | `squarepoint` | `greenhouse` | squarepointcapital | 91 |
+| Qube Research & Technologies | `qube` | `greenhouse` | quberesearchandtechnologies | 210 |
+| WorldQuant | `worldquant` | `greenhouse` | worldquant | 82 |
+| Hudson River Trading | `hudson-river-trading` | `greenhouse` | wehrtyou | 82 |
+| DRW | `drw` | `greenhouse` | drweng | 159 |
+| Akuna Capital | `akuna` | `greenhouse` | akunacapital | 31 |
+| Virtu Financial | `virtu` | `greenhouse` | virtu | 45 |
+| Five Rings | `five-rings` | `greenhouse` | fiveringsllc | 19 |
+| Jane Street | `jane-street` | `greenhouse` | janestreet | 217 |
+| Okta | `okta` | `greenhouse` | okta | 364 |
+| GitLab | `gitlab` | `greenhouse` | gitlab | 253 |
+| Elastic | `elastic` | `greenhouse` | elastic | 398 |
+| HPE | `hpe` | `workday` | hpe.wd5 · Jobsathpe | 1,789 |
+| Analog Devices | `analog-devices` | `workday` | analogdevices.wd1 · External | 770 |
+| Micron | `micron` | `workday` | micron.wd1 · External, split by `jobFamilyGroup` | 2,894 |
+| State Street | `state-street` | `workday` | statestreet.wd1 · Global | 1,198 |
+| Autodesk | `autodesk` | `workday` | autodesk.wd1 · Ext | 4 |
+| Citi | `citi` | `workday` | citi.wd5 · 2, split by `Country_and_Jurisdiction` (the site reports 2,000, its cap) | 4,216 |
+| Capital One | `capital-one` | `workday` | capitalone.wd12 · Capital_One, split by `jobFamilyGroup` | 2,058 |
+| Northern Trust | `northern-trust` | `workday` | ntrs.wd1 · northerntrust | 657 |
+| LSEG | `lseg` | `workday` | lseg.wd3 · Careers | 676 |
+| S&P Global | `sp-global` | `workday` | spgi.wd5 · SPGI_Careers | 344 |
+| Nasdaq | `nasdaq` | `workday` | nasdaq.wd1 · Global_External_Site | 176 |
+| HP Inc | `hp` | `workday` | hp.wd5 · ExternalCareerSite | 931 |
+| Zoom | `zoom` | `workday` | zoom.wd5 · Zoom | 69 |
+
+**Notes:**
+- **Splits.** Citi, Capital One and Micron list more than Workday's 2,000 cap, so their nightly sweep is split by a facet whose largest slice is under 2,000. The facet names differ per board, and were read from each board's own `facets`.
+- **Few India jobs or internships.** Several boards are here at your request even though they have none of one or the other today: Dropbox, Reddit, Instacart and Discord have neither, and Jane Street shows no intern-like titles. They cost one request each per run.
+- **robots.txt.** Every board was read through `PoliteClient`, which checks robots.txt first; none refused.
+
+---
+
 ## Not supported
 
 These are not built. Check them manually.

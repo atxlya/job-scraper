@@ -234,6 +234,101 @@ companies:
           site: External
           intern_facets: {workerSubType: [dc8bf79476611087dfde99931439ae75]}
 
+  # ---------------------------------------------------------------- Workday, added 2026-11-13
+  # (docs/candidate-companies.md: checked live through the Add company path)
+  - slug: hpe
+    name: HPE
+    sources:
+      - key: hpe
+        adapter: workday
+        config: {host: hpe.wd5.myworkdayjobs.com, tenant: hpe, site: Jobsathpe,
+                 intern_search: intern}
+  - slug: analog-devices
+    name: Analog Devices
+    sources:
+      - key: analog-devices
+        adapter: workday
+        config: {host: analogdevices.wd1.myworkdayjobs.com, tenant: analogdevices,
+                 site: External, intern_search: intern}
+  - slug: micron
+    name: Micron
+    sources:
+      - key: micron
+        adapter: workday
+        config: {host: micron.wd1.myworkdayjobs.com, tenant: micron, site: External,
+                 intern_search: intern, split_facets: [jobFamilyGroup]}
+  - slug: state-street
+    name: State Street
+    sources:
+      - key: state-street
+        adapter: workday
+        config: {host: statestreet.wd1.myworkdayjobs.com, tenant: statestreet, site: Global,
+                 intern_search: intern}
+  - slug: autodesk
+    name: Autodesk
+    sources:
+      - key: autodesk
+        adapter: workday
+        config: {host: autodesk.wd1.myworkdayjobs.com, tenant: autodesk, site: Ext,
+                 intern_search: intern}
+
+  - slug: citi
+    name: Citi
+    sources:
+      - key: citi
+        adapter: workday
+        config: {host: citi.wd5.myworkdayjobs.com, tenant: citi, site: 2,
+                 intern_search: intern, split_facets: [Country_and_Jurisdiction]}
+  - slug: northern-trust
+    name: Northern Trust
+    sources:
+      - key: northern-trust
+        adapter: workday
+        config: {host: ntrs.wd1.myworkdayjobs.com, tenant: ntrs, site: northerntrust,
+                 intern_search: intern}
+  - slug: lseg
+    name: LSEG
+    sources:
+      - key: lseg
+        adapter: workday
+        config: {host: lseg.wd3.myworkdayjobs.com, tenant: lseg, site: Careers,
+                 intern_search: intern}
+  - slug: sp-global
+    name: S&P Global
+    sources:
+      - key: sp-global
+        adapter: workday
+        config: {host: spgi.wd5.myworkdayjobs.com, tenant: spgi, site: SPGI_Careers,
+                 intern_search: intern}
+  - slug: nasdaq
+    name: Nasdaq
+    sources:
+      - key: nasdaq
+        adapter: workday
+        config: {host: nasdaq.wd1.myworkdayjobs.com, tenant: nasdaq, site: Global_External_Site,
+                 intern_search: intern}
+  - slug: capital-one
+    name: Capital One
+    sources:
+      - key: capital-one
+        adapter: workday
+        config: {host: capitalone.wd12.myworkdayjobs.com, tenant: capitalone, site: Capital_One,
+                 intern_search: intern, split_facets: [jobFamilyGroup]}
+  - slug: hp
+    name: HP Inc
+    sources:
+      - key: hp
+        adapter: workday
+        config: {host: hp.wd5.myworkdayjobs.com, tenant: hp, site: ExternalCareerSite,
+                 intern_search: intern}
+  - slug: zoom
+    name: Zoom
+    sources:
+      - key: zoom
+        adapter: workday
+        config: {host: zoom.wd5.myworkdayjobs.com, tenant: zoom, site: Zoom,
+                 intern_search: intern}
+
   # ---------------------------------------------------------------- Eightfold (5 more)
   - slug: microsoft
     name: Microsoft
@@ -339,6 +434,104 @@ companies:
   - slug: inmobi
     name: InMobi
     sources: [{key: inmobi, adapter: greenhouse, config: {board: inmobi}}]
+
+  # ---------------------------------------------------------------- Greenhouse, added 2026-11-13
+  - slug: databricks
+    name: Databricks
+    sources: [{key: databricks, adapter: greenhouse, config: {board: databricks}}]
+  - slug: stripe
+    name: Stripe
+    sources: [{key: stripe, adapter: greenhouse, config: {board: stripe}}]
+  - slug: coinbase
+    name: Coinbase
+    sources: [{key: coinbase, adapter: greenhouse, config: {board: coinbase}}]
+  - slug: rubrik
+    name: Rubrik
+    sources: [{key: rubrik, adapter: greenhouse, config: {board: rubrik}}]
+  - slug: mongodb
+    name: MongoDB
+    sources: [{key: mongodb, adapter: greenhouse, config: {board: mongodb}}]
+  - slug: datadog
+    name: Datadog
+    sources: [{key: datadog, adapter: greenhouse, config: {board: datadog}}]
+  - slug: twilio
+    name: Twilio
+    sources: [{key: twilio, adapter: greenhouse, config: {board: twilio}}]
+  - slug: figma
+    name: Figma
+    sources: [{key: figma, adapter: greenhouse, config: {board: figma}}]
+  - slug: airbnb
+    name: Airbnb
+    sources: [{key: airbnb, adapter: greenhouse, config: {board: airbnb}}]
+  - slug: pinterest
+    name: Pinterest
+    sources: [{key: pinterest, adapter: greenhouse, config: {board: pinterest}}]
+  - slug: robinhood
+    name: Robinhood
+    sources: [{key: robinhood, adapter: greenhouse, config: {board: robinhood}}]
+  - slug: dropbox
+    name: Dropbox
+    sources: [{key: dropbox, adapter: greenhouse, config: {board: dropbox}}]
+  - slug: reddit
+    name: Reddit
+    sources: [{key: reddit, adapter: greenhouse, config: {board: reddit}}]
+  - slug: instacart
+    name: Instacart
+    sources: [{key: instacart, adapter: greenhouse, config: {board: instacart}}]
+  - slug: lyft
+    name: Lyft
+    sources: [{key: lyft, adapter: greenhouse, config: {board: lyft}}]
+  - slug: discord
+    name: Discord
+    sources: [{key: discord, adapter: greenhouse, config: {board: discord}}]
+  - slug: tower-research
+    name: Tower Research Capital
+    sources: [{key: tower-research, adapter: greenhouse, config: {board: towerresearchcapital}}]
+  - slug: graviton
+    name: Graviton Research Capital
+    sources: [{key: graviton, adapter: greenhouse, config: {board: gravitonresearchcapital}}]
+  - slug: imc
+    name: IMC Trading
+    sources: [{key: imc, adapter: greenhouse, config: {board: imc}}]
+  - slug: jump-trading
+    name: Jump Trading
+    sources: [{key: jump-trading, adapter: greenhouse, config: {board: jumptrading}}]
+  - slug: squarepoint
+    name: Squarepoint Capital
+    sources: [{key: squarepoint, adapter: greenhouse, config: {board: squarepointcapital}}]
+  - slug: qube
+    name: Qube Research & Technologies
+    sources: [{key: qube, adapter: greenhouse, config: {board: quberesearchandtechnologies}}]
+  - slug: worldquant
+    name: WorldQuant
+    sources: [{key: worldquant, adapter: greenhouse, config: {board: worldquant}}]
+  - slug: hudson-river-trading
+    name: Hudson River Trading
+    sources: [{key: hudson-river-trading, adapter: greenhouse, config: {board: wehrtyou}}]
+  - slug: drw
+    name: DRW
+    sources: [{key: drw, adapter: greenhouse, config: {board: drweng}}]
+  - slug: akuna
+    name: Akuna Capital
+    sources: [{key: akuna, adapter: greenhouse, config: {board: akunacapital}}]
+  - slug: virtu
+    name: Virtu Financial
+    sources: [{key: virtu, adapter: greenhouse, config: {board: virtu}}]
+  - slug: five-rings
+    name: Five Rings
+    sources: [{key: five-rings, adapter: greenhouse, config: {board: fiveringsllc}}]
+  - slug: jane-street
+    name: Jane Street
+    sources: [{key: jane-street, adapter: greenhouse, config: {board: janestreet}}]
+  - slug: okta
+    name: Okta
+    sources: [{key: okta, adapter: greenhouse, config: {board: okta}}]
+  - slug: gitlab
+    name: GitLab
+    sources: [{key: gitlab, adapter: greenhouse, config: {board: gitlab}}]
+  - slug: elastic
+    name: Elastic
+    sources: [{key: elastic, adapter: greenhouse, config: {board: elastic}}]
 
   # ---------------------------------------------------------------- R2b: own sites (9)
   - slug: amazon
