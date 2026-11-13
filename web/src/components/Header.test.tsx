@@ -125,10 +125,11 @@ describe("phone header", () => {
 });
 
 describe("laptop header", () => {
-  it("has search, Applications, Add company, theme and an Account menu, and nothing else", () => {
+  it("has search, Applications, Sources, Add company, theme and an Account menu, and nothing else", () => {
     laptop();
     show({ onAddCompany: () => undefined });
     expect(screen.getByRole("link", { name: "Applications" })).toHaveAttribute("href", "/applications");
+    expect(screen.getByRole("link", { name: "Sources" })).toHaveAttribute("href", "/sources");
     expect(screen.getByRole("button", { name: "Add company" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Theme: / })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Account" })).toBeInTheDocument();

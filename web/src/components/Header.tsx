@@ -10,6 +10,10 @@ import { Button } from "./ui";
 const NEXT: Record<ThemeMode, ThemeMode> = { system: "light", light: "dark", dark: "system" };
 const THEME_LABEL: Record<ThemeMode, string> = { system: "System", light: "Light", dark: "Dark" };
 const square = "h-11 w-11 rounded-[10px] border border-line bg-surface text-ink hover:bg-chip lg:h-10 lg:w-10";
+const NAV = [
+  ["/applications", "Applications"],
+  ["/sources", "Sources"],
+] as const;
 
 type Props = {
   q: string;
@@ -17,7 +21,7 @@ type Props = {
   onAddCompany?: () => void;
 };
 
-/** Phone: logo, search and one ⋯ menu. Laptop: search, Add company, theme and an Account menu. */
+/** Phone: logo, search and one ⋯ menu. Laptop: search, Applications, Sources, Add company, theme and an Account menu. */
 export function Header({ q, onSearch, onAddCompany }: Props) {
   const [text, setText] = useState(q);
   const [theme, setTheme] = useTheme();
@@ -74,13 +78,16 @@ export function Header({ q, onSearch, onAddCompany }: Props) {
         </div>
         {wide ? (
           <div className="flex shrink-0 items-center gap-2">
-            <Link
-              to="/applications"
-              aria-current={pathname === "/applications" ? "page" : undefined}
-              className="inline-flex h-10 items-center rounded-[10px] border border-line bg-surface px-3.5 font-medium text-ink no-underline hover:bg-chip aria-[current=page]:border-ok-bd aria-[current=page]:bg-ok-bg aria-[current=page]:text-ok-fg"
-            >
-              Applications
-            </Link>
+            {NAV.map(([to, label]) => (
+              <Link
+                key={to}
+                to={to}
+                aria-current={pathname === to ? "page" : undefined}
+                className="inline-flex h-10 items-center rounded-[10px] border border-line bg-surface px-3.5 font-medium text-ink no-underline hover:bg-chip aria-[current=page]:border-ok-bd aria-[current=page]:bg-ok-bg aria-[current=page]:text-ok-fg"
+              >
+                {label}
+              </Link>
+            ))}
             {onAddCompany && (
               <Button primary onClick={onAddCompany}>
                 Add company
