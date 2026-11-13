@@ -66,7 +66,7 @@ Oracle HCM sites use `GET https://{host}/hcmRestApi/resources/latest/recruitingC
 
 ## R2 — +15 (43 total)
 
-Built in R2b ([plan](superpowers/plans/2026-11-11-r2b-adapters.md), [notes](R2b-notes.md)). Every endpoint was re-checked live on **2026-11-11**. Meta and Goldman Sachs moved to [Not supported](#not-supported).
+Built in R2b ([plan](history/plans/2026-11-11-r2b-adapters.md), [notes](history/R2b-notes.md)). Every endpoint was re-checked live on **2026-11-11**. Meta and Goldman Sachs moved to [Not supported](#not-supported).
 
 | Company | Adapter | Source details | Internship filter / notes |
 |---|---|---|---|
@@ -115,7 +115,7 @@ Notice sources set `allow_empty: true`, since a government page with no current 
 
 ## R4 — +6 (61 total), plain HTTP
 
-Planned as the "headless" release; checked live on 2026-11-11 through `PoliteClient`, and no site needs a browser ([plan](superpowers/plans/2026-11-11-r4-headless.md), [notes](R4-notes.md)). Urban Company moved to [Not supported](#not-supported). "Jobs" is what the full-mode live check read.
+Planned as the "headless" release; checked live on 2026-11-11 through `PoliteClient`, and no site needs a browser ([plan](history/plans/2026-11-11-r4-headless.md), [notes](history/R4-notes.md)). Urban Company moved to [Not supported](#not-supported). "Jobs" is what the full-mode live check read.
 
 | Company | Adapter | Source details | Jobs |
 |---|---|---|---|
@@ -217,4 +217,3 @@ These are not built. Check them manually.
 
 Possible later revisit: SmartRecruiters' public job pages are now read as JSON for PhonePe and Swiggy (see R2). A company's job list on `jobs.smartrecruiters.com/{Company}` might work the same way, which could move Freshworks, Bosch and ServiceNow back to automated.
 
-Note: `companies.txt` line 58 "vPayPal" is PayPal.

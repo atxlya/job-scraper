@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.13, httpx via `PoliteClient`, selectolax (HTML), stdlib `xml.etree.ElementTree` (sitemaps, RSS), respx + pytest. React/TypeScript only for one label map.
 
-**Spec:** [docs/DESIGN.md](../../DESIGN.md) §3 (scraping, politeness, accuracy checks), §6 (government notices, partial sources), §11 (testing), §12 (releases). Per-company evidence: [docs/companies.md](../../companies.md) "R3 — +14". Earlier decisions: [R1-notes.md](../../R1-notes.md), [R2-notes.md](../../R2-notes.md), [R2b-notes.md](../../R2b-notes.md). Every endpoint below was probed live on **2026-11-11** through `PoliteClient` (robots.txt checked). The shapes, IDs, titles and status codes quoted are from those responses.
+**Spec:** [docs/DESIGN.md](../../DESIGN.md) §3 (scraping, politeness, accuracy checks), §6 (government notices, partial sources), §11 (testing), §12 (releases). Per-company evidence: [docs/companies.md](../../companies.md) "R3 — +14". Earlier decisions: [R1-notes.md](../R1-notes.md), [R2-notes.md](../R2-notes.md), [R2b-notes.md](../R2b-notes.md). Every endpoint below was probed live on **2026-11-11** through `PoliteClient` (robots.txt checked). The shapes, IDs, titles and status codes quoted are from those responses.
 
 ## Decisions this plan makes (the spec is silent or open)
 

@@ -60,7 +60,7 @@ Branch `fix-deferred`, 2026-11-11. Every code item in the "Left for later" secti
 - Filter counts are done in SQL. The counts are the same, and they take about 100 ms at 40,000 jobs (145–195 ms before).
 
 **Operations**
-- `docker compose up` indexes only jobs missing from search (`reindex --missing-only`). The [RUNBOOK](RUNBOOK.md) shows the full rebuild for updates that change the search or degree rules.
+- `docker compose up` indexes only jobs missing from search (`reindex --missing-only`). The [RUNBOOK](../RUNBOOK.md) shows the full rebuild for updates that change the search or degree rules.
 
 ## Already fixed before this branch
 

@@ -1,6 +1,6 @@
 # R2b build notes: Lever, Greenhouse and company adapters
 
-What was built, what was checked, and where the build differed from the [plan](superpowers/plans/2026-11-11-r2b-adapters.md). Branch `r2b-adapters`, 2026-11-11.
+What was built, what was checked, and where the build differed from the [plan](plans/2026-11-11-r2b-adapters.md). Branch `r2b-adapters`, 2026-11-11.
 
 ## Status
 

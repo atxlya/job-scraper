@@ -10,3 +10,4 @@ __pycache__/
 backups/
 web/node_modules/
 web/dist/
+.claude/

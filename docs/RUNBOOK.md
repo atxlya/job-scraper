@@ -166,7 +166,7 @@ docker compose restart migrate worker
 
 ## R1 verification
 
-See [R1-notes.md](R1-notes.md) for the full results and the decisions made during the build. In short:
+See [R1-notes.md](history/R1-notes.md) for the full results and the decisions made during the build. In short:
 
 - **Tests:** 172 pass. **Live check:** all 32 sources return real jobs. **Real runs:** 1,351 jobs on the first run, with no duplicates on the second.
 - **Still to do, needs your Telegram + Gemini keys:** run `uv run python -m app.cli analyze-one --job-id <id>` against a real job, then leave `docker compose up -d` running for 24 h with a test Telegram chat.

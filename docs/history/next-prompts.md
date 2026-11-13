@@ -22,7 +22,7 @@ Suggested order: 1 → 2 → 4 → 5, then whatever you want next.
 
 ## Ground rules (every prompt)
 
-- Read [DESIGN.md](DESIGN.md) first; it's the source of truth. §2 lists what is out of scope. Then read the latest notes ([deferred-fixes-notes.md](deferred-fixes-notes.md)) so you know what was decided recently.
+- Read [DESIGN.md](../DESIGN.md) first; it's the source of truth. §2 lists what is out of scope. Then read the latest notes ([deferred-fixes-notes.md](deferred-fixes-notes.md)) so you know what was decided recently.
 - Work on a new branch off `main`. Don't commit or merge until I say so.
 - Write the failing test first. Backend: `uv run pytest`. Dashboard: `cd web && npm run check`. Both must pass at the end.
 - Database changes go in a new Alembic migration in `migrations/versions/`. Never edit an old one.

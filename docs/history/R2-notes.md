@@ -1,6 +1,6 @@
 # R2a build notes: the dashboard
 
-What was built, what was checked, and where the build differed from the [plan](superpowers/plans/2026-11-11-r2-dashboard.md). Branch `r2-dashboard`, 2026-11-11. The 17 new companies (R2b) are a separate plan.
+What was built, what was checked, and where the build differed from the [plan](plans/2026-11-11-r2-dashboard.md). Branch `r2-dashboard`, 2026-11-11. The 17 new companies (R2b) are a separate plan.
 
 ## Status
 

@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.13, FastAPI, SQLAlchemy 2, Alembic, SQLite FTS5, argon2-cffi, itsdangerous (Starlette sessions), nh3 (HTML sanitising). React 19, Vite, TypeScript (strict), Tailwind CSS 4, React Router 7, TanStack Query 5, `@fontsource-variable/inter`, Vitest + Testing Library.
 
-**Spec:** [docs/DESIGN.md](../../DESIGN.md) §7 (dashboard), §3 (Add company), §4 (data model), §8 (stack). The visual reference is mockup A (`Main.dc.html`) on the [mockups canvas](https://claude.ai/artifact/MNDeo5ywPB3Td9eCdsYgpn). The R1 decisions are in [docs/R1-notes.md](../../R1-notes.md). Lever, Greenhouse and the 17 new companies are a separate plan (R2b).
+**Spec:** [docs/DESIGN.md](../../DESIGN.md) §7 (dashboard), §3 (Add company), §4 (data model), §8 (stack). The visual reference is mockup A (`Main.dc.html`) on the [mockups canvas](https://claude.ai/artifact/MNDeo5ywPB3Td9eCdsYgpn). The R1 decisions are in [docs/R1-notes.md](../R1-notes.md). Lever, Greenhouse and the 17 new companies are a separate plan (R2b).
 
 ## Decisions this plan makes (the spec is silent or open)
 

@@ -1,6 +1,6 @@
 # R3 build notes: sitemaps, feeds and notice pages
 
-What was built, what was checked, and where the build differed from the [plan](superpowers/plans/2026-11-11-r3-sitemaps-feeds-notices.md). Branch `r3-adapters`, 2026-11-11.
+What was built, what was checked, and where the build differed from the [plan](plans/2026-11-11-r3-sitemaps-feeds-notices.md). Branch `r3-adapters`, 2026-11-11.
 
 ## Status
 

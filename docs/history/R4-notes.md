@@ -1,6 +1,6 @@
 # R4 build notes: the last seven sites
 
-What was built, what was checked, and where the build differed from the [plan](superpowers/plans/2026-11-11-r4-headless.md). Branch `r4-adapters`, 2026-11-11.
+What was built, what was checked, and where the build differed from the [plan](plans/2026-11-11-r4-headless.md). Branch `r4-adapters`, 2026-11-11.
 
 R4 was planned as the "headless (Playwright)" release. Checking each site through `PoliteClient` showed that none needs a browser: six give their jobs as server HTML, a form POST or the JSON the page itself calls, and Urban Company's only source is disallowed by robots.txt. So no Playwright was added: no new dependency, no Chromium in the Docker image, nothing extra running on the Pi.
 

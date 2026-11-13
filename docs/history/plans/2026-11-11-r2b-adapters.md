@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.13, httpx via `PoliteClient`, pydantic, selectolax (not needed by any new adapter), respx + pytest for tests. React/TypeScript only for two label maps.
 
-**Spec:** [docs/DESIGN.md](../../DESIGN.md) §3 (scraping, politeness, accuracy checks), §11 (testing), §12 (releases). Per-company evidence: [docs/companies.md](../../companies.md) "R2 — +17". R1 and R2a decisions: [R1-notes.md](../../R1-notes.md), [R2-notes.md](../../R2-notes.md). Every endpoint below was probed live on **2026-11-11** through `PoliteClient` (robots.txt checked). The shapes quoted are from those responses.
+**Spec:** [docs/DESIGN.md](../../DESIGN.md) §3 (scraping, politeness, accuracy checks), §11 (testing), §12 (releases). Per-company evidence: [docs/companies.md](../../companies.md) "R2 — +17". R1 and R2a decisions: [R1-notes.md](../R1-notes.md), [R2-notes.md](../R2-notes.md). Every endpoint below was probed live on **2026-11-11** through `PoliteClient` (robots.txt checked). The shapes quoted are from those responses.
 
 ## Decisions this plan makes (the spec is silent or open)
 

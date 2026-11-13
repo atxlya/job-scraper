@@ -1,6 +1,6 @@
 # R1 build notes
 
-What was built for R1, what was checked, and every place the build differed from the [plan](superpowers/plans/2026-11-10-r1-pipeline.md). Branch `r1-pipeline`, 2026-11-10.
+What was built for R1, what was checked, and every place the build differed from the [plan](plans/2026-11-10-r1-pipeline.md). Branch `r1-pipeline`, 2026-11-10.
 
 ## Status
 

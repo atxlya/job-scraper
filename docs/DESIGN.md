@@ -38,7 +38,7 @@ The user is a B.Tech CSE student looking for internships. Graduation year does n
 - Rate limit per host: about 1 request every 2–3 s. Requests time out, retry with exponential backoff and jitter, and back off for longer on 429 or 5xx responses.
 - An honest User-Agent that names no personal details.
 - Google: only **page 1** of narrow searches (intern level × country, sorted by date), because robots.txt disallows `&page=`.
-- No headless browser where plain HTTP works. None of the 7 sites planned as headless (group D) needed a browser: 6 work over plain HTTP and 1 is blocked by robots.txt (see [R4-notes.md](R4-notes.md)).
+- No headless browser where plain HTTP works. None of the 7 sites planned as headless (group D) needed a browser: 6 work over plain HTTP and 1 is blocked by robots.txt (see [R4-notes.md](history/R4-notes.md)).
 
 ### Accuracy checks
 - Each run compares the number of jobs it read with the total the site reports. A mismatch marks the run **failed**, not successful.
@@ -68,7 +68,7 @@ The user is a B.Tech CSE student looking for internships. Graduation year does n
 
 **Closed jobs:** never deleted. A job tagged Applied is never hidden, whatever its stage (Rejected included) and whether or not it has closed.
 
-**Stages after Applied:** a separate field next to the tag, not more tag values, so every rule about applied jobs (never hidden, the Applied count, the daily re-check, "closed" messages) holds at every stage. Leaving Applied clears the stage; its history stays. See [stages-notes.md](stages-notes.md).
+**Stages after Applied:** a separate field next to the tag, not more tag values, so every rule about applied jobs (never hidden, the Applied count, the daily re-check, "closed" messages) holds at every stage. Leaving Applied clears the stage; its history stays. See [stages-notes.md](history/stages-notes.md).
 
 ## 5. Classification and Gemini
 
@@ -95,7 +95,7 @@ Free-tier inputs may be used by Google to improve its products. This is acceptab
   - **A job with a stage after Applied** isn't changed by any button: Telegram answers "At Interview: change it on the dashboard".
   - **No buttons** on grouped burst messages, first-run summaries, health warnings or "closed" messages. Alerts sent before this was added have none either, until the eligibility edit adds them.
   - A tag changed on the dashboard shows on the buttons only at that alert's next edit. A button's press always sets what its label says, so an out-of-date button can't undo a dashboard change.
-- **Closed jobs:** when a job you liked or applied to closes (either rule in §3), you get "🔒 Closed: company · title" with the dashboard link. Several in one round go in one grouped message. At most one per job, ever (`closed_alerts` is unique on the job). A job tagged only after it had closed doesn't count. See [telegram-buttons-notes.md](telegram-buttons-notes.md).
+- **Closed jobs:** when a job you liked or applied to closes (either rule in §3), you get "🔒 Closed: company · title" with the dashboard link. Several in one round go in one grouped message. At most one per job, ever (`closed_alerts` is unique on the job). A job tagged only after it had closed doesn't count. See [telegram-buttons-notes.md](history/telegram-buttons-notes.md).
 - **First run per source:** stores everything quietly and sends one summary ("Loaded N existing internships").
 - **Bursts:** more than 10 new internships in one run are sent as one grouped message.
 - **No repeats:** each job gets at most one alert, even if it closes and reopens (the `alerts` table has a unique key on the job).
@@ -106,7 +106,7 @@ Free-tier inputs may be used by Google to improve its products. This is acceptab
 ## 7. Dashboard
 
 - **Default view:** tech internships, newest first, with "new" badges. A toggle switches to all jobs.
-- **Job cards:** company icon (a logo file from `web/src/logos/`, else initials on the company's own color), title (2 lines at most), company · flag + "City, Country" · "+N" more locations · age, an India or Remote chip, and an eligibility badge only once there is a result (Eligible / Check needed). On a laptop the list and the details split 40/60, and the first job opens by itself; it isn't marked seen and its description isn't fetched until you pick it. See [job-list-notes.md](job-list-notes.md).
+- **Job cards:** company icon (a logo file from `web/src/logos/`, else initials on the company's own color), title (2 lines at most), company · flag + "City, Country" · "+N" more locations · age, an India or Remote chip, and an eligibility badge only once there is a result (Eligible / Check needed). On a laptop the list and the details split 40/60, and the first job opens by itself; it isn't marked seen and its description isn't fetched until you pick it. See [job-list-notes.md](history/job-list-notes.md).
 - **Filters:** company, location/country, eligibility (✅ / ⚠️ / unknown), posted date, tag, full-text search (SQLite FTS5), "show dismissed".
 - **Job page:** sections, eligibility result with quote, original and apply links, change log, buttons for Like / Applied / Dismiss / remove tag, and a note.
   - **Once a job is Applied:** a "Your application" box with a stage picker (Applied › OA › Interview › Offer, and Rejected from any of them). Picking a stage asks for its date (today by default) and an optional note. Under it, a timeline of the steps since the last move into Applied, newest first, with each date and how long ago it was.
@@ -116,15 +116,15 @@ Free-tier inputs may be used by Google to improve its products. This is acceptab
   - "Mark all as seen".
   - "Export CSV" (shown when the list isn't empty). It downloads `/api/jobs.csv` with the list's filters and order: company, title, locations, posted, tag, stage, eligibility, apply URL, dashboard URL, first seen (IST). The API sends it in batches of 500 rows without reading descriptions. A cell starting with `=` `+` `-` `@`, a tab or a carriage return gets a leading `'`, so a spreadsheet won't run it as a formula.
 - **Home-screen app:** `web/public/manifest.webmanifest` (standalone, start `/`), icons made from the logo by `scripts/make_icons.py`, and an apple-touch-icon. The phone's status bar takes the header color of the theme in use. There's no service worker and no offline mode: every visit loads live data. The manifest and icons are served without login, because they hold no data.
-- **Triage:** on a laptop, single keys act on the open job (j/k move, l Like, a Applied today, d Dismiss and move on, u remove tag, z undo, o open the apply link, / search, Esc, ? the list); on a phone, swipe a card right to Like or left to Dismiss. Dismissing and swiping show a 5-second Undo toast. See [triage-notes.md](triage-notes.md).
+- **Triage:** on a laptop, single keys act on the open job (j/k move, l Like, a Applied today, d Dismiss and move on, u remove tag, z undo, o open the apply link, / search, Esc, ? the list); on a phone, swipe a card right to Like or left to Dismiss. Dismissing and swiping show a 5-second Undo toast. See [triage-notes.md](history/triage-notes.md).
 - **Stats strip:** new today · open tech internships · liked · applied (every applied job, whatever its stage; "last on" is the last move into Applied, not a stage step). Each one is a button that shows the jobs it counts (it replaces the other filters, so the list matches the number). Tiles on laptop and tablet, one sideways-scrolling row of chips on a phone.
-- **Header:** phone: logo, search and one ⋯ menu (Add company, Sources, Theme, Log out, Log out everywhere). Laptop: search, Add company, theme and an Account menu. See [phone-header-notes.md](phone-header-notes.md).
+- **Header:** phone: logo, search and one ⋯ menu (Add company, Sources, Theme, Log out, Log out everywhere). Laptop: search, Add company, theme and an Account menu. See [phone-header-notes.md](history/phone-header-notes.md).
 - **Health panel:** one row per source: last success, job count, last error, failure streak.
-- **Sources page:** a summary line ("62 OK · 1 partial · 1 failing") and the next full sweep; failing sources first (longest streak first), then partial runs and count-drop warnings, then OK by company. Each source has a 14-night chart of its full sweep's read count (a failed night is an orange dot), its last run's kind and duration, and its last 20 runs on a click. Cards on a phone. See [sources-page-notes.md](sources-page-notes.md).
+- **Sources page:** a summary line ("62 OK · 1 partial · 1 failing") and the next full sweep; failing sources first (longest streak first), then partial runs and count-drop warnings, then OK by company. Each source has a 14-night chart of its full sweep's read count (a failed night is an orange dot), its last run's kind and duration, and its last 20 runs on a click. Cards on a phone. See [sources-page-notes.md](history/sources-page-notes.md).
 - **"Add company" form:** see §3.
 - **Look:** chosen from 2–3 mockups before any UI code is written. Light and dark themes; works on phone and laptop.
 - **Access:** single-user password login (argon2 hash, HTTP-only session cookie), reachable over Tailscale. Nothing is exposed to the public internet.
-- **Built in R2:** the decisions made while building it (D1–D14: where added companies are stored, default filters, closed and dismissed jobs, and so on) are in the [R2 dashboard plan](superpowers/plans/2026-11-11-r2-dashboard.md#decisions-this-plan-makes-the-spec-is-silent-or-open), and the results are in [R2-notes.md](R2-notes.md).
+- **Built in R2:** the decisions made while building it (D1–D14: where added companies are stored, default filters, closed and dismissed jobs, and so on) are in the [R2 dashboard plan](history/plans/2026-11-11-r2-dashboard.md#decisions-this-plan-makes-the-spec-is-silent-or-open), and the results are in [R2-notes.md](history/R2-notes.md).
 
 ## 8. Stack
 
@@ -132,7 +132,7 @@ Free-tier inputs may be used by Google to improve its products. This is acceptab
 |---|---|
 | Backend | Python 3.12, FastAPI, Pydantic, SQLAlchemy 2, Alembic |
 | HTTP | httpx (with HTTP/2), selectolax/BeautifulSoup for HTML, `extruct`-style JSON-LD parsing |
-| Headless | none (no site needs it; see [R4-notes.md](R4-notes.md)) |
+| Headless | none (no site needs it; see [R4-notes.md](history/R4-notes.md)) |
 | Scheduler | APScheduler in a separate **worker** process |
 | LLM | provider interface, with a Gemini implementation (`google-genai`) |
 | Alerts | channel interface, with a Telegram Bot API implementation |

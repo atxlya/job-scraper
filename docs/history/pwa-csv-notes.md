@@ -22,7 +22,7 @@ Branch `pwa-and-csv`, 2026-11-12, cut from `application-stages`. This is prompt 
   - theme `#ffffff`, background `#f6f7f9`
   - icons: 192, 512, and a maskable 512
 - `web/public/icons/`: those three icons plus a 180 px `apple-touch-icon.png`.
-  - They're drawn from the favicon's artwork by [scripts/make_icons.py](../scripts/make_icons.py), which renders SVG with headless Chrome, so no image library joins the project.
+  - They're drawn from the favicon's artwork by [scripts/make_icons.py](../../scripts/make_icons.py), which renders SVG with headless Chrome, so no image library joins the project.
   - The maskable icon and the iOS icon are full squares, because the OS cuts its own shape. The maskable bag is shrunk to sit inside the safe zone.
 - `index.html`: tags for the manifest, the apple-touch-icon, standalone mode on iOS and Android, the iOS app title "Jobs", and a status-bar color for each theme.
 - `theme.ts`: a theme picked in the app also sets the status-bar color. Otherwise the phone would follow the system theme while the page showed the other one.
