@@ -66,7 +66,6 @@ from app.core.models import (
     TagHistory,
     UTCDateTime,
 )
-from app.core.tags import STAGE_LABEL
 from app.http.client import RobotsDisallowed, RobotsUnavailable
 from app.pipeline.derived import fts_query
 from app.pipeline.ingest import apply_detail, mark_gone, raw_from_job
@@ -211,17 +210,14 @@ def list_jobs(
 # --- CSV export ---------------------------------------------------------------------------
 
 EXPORT_BATCH = 500  # rows read from SQLite, and written out, at a time
+# Made to be read by an AI when sorting jobs and writing resumes: what the job is, and
+# links back to it. Tags, dates and eligibility are filters in the dashboard instead.
 EXPORT_HEADER = [
     "Company",
     "Title",
     "Locations",
-    "Posted",
-    "Tag",
-    "Stage",
-    "Eligibility",
     "Apply URL",
     "Dashboard URL",
-    "First seen (IST)",
     "About",
     "Responsibilities",
     "Requirements",
@@ -230,8 +226,6 @@ EXPORT_HEADER = [
 ]
 SECTION_KEYS = ("responsibilities", "requirements", "preferred")
 CELL_MAX = 32_000  # Excel and Google Sheets cut a cell at 32,767 characters
-ELIG_LABEL = {"ok": "Eligible", "warn": "Check needed", "pending": "Not checked"}
-TAG_LABEL = {"liked": "Liked", "applied": "Applied", "dismissed": "Dismissed"}
 # A spreadsheet runs a cell starting with one of these as a formula (OWASP's list). Titles
 # and locations come from other people's sites, so every text cell is guarded.
 FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
@@ -271,10 +265,16 @@ def _sections(analysis: JobAnalysis | None) -> list[str]:
     return [_long(about), *(_long(b) for b in bullets)]
 
 
+def _description(job: Job, summary: list[str]) -> str:
+    """The full posting only when Gemini hasn't summarised the job: the summary holds what
+    matters, and the rest (company blurb, benefits, legal text) is most of the file."""
+    return "" if any(summary) else _long(_plain(job.description_html))
+
+
 def _csv_rows(sf, stmt: Select, dashboard: str) -> Iterator[bytes]:
     """Yields the file in pieces, one batch of rows each. Opens its own session: the
     request's is closed before a streamed body is sent. The session holds rows weakly, so
-    a batch is freed once written. Descriptions are read too, a batch at a time."""
+    a batch is freed once written."""
     out = io.StringIO()
     writer = csv.writer(out)
     out.write("\ufeff")  # BOM: Excel otherwise reads UTF-8 as Latin-1
@@ -282,23 +282,17 @@ def _csv_rows(sf, stmt: Select, dashboard: str) -> Iterator[bytes]:
     with sf() as s:
         result = s.execute(stmt.execution_options(yield_per=EXPORT_BATCH))
         for batch in result.partitions():
-            for job, company, analysis, us in batch:
-                tag = us.tag if us else None
-                stage = us.stage if us and tag == "applied" else None
+            for job, company, analysis, _us in batch:
+                summary = _sections(analysis)
                 writer.writerow(
                     [
                         _cell(company.name),
                         _cell(job.title),
                         _cell("; ".join(job.locations or [])),
-                        job.posted_at.astimezone(IST).date().isoformat() if job.posted_at else "",
-                        TAG_LABEL.get(tag, ""),
-                        STAGE_LABEL.get(stage, ""),
-                        ELIG_LABEL[eligibility(job, analysis).status],
                         _cell(job.apply_url or job.url),
                         f"{dashboard}/jobs/{job.id}",
-                        job.first_seen_at.astimezone(IST).strftime("%Y-%m-%d %H:%M"),
-                        *_sections(analysis),
-                        _long(_plain(job.description_html)),
+                        *summary,
+                        _description(job, summary),
                     ]
                 )
             yield out.getvalue().encode("utf-8")

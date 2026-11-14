@@ -12,13 +12,8 @@ HEADER = [
     "Company",
     "Title",
     "Locations",
-    "Posted",
-    "Tag",
-    "Stage",
-    "Eligibility",
     "Apply URL",
     "Dashboard URL",
-    "First seen (IST)",
     "About",
     "Responsibilities",
     "Requirements",
@@ -55,18 +50,13 @@ def test_header_and_one_row(client, app, db):
         "Google",
         "Software Engineering Intern",
         "Bengaluru, India; Pune, India",
-        "2026-11-10",
-        "",
-        "",
-        "Eligible",
         j.apply_url,
         f"http://testserver/jobs/{j.id}",
-        "2026-11-10 13:30",
         "",
         "",
         "",
         "",
-        "x",
+        "x",  # no summary yet, so the full posting
     ]
 
 
@@ -91,19 +81,6 @@ def test_bad_filter_is_422(client):
     assert client.get("/api/jobs.csv?loc=nowhere").status_code == 422
 
 
-def test_tag_stage_and_eligibility_labels(client, db):
-    a = seed_job(db, title="A Intern", analysis="warn", quote="US students only")
-    b = seed_job(db, title="B Intern", first_seen=T0 - DAY)
-    client.put(f"/api/jobs/{a.id}/tag", json={"tag": "applied"})
-    client.put(f"/api/jobs/{a.id}/stage", json={"stage": "interview"})
-    client.put(f"/api/jobs/{b.id}/tag", json={"tag": "liked"})
-    got = {r[1]: (r[4], r[5], r[6]) for r in rows(client.get("/api/jobs.csv"))[1:]}
-    assert got == {
-        "A Intern": ("Applied", "Interview", "Check needed"),
-        "B Intern": ("Liked", "", "Not checked"),
-    }
-
-
 def test_dashboard_url_setting_wins(tmp_path):
     from fastapi.testclient import TestClient  # noqa: PLC0415
 
@@ -114,7 +91,7 @@ def test_dashboard_url_setting_wins(tmp_path):
         j = seed_job(s)
     with TestClient(app) as c:
         c.post("/api/login", json={"password": PASSWORD})
-        assert rows(c.get("/api/jobs.csv"))[1][8] == f"http://pi:8000/jobs/{j.id}"
+        assert rows(c.get("/api/jobs.csv"))[1][4] == f"http://pi:8000/jobs/{j.id}"
 
 
 # Text a spreadsheet would run as a formula (OWASP's list: = + - @ tab, carriage return).
@@ -186,23 +163,40 @@ def test_description_and_gemini_sections(client, db):
         ),
     )
     row = rows(client.get("/api/jobs.csv"))[1]
-    about, resp, req, pref, desc = row[10:]
+    about, resp, req, pref, desc = row[5:]
     assert about == "Train models."
     assert resp == "• Write code\n• Run experiments"
     assert req == "• Python\n• -Linear algebra"
     assert pref == ""
-    assert desc == "About\nWe build models.\n• Python\n• PyTorch\nLine\nbreak"
+    assert desc == ""  # summarised, so the long posting is left out
 
 
 def test_not_yet_read_by_gemini_still_has_the_description(client, db):
     seed_job(db, description="<p>Hello</p>")
     row = rows(client.get("/api/jobs.csv"))[1]
-    assert row[10:] == ["", "", "", "", "Hello"]
+    assert row[5:] == ["", "", "", "", "Hello"]
+
+
+def test_posting_is_plain_text_a_line_per_paragraph(client, db):
+    seed_job(
+        db,
+        description=(
+            "<h3>About</h3><p>We build <b>models</b>.</p>"
+            "<ul><li>Python</li><li>PyTorch</li></ul><p>Line<br>break</p>"
+        ),
+    )
+    desc = rows(client.get("/api/jobs.csv"))[1][9]
+    assert desc == "About\nWe build models.\n• Python\n• PyTorch\nLine\nbreak"
+
+
+def test_read_but_empty_summary_keeps_the_posting(client, db):
+    seed_job(db, analysis="ok", sections={}, description="<p>Hello</p>")
+    assert rows(client.get("/api/jobs.csv"))[1][9] == "Hello"
 
 
 def test_description_is_guarded_and_cut_to_fit_a_cell(client, db):
     seed_job(db, title="A Intern", description="<p>=cmd()</p>")
     seed_job(db, title="B Intern", description="<p>" + "y" * 40_000 + "</p>", first_seen=T0 - DAY)
-    got = {r[1]: r[14] for r in rows(client.get("/api/jobs.csv"))[1:]}
+    got = {r[1]: r[9] for r in rows(client.get("/api/jobs.csv"))[1:]}
     assert got["A Intern"] == "'=cmd()"
     assert len(got["B Intern"]) == jobs_api.CELL_MAX and got["B Intern"].endswith("…")
