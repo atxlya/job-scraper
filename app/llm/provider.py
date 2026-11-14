@@ -26,6 +26,10 @@ class RateLimited(Exception):
     """The provider answered 429 / quota exceeded."""
 
 
+class Busy(Exception):
+    """The provider is overloaded or briefly down (5xx). Not our quota: try again later."""
+
+
 class LlmProvider(Protocol):
     async def analyze(self, title: str, text: str) -> Analysis: ...
 

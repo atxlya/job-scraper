@@ -150,6 +150,22 @@ def set_password() -> int:
     return 0
 
 
+def retry_failed() -> int:
+    """Puts jobs whose Gemini read failed back in the queue."""
+    from sqlalchemy import update  # noqa: PLC0415
+
+    from app.core.models import Job  # noqa: PLC0415
+
+    sf = build_ctx(get_settings()).session_factory
+    with sf() as s:
+        n = s.execute(
+            update(Job).where(Job.analysis_state == "failed").values(analysis_state="pending")
+        ).rowcount
+        s.commit()
+    print(f"{n} jobs queued for Gemini again")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m app.cli")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -164,7 +180,10 @@ def main(argv: list[str] | None = None) -> int:
     ao.add_argument("--job-id", type=int, required=True)
     sub.add_parser("reindex").add_argument("--missing-only", action="store_true")
     sub.add_parser("set-password")
+    sub.add_parser("retry-failed")
     a = ap.parse_args(argv)
+    if a.cmd == "retry-failed":
+        return retry_failed()
     if a.cmd == "set-password":
         return set_password()
     if a.cmd == "reindex":

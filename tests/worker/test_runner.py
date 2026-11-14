@@ -491,3 +491,59 @@ async def test_applied_job_gone_on_recheck_sends_closed_message(ctx):
     assert ctx.channel.sent == [
         '🔒 Closed: <b>t</b> · Software Intern\n<a href="https://f/1">Posting</a>'
     ]
+
+
+async def test_analysis_tick_sorts_titles_then_reads_within_the_minute_budget(ctx):
+    from types import SimpleNamespace  # noqa: PLC0415
+
+    from app.llm.pacer import Pacer  # noqa: PLC0415
+    from app.llm.provider import Analysis, Sections  # noqa: PLC0415
+    from app.worker.runner import analysis_tick  # noqa: PLC0415
+
+    class Prov:
+        def __init__(self):
+            self.analyzed: list[str] = []
+            self.classified: list[list[str]] = []
+
+        async def classify_titles(self, titles):
+            self.classified.append(list(titles))
+            return [(True, "HR" not in t) for t in titles]
+
+        async def analyze(self, title, text):
+            self.analyzed.append(title)
+            return Analysis(
+                sections=Sections(
+                    about="a", responsibilities=[], requirements=[], preferred=[], eligibility=[]
+                ),
+                is_internship=True,
+                is_tech=True,
+                eligibility="ok",
+            )
+
+    with ctx.session_factory() as s:
+        c = Company(slug="x", name="X")
+        s.add(c)
+        s.flush()
+        for i, (title, intern, tech) in enumerate(
+            [("Clear Intern 1", True, True), ("Clear Intern 2", True, True),
+             ("Odd Title", None, None), ("HR Thing", None, None)]
+        ):  # fmt: skip
+            s.add(
+                Job(company_id=c.id, external_id=str(i), url="u", title=title,
+                    description_html="<p>Build things.</p>", country_codes=["IN"],
+                    content_hash="h", is_internship=intern, is_tech=tech,
+                    first_seen_at=T0, last_seen_at=T0, source_ids=[1])
+            )  # fmt: skip
+        s.commit()
+    prov = Prov()
+    ctx.provider = prov
+    ctx.pacer = Pacer(ctx.session_factory, rpm=100, daily_cap=100)
+    ctx.channel = None
+    ctx.settings = SimpleNamespace(gemini_rpm=3, gemini_model="m", dashboard_url=None)
+    await analysis_tick(ctx)
+    assert prov.classified == [["HR Thing", "Odd Title"]]  # newest first
+    assert len(prov.analyzed) == 2  # 3 a minute: 1 for the titles, 2 reads
+    with ctx.session_factory() as s:
+        hr = s.scalars(select(Job).where(Job.title == "HR Thing")).one()
+        assert hr.is_tech is False  # left the queue without a full read
+    assert "HR Thing" not in prov.analyzed

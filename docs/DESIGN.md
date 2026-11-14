@@ -84,12 +84,12 @@ The three can be changed on the dashboard's Sources page (**Schedule › Edit**)
 2. **Gemini handles the rest**, for tech internships and for jobs the rules can't classify:
    - splits the posting into About / Responsibilities / Requirements / Preferred / Eligibility;
    - checks eligibility for someone in India: `ok`, or `warn` with the **exact quoted line** (e.g. US enrolment, local work authorisation);
-   - classifies the unclear cases (titles batched about 20 per request).
+   - classifies the unclear cases first, from the title alone, 20 titles per request, so jobs that turn out not to be tech internships leave the queue without a full read.
 3. **Guardrails:** the prompt requires verbatim quotes as evidence, and the output is validated against a JSON schema. A quote that does not appear in the source text is rejected, and the result falls back to `unknown`. Gemini never invents a requirement.
 4. **Model:** `gemini-3.5-flash-lite`, free tier only, with no paid fallback. The model name is a setting.
-5. **Pacing:** stay well under the limits: at most about 5 requests per minute, plus a daily cap of 50–70% of the limit actually observed, tuned from 429 responses. Google publishes no fixed free-tier table; limits are per project and reset at midnight Pacific time (13:30 IST).
+5. **Pacing:** Google's free tier for this model allows 15 requests a minute and 500 a day (seen in AI Studio, Nov 2026). The defaults use all of it, to clear the backlog: `GEMINI_RPM=15`, `GEMINI_DAILY_CAP=500`. Any other use of the same key (AI Studio, `analyze-one`) counts against the same 500, so the last few requests of a day may get a 429. Each minute spends one request on unclear titles (when there are any) and the rest on full reads. A 429 pauses 2 minutes; a second one that day stops for the day and learns a lower cap. A 503 ("high demand") is Google being busy, not our quota: it pauses 2 minutes and the job stays queued. Limits are per project and reset at midnight Pacific time (13:30 IST).
 6. **Queue priority:** new jobs first, then the backlog (newest first, India first). The first run's backlog of about 1,000–1,500 internships is spread over 2–3 days.
-7. **Gemini down or out of quota:** the job is still stored and still alerted, marked "eligibility not checked yet", and analysed later.
+7. **Gemini down or out of quota:** the job is still stored and still alerted, marked "eligibility not checked yet", and analysed later. A job whose read failed for another reason is marked `failed`; `python -m app.cli retry-failed` puts those back in the queue.
 
 Free-tier inputs may be used by Google to improve its products. This is acceptable because only public job text is sent.
 

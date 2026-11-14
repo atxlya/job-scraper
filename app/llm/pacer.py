@@ -2,6 +2,7 @@
 
 - At most `rpm` requests in any 60 s window.
 - At most `daily_cap` requests per Pacific-time day (Google resets quotas at midnight PT).
+- A busy answer (503 "high demand") pauses for 2 minutes, with no other effect.
 - A 429 pauses for 2 minutes. A second 429 on the same day stops for the day and
   learns a lower daily cap (60% of what that day managed) for the days after.
 """
@@ -68,6 +69,9 @@ class Pacer:
             s.commit()
         self._recent.append(now)
         return True
+
+    def on_busy(self) -> None:
+        self._pause_until = self._clock() + PAUSE
 
     def on_rate_limited(self) -> None:
         now = self._clock()

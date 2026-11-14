@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from app.core.db import make_engine, make_session_factory
 from app.core.models import Base, Company, Job, JobAnalysis, LlmUsage
-from app.llm.pacer import Pacer
+from app.llm.pacer import PACIFIC, Pacer
 from app.llm.provider import Analysis, RateLimited, Sections, validate_quotes
 from app.llm.queue import next_jobs, run_analysis_batch
 
@@ -246,3 +246,126 @@ def test_prompt_flags_degree_level_for_a_bachelors_student():
 
     assert "Bachelor's" in PROMPT and "PhD or Master's" in PROMPT
     assert PROMPT_VERSION == "2"
+
+
+# --- busy server, title triage ------------------------------------------------
+
+
+async def test_busy_server_leaves_job_pending_and_pauses(sf):
+    from app.llm.provider import Busy  # noqa: PLC0415
+
+    with sf() as s:
+        j = add_job(s, "a", T0)
+        add_job(s, "b", T0 - timedelta(days=1))
+        s.commit()
+    ft = FakeTime()
+    pacer = Pacer(sf, rpm=100, daily_cap=100, clock=ft.clock, sleep=ft.sleep)
+    prov = FakeProvider(exc=Busy("503"))
+    assert await run_analysis_batch(sf, prov, pacer, model="m", now=T0) == []
+    assert prov.calls == 1  # stops at the first busy answer
+    with sf() as s:
+        assert {x.analysis_state for x in s.scalars(select(Job))} == {"pending"}
+    before = ft.now
+    assert await pacer.acquire()  # next request waits out the pause
+    assert ft.now - before == timedelta(seconds=120)
+    with sf() as s:
+        assert s.get(Job, j.id).analysis_state == "pending"
+
+
+class TitleProvider(FakeProvider):
+    def __init__(self, answers=None, exc=None):
+        super().__init__()
+        self.answers, self.exc, self.seen = answers or {}, exc, []
+
+    async def classify_titles(self, titles):
+        self.seen.append(list(titles))
+        if self.exc:
+            raise self.exc
+        return [self.answers.get(t, (False, False)) for t in titles]
+
+
+async def test_triage_settles_unclear_titles_in_one_request(sf):
+    from app.llm.queue import triage_titles  # noqa: PLC0415
+
+    with sf() as s:
+        a = add_job(s, "a", T0, intern=None, tech=None)
+        b = add_job(s, "b", T0 - timedelta(hours=1), intern=True, tech=None)
+        add_job(s, "c", T0, intern=True, tech=True)  # already clear
+        add_job(s, "d", T0, intern=False, tech=None)  # already out of the queue
+        s.commit()
+    ft = FakeTime()
+    pacer = Pacer(sf, rpm=100, daily_cap=100, clock=ft.clock, sleep=ft.sleep)
+    prov = TitleProvider({"Intern a": (True, True), "Intern b": (False, False)})
+    assert await triage_titles(sf, prov, pacer) == [a.id, b.id]
+    assert prov.seen == [["Intern a", "Intern b"]]
+    with sf() as s:
+        ja, jb = s.get(Job, a.id), s.get(Job, b.id)
+        assert (ja.is_internship, ja.is_tech) == (True, True)
+        assert (jb.is_internship, jb.is_tech) == (True, False)  # known field kept
+        assert [j.id for j in next_jobs(s, 10, fresh_since=T0)][0] == a.id
+        assert b.id not in [j.id for j in next_jobs(s, 10, fresh_since=T0)]
+        assert s.get(LlmUsage, T0.astimezone(PACIFIC).date()).requests == 1
+
+
+async def test_triage_batches_and_does_nothing_when_all_clear(sf):
+    from app.llm.queue import triage_titles  # noqa: PLC0415
+
+    with sf() as s:
+        for i in range(25):
+            add_job(s, f"u{i:02}", T0 - timedelta(minutes=i), intern=None, tech=None)
+        s.commit()
+    ft = FakeTime()
+    pacer = Pacer(sf, rpm=100, daily_cap=100, clock=ft.clock, sleep=ft.sleep)
+    prov = TitleProvider()
+    assert len(await triage_titles(sf, prov, pacer)) == 20
+    assert len(await triage_titles(sf, prov, pacer)) == 5
+    assert await triage_titles(sf, prov, pacer) == []
+    assert [len(b) for b in prov.seen] == [20, 5]
+
+
+async def test_triage_failure_changes_nothing(sf):
+    from app.llm.provider import Busy  # noqa: PLC0415
+    from app.llm.queue import triage_titles  # noqa: PLC0415
+
+    with sf() as s:
+        j = add_job(s, "a", T0, intern=None, tech=None)
+        s.commit()
+    for exc in (Busy("503"), RateLimited(), ValueError("classification count mismatch")):
+        ft = FakeTime()
+        pacer = Pacer(sf, rpm=100, daily_cap=100, clock=ft.clock, sleep=ft.sleep)
+        assert await triage_titles(sf, TitleProvider(exc=exc), pacer) == []
+        with sf() as s:
+            job = s.get(Job, j.id)
+            assert (job.is_internship, job.is_tech, job.analysis_state) == (None, None, "pending")
+
+
+async def test_triage_respects_daily_cap(sf):
+    from app.llm.queue import triage_titles  # noqa: PLC0415
+
+    with sf() as s:
+        add_job(s, "a", T0, intern=None, tech=None)
+        s.commit()
+    ft = FakeTime()
+    pacer = Pacer(sf, rpm=100, daily_cap=0, clock=ft.clock, sleep=ft.sleep)
+    prov = TitleProvider()
+    assert await triage_titles(sf, prov, pacer) == []
+    assert prov.seen == []
+
+
+def test_gemini_maps_server_errors_to_busy():
+    import asyncio  # noqa: PLC0415
+
+    from google.genai import errors  # noqa: PLC0415
+
+    from app.llm.gemini import GeminiProvider  # noqa: PLC0415
+    from app.llm.provider import Busy  # noqa: PLC0415
+
+    p = GeminiProvider(api_key="k", model="m")
+
+    async def raise_(code):
+        raise errors.APIError(code, {"error": {"code": code, "message": "x"}})
+
+    for code, want in ((503, Busy), (500, Busy), (429, RateLimited), (400, errors.APIError)):
+        p._client.aio.models.generate_content = lambda **kw: raise_(code)  # noqa: B023
+        with pytest.raises(want):
+            asyncio.run(p.analyze("t", "x"))

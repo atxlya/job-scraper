@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.adapters.base import ADAPTERS, GONE, ParseError, RawJob
 from app.core.models import Company, Job, JobUserState, ScrapeRun, Source
 from app.http.client import PoliteClient, RobotsDisallowed
-from app.llm.queue import run_analysis_batch
+from app.llm.queue import run_analysis_batch, triage_titles
 from app.notify.alerts import process_new, refresh_after_analysis
 from app.notify.closed import notify_closed
 from app.notify.health import notify_round, record_run
@@ -265,12 +265,15 @@ async def analysis_tick(ctx: Ctx) -> list[int]:
     if ctx.provider is None or ctx.pacer is None:
         return []
     now = _now()
+    # One request sorts up to 20 unclear titles; the rest of the minute's budget reads jobs.
+    triaged = await triage_titles(ctx.session_factory, ctx.provider, ctx.pacer)
     ids = await run_analysis_batch(
         ctx.session_factory,
         ctx.provider,
         ctx.pacer,
         model=ctx.settings.gemini_model,
         now=now,
+        limit=max(1, ctx.settings.gemini_rpm - (1 if triaged else 0)),
         fresh_since=now - timedelta(minutes=35),
     )
     for job_id in ids:

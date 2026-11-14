@@ -6,7 +6,7 @@ from google import genai
 from google.genai import errors, types
 from pydantic import BaseModel
 
-from app.llm.provider import Analysis, RateLimited
+from app.llm.provider import Analysis, Busy, RateLimited
 
 PROMPT = resources.files("app.llm").joinpath("prompts/analyze.txt").read_text()
 
@@ -35,6 +35,8 @@ class GeminiProvider:
         except errors.APIError as e:
             if e.code == 429:
                 raise RateLimited(str(e)) from e
+            if e.code in (500, 502, 503, 504):
+                raise Busy(str(e)) from e
             raise
         return resp.parsed
 

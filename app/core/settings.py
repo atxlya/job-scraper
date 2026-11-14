@@ -9,8 +9,9 @@ class Settings(BaseSettings):
     telegram_chat_id: str | None = None
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-3.5-flash-lite"
-    gemini_rpm: int = 5
-    gemini_daily_cap: int = 250
+    # Google's free tier for gemini-3.5-flash-lite: 15 requests a minute, 500 a day.
+    gemini_rpm: int = 15
+    gemini_daily_cap: int = 500
     http_min_interval_s: float = 2.5
     tz: str = "Asia/Kolkata"
     backup_push_target: str | None = None
