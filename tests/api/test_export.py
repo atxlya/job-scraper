@@ -19,6 +19,11 @@ HEADER = [
     "Apply URL",
     "Dashboard URL",
     "First seen (IST)",
+    "About",
+    "Responsibilities",
+    "Requirements",
+    "Preferred",
+    "Description",
 ]
 
 
@@ -57,6 +62,11 @@ def test_header_and_one_row(client, app, db):
         j.apply_url,
         f"http://testserver/jobs/{j.id}",
         "2026-11-10 13:30",
+        "",
+        "",
+        "",
+        "",
+        "x",
     ]
 
 
@@ -129,7 +139,7 @@ def test_ordinary_cells_are_left_alone(client, db):
     assert r[1:3] == ["C++ / Embedded Intern - 2027", "São Paulo, Brazil"]
 
 
-def test_streamed_in_batches_without_descriptions(client, db, monkeypatch):
+def test_streamed_in_batches(client, db, monkeypatch):
     monkeypatch.setattr(jobs_api, "EXPORT_BATCH", 50)
     for i in range(120):
         seed_job(db, title=f"Intern {i:03}", description="<p>" + "x" * 5000 + "</p>")
@@ -148,7 +158,51 @@ def test_streamed_in_batches_without_descriptions(client, db, monkeypatch):
     finally:
         event.remove(engine, "before_cursor_execute", spy)
     body = b"".join(chunks).decode("utf-8-sig")
-    assert body.count("\n") == 121  # header + 120 rows
+    assert len(rows_of(body)) == 121  # header + 120 rows
     assert len(chunks) >= 3  # sent as each batch is written, not all at the end
     export = [s for s in statements if "FROM jobs" in s and "jobs_fts" not in s]
-    assert export and all("description_html" not in s for s in export)
+    assert export and all("LIMIT" not in s for s in export)  # one query, read in batches
+
+
+def rows_of(body: str) -> list[list[str]]:
+    return list(csv.reader(io.StringIO(body)))
+
+
+def test_description_and_gemini_sections(client, db):
+    seed_job(
+        db,
+        title="ML Intern",
+        analysis="ok",
+        sections={
+            "about": "Train models.",
+            "responsibilities": ["Write code", "Run experiments"],
+            "requirements": ["Python", "-Linear algebra"],
+            "preferred": [],
+            "eligibility": ["Final-year students"],
+        },
+        description=(
+            "<h3>About</h3><p>We build <b>models</b>.</p>"
+            "<ul><li>Python</li><li>PyTorch</li></ul><p>Line<br>break</p>"
+        ),
+    )
+    row = rows(client.get("/api/jobs.csv"))[1]
+    about, resp, req, pref, desc = row[10:]
+    assert about == "Train models."
+    assert resp == "• Write code\n• Run experiments"
+    assert req == "• Python\n• -Linear algebra"
+    assert pref == ""
+    assert desc == "About\nWe build models.\n• Python\n• PyTorch\nLine\nbreak"
+
+
+def test_not_yet_read_by_gemini_still_has_the_description(client, db):
+    seed_job(db, description="<p>Hello</p>")
+    row = rows(client.get("/api/jobs.csv"))[1]
+    assert row[10:] == ["", "", "", "", "Hello"]
+
+
+def test_description_is_guarded_and_cut_to_fit_a_cell(client, db):
+    seed_job(db, title="A Intern", description="<p>=cmd()</p>")
+    seed_job(db, title="B Intern", description="<p>" + "y" * 40_000 + "</p>", first_seen=T0 - DAY)
+    got = {r[1]: r[14] for r in rows(client.get("/api/jobs.csv"))[1:]}
+    assert got["A Intern"] == "'=cmd()"
+    assert len(got["B Intern"]) == jobs_api.CELL_MAX and got["B Intern"].endswith("…")

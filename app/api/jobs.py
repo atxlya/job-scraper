@@ -4,6 +4,7 @@ import asyncio
 import csv
 import io
 import logging
+import re
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 from typing import Annotated
@@ -14,6 +15,7 @@ import nh3
 import pycountry
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
+from selectolax.lexbor import LexborHTMLParser
 from sqlalchemy import (
     Integer,
     Select,
@@ -30,7 +32,7 @@ from sqlalchemy import (
     type_coerce,
 )
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
-from sqlalchemy.orm import Session, defer
+from sqlalchemy.orm import Session
 
 import app.adapters  # noqa: F401  (registers adapters)
 from app.adapters.base import ADAPTERS, GONE
@@ -220,7 +222,14 @@ EXPORT_HEADER = [
     "Apply URL",
     "Dashboard URL",
     "First seen (IST)",
+    "About",
+    "Responsibilities",
+    "Requirements",
+    "Preferred",
+    "Description",
 ]
+SECTION_KEYS = ("responsibilities", "requirements", "preferred")
+CELL_MAX = 32_000  # Excel and Google Sheets cut a cell at 32,767 characters
 ELIG_LABEL = {"ok": "Eligible", "warn": "Check needed", "pending": "Not checked"}
 TAG_LABEL = {"liked": "Liked", "applied": "Applied", "dismissed": "Dismissed"}
 # A spreadsheet runs a cell starting with one of these as a formula (OWASP's list). Titles
@@ -233,10 +242,39 @@ def _cell(value: str | None) -> str:
     return f"'{v}" if v.startswith(FORMULA_START) else v
 
 
+BLOCK_END = re.compile(r"(?i)<br\s*/?>|</(?:p|div|li|h[1-6]|tr|ul|ol|table|section)\s*>")
+LIST_ITEM = re.compile(r"(?i)<li\b[^>]*>")
+
+
+def _plain(html: str | None) -> str:
+    """A description as readable text: a line per paragraph, heading or bullet, with
+    bold and links kept inline (html_to_text puts every tag on its own line)."""
+    if not html:
+        return ""
+    html = LIST_ITEM.sub("\\g<0>• ", BLOCK_END.sub("\\g<0>\n", html))
+    text = LexborHTMLParser(html).text(separator="")
+    lines = (re.sub(r"[ \t\xa0]+", " ", line).strip() for line in text.splitlines())
+    return "\n".join(line for line in lines if line)
+
+
+def _long(text: str) -> str:
+    text = text.strip()
+    return _cell(text if len(text) <= CELL_MAX else text[: CELL_MAX - 1] + "…")
+
+
+def _sections(analysis: JobAnalysis | None) -> list[str]:
+    """Gemini's summary, when the job has been read: about, then three bullet lists."""
+    sec = (analysis.sections if analysis else None) or {}
+    about = sec.get("about") if isinstance(sec.get("about"), str) else ""
+    lists = [sec.get(k) if isinstance(sec.get(k), list) else [] for k in SECTION_KEYS]
+    bullets = ["\n".join(f"• {x}" for x in items if isinstance(x, str)) for items in lists]
+    return [_long(about), *(_long(b) for b in bullets)]
+
+
 def _csv_rows(sf, stmt: Select, dashboard: str) -> Iterator[bytes]:
     """Yields the file in pieces, one batch of rows each. Opens its own session: the
     request's is closed before a streamed body is sent. The session holds rows weakly, so
-    a batch is freed once written."""
+    a batch is freed once written. Descriptions are read too, a batch at a time."""
     out = io.StringIO()
     writer = csv.writer(out)
     out.write("\ufeff")  # BOM: Excel otherwise reads UTF-8 as Latin-1
@@ -259,6 +297,8 @@ def _csv_rows(sf, stmt: Select, dashboard: str) -> Iterator[bytes]:
                         _cell(job.apply_url or job.url),
                         f"{dashboard}/jobs/{job.id}",
                         job.first_seen_at.astimezone(IST).strftime("%Y-%m-%d %H:%M"),
+                        *_sections(analysis),
+                        _long(_plain(job.description_html)),
                     ]
                 )
             yield out.getvalue().encode("utf-8")
@@ -271,11 +311,7 @@ def _csv_rows(sf, stmt: Select, dashboard: str) -> Iterator[bytes]:
 @router.get("/jobs.csv")
 def export_jobs(f: Annotated[JobFilters, Query()], request: Request, at: Now) -> StreamingResponse:
     """The jobs the list shows for these filters, in the list's order, as a CSV file."""
-    stmt = (
-        _filtered(f, at)
-        .options(defer(Job.description_html), defer(JobAnalysis.sections))
-        .order_by(_newest().desc(), Job.id.desc())
-    )
+    stmt = _filtered(f, at).order_by(_newest().desc(), Job.id.desc())
     base = (request.app.state.settings.dashboard_url or str(request.base_url)).rstrip("/")
     name = f"jobs-{at.astimezone(IST).date().isoformat()}.csv"
     return StreamingResponse(
