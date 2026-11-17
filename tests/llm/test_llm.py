@@ -28,6 +28,7 @@ def analysis(quote=None, eligibility="ok"):
         ),
         is_internship=True,
         is_tech=True,
+        category="ml",
         eligibility=eligibility,
         eligibility_quote=quote,
     )
@@ -190,6 +191,9 @@ class FakeProvider:
     async def classify_titles(self, titles):
         return [(True, True)] * len(titles)
 
+    async def categorize_titles(self, jobs):
+        return ["swe"] * len(jobs)
+
 
 async def test_batch_stores_validated_analysis(sf):
     with sf() as s:
@@ -245,7 +249,16 @@ def test_prompt_flags_degree_level_for_a_bachelors_student():
     from app.llm.queue import PROMPT_VERSION  # noqa: PLC0415
 
     assert "Bachelor's" in PROMPT and "PhD or Master's" in PROMPT
-    assert PROMPT_VERSION == "2"
+    assert PROMPT_VERSION == "3"
+
+
+def test_prompt_lists_every_category():
+    from app.core.categories import CATEGORIES  # noqa: PLC0415
+    from app.llm.gemini import PROMPT  # noqa: PLC0415
+
+    assert "{CATEGORIES}" not in PROMPT
+    for slug in CATEGORIES:
+        assert f"   - {slug}: " in PROMPT
 
 
 # --- busy server, title triage ------------------------------------------------
@@ -369,3 +382,103 @@ def test_gemini_maps_server_errors_to_busy():
         p._client.aio.models.generate_content = lambda **kw: raise_(code)  # noqa: B023
         with pytest.raises(want):
             asyncio.run(p.analyze("t", "x"))
+
+
+# --- categories -----------------------------------------------------------------
+
+
+async def test_full_read_sets_the_category(sf):
+    with sf() as s:
+        j = add_job(s, "a", T0)
+        j.category = "swe"  # an earlier guess from the title
+        s.commit()
+    ft = FakeTime()
+    pacer = Pacer(sf, rpm=100, daily_cap=100, clock=ft.clock, sleep=ft.sleep)
+    await run_analysis_batch(sf, FakeProvider(analysis()), pacer, model="m", now=T0)
+    with sf() as s:
+        assert s.get(Job, j.id).category == "ml"
+
+
+class CatProvider(FakeProvider):
+    def __init__(self, answer="data", exc=None):
+        super().__init__()
+        self.answer, self.exc, self.seen = answer, exc, []
+
+    async def categorize_titles(self, jobs):
+        self.seen.append(list(jobs))
+        if self.exc:
+            raise self.exc
+        return [self.answer] * len(jobs)
+
+
+async def test_categorize_only_open_tech_internships_without_one(sf):
+    from app.llm.queue import categorize_titles  # noqa: PLC0415
+
+    with sf() as s:
+        a = add_job(s, "a", T0)
+        add_job(s, "b", T0, tech=False)
+        add_job(s, "c", T0, intern=None)
+        done = add_job(s, "d", T0)
+        done.category = "quant"
+        closed = add_job(s, "e", T0)
+        closed.state = "closed"
+        s.commit()
+    ft = FakeTime()
+    pacer = Pacer(sf, rpm=100, daily_cap=100, clock=ft.clock, sleep=ft.sleep)
+    prov = CatProvider()
+    assert await categorize_titles(sf, prov, pacer) == [a.id]
+    assert prov.seen == [[("Intern a", "Google")]]
+    with sf() as s:
+        assert s.get(Job, a.id).category == "data"
+        assert s.get(Job, done.id).category == "quant"
+    assert await categorize_titles(sf, prov, pacer) == []  # nothing left: no request
+    assert len(prov.seen) == 1
+
+
+async def test_categorize_batches_of_forty(sf):
+    from app.llm.queue import categorize_titles  # noqa: PLC0415
+
+    with sf() as s:
+        for i in range(45):
+            add_job(s, f"j{i:02}", T0 - timedelta(minutes=i))
+        s.commit()
+    ft = FakeTime()
+    pacer = Pacer(sf, rpm=100, daily_cap=100, clock=ft.clock, sleep=ft.sleep)
+    prov = CatProvider()
+    assert len(await categorize_titles(sf, prov, pacer)) == 40
+    assert len(await categorize_titles(sf, prov, pacer)) == 5
+    assert prov.seen[0][0] == ("Intern j00", "Google")  # newest first
+
+
+async def test_categorize_failure_changes_nothing(sf):
+    from app.llm.provider import Busy  # noqa: PLC0415
+    from app.llm.queue import categorize_titles  # noqa: PLC0415
+
+    with sf() as s:
+        j = add_job(s, "a", T0)
+        s.commit()
+    for exc in (Busy("503"), RateLimited(), ValueError("categorisation count mismatch")):
+        ft = FakeTime()
+        pacer = Pacer(sf, rpm=100, daily_cap=100, clock=ft.clock, sleep=ft.sleep)
+        assert await categorize_titles(sf, CatProvider(exc=exc), pacer) == []
+        with sf() as s:
+            assert s.get(Job, j.id).category is None
+
+
+def test_gemini_categorize_checks_the_count():
+    import asyncio  # noqa: PLC0415
+
+    from app.llm.gemini import GeminiProvider  # noqa: PLC0415
+
+    p = GeminiProvider(api_key="k", model="m")
+    seen = {}
+
+    async def fake(prompt, schema, system=None):
+        seen["prompt"] = prompt
+        return [{"category": "ml"}]
+
+    p._generate = fake
+    assert asyncio.run(p.categorize_titles([("ML Intern", "NVIDIA")])) == ["ml"]
+    assert "1. ML Intern (NVIDIA)" in seen["prompt"] and "   - quant: " in seen["prompt"]
+    with pytest.raises(ValueError, match="count mismatch"):
+        asyncio.run(p.categorize_titles([("A", "x"), ("B", "y")]))

@@ -6,14 +6,24 @@ from google import genai
 from google.genai import errors, types
 from pydantic import BaseModel
 
+from app.core.categories import Category, category_guide
 from app.llm.provider import Analysis, Busy, RateLimited
 
-PROMPT = resources.files("app.llm").joinpath("prompts/analyze.txt").read_text()
+PROMPT = (
+    resources.files("app.llm")
+    .joinpath("prompts/analyze.txt")
+    .read_text()
+    .replace("{CATEGORIES}", category_guide())
+)
 
 
 class _TitleClass(BaseModel):
     is_internship: bool
     is_tech: bool
+
+
+class _TitleCategory(BaseModel):
+    category: Category
 
 
 class GeminiProvider:
@@ -60,3 +70,21 @@ class GeminiProvider:
         if len(items) != len(titles):
             raise ValueError("classification count mismatch")
         return [(i.is_internship, i.is_tech) for i in items]
+
+    async def categorize_titles(self, jobs: list[tuple[str, str]]) -> list[Category]:
+        listing = "\n".join(
+            f"{i + 1}. {title} ({company})" for i, (title, company) in enumerate(jobs)
+        )
+        prompt = (
+            "Each line is a tech internship: title, then company. Give each the one kind of "
+            'role it is, for choosing which resume to send. Pick the closest; use "other" '
+            f"only when none fits. Answer in the same order.\n{category_guide()}\n\n{listing}"
+        )
+        parsed = await self._generate(prompt, list[_TitleCategory])
+        items = [
+            p if isinstance(p, _TitleCategory) else _TitleCategory.model_validate(p)
+            for p in parsed or []
+        ]
+        if len(items) != len(jobs):
+            raise ValueError("categorisation count mismatch")
+        return [i.category for i in items]

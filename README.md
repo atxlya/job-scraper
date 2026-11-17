@@ -34,6 +34,7 @@ It runs 24/7 on a Raspberry Pi 5 with Docker Compose. [docs/DESIGN.md](docs/DESI
 - **Triage:** keyboard shortcuts on a laptop and swipes on a phone, with Undo.
 - **Applications:** stages after Applied (OA → Interview → Offer / Rejected), a timeline, and a "Your applications" page.
 - **Sources:** a health page for every source, with 14-night charts, and the scraping schedule, which you can edit.
+- **Categories:** each tech internship is sorted into a kind of role (Software Engineering, ML / AI, Data, Hardware / Embedded, Quant, …), shown on its card, filterable, and in the CSV.
 - **More:** CSV export of any filtered list, and you can add it to your phone's home screen.
 - **Login:** single-user password login (argon2).
 

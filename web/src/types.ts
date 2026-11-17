@@ -4,6 +4,19 @@ export type Elig = "ok" | "warn" | "pending";
 export type Tag = "liked" | "applied" | "dismissed";
 /** After Applied. A separate field: an applied job keeps the tag "applied" whatever its stage. */
 export type Stage = "oa" | "interview" | "offer" | "rejected";
+/** Kind of tech internship (app/core/categories.py), for choosing which resume to send. */
+export type Category =
+  | "swe"
+  | "ml"
+  | "data"
+  | "hardware"
+  | "cloud"
+  | "security"
+  | "quant"
+  | "qa"
+  | "research"
+  | "it"
+  | "other";
 
 export interface JobCard {
   id: number;
@@ -27,6 +40,8 @@ export interface JobCard {
   /** Only while tag is "applied". */
   stage: Stage | null;
   closed: boolean;
+  /** Empty until Gemini or the title sorter has placed it. */
+  category?: Category | null;
 }
 
 export interface JobPage {
@@ -45,6 +60,7 @@ export interface Option {
 export interface FilterOptions {
   companies: Option[];
   countries: Option[];
+  categories?: Option[];
 }
 
 export interface Sections {

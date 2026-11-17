@@ -88,6 +88,8 @@ class Job(Base):
     is_internship: Mapped[bool | None] = mapped_column(Boolean)
     is_tech: Mapped[bool | None] = mapped_column(Boolean)
     degree_only: Mapped[str | None] = mapped_column(String(40))  # "PhD", "Master's"… from title
+    # swe | ml | data | … (app/core/categories.py); from Gemini, or from the title until then
+    category: Mapped[str | None] = mapped_column(String(20), index=True)
     analysis_state: Mapped[str] = mapped_column(String(20), default="pending")
     state: Mapped[str] = mapped_column(String(10), default="open", index=True)
     missed_sweeps: Mapped[int] = mapped_column(Integer, default=0)

@@ -12,8 +12,9 @@ from app.llm.pacer import Pacer
 from app.llm.provider import Busy, LlmProvider, RateLimited, validate_quotes
 
 log = logging.getLogger(__name__)
-PROMPT_VERSION = "2"
+PROMPT_VERSION = "3"  # 3: adds category
 TITLE_BATCH = 20  # titles classified per request
+CATEGORY_BATCH = 40  # titles given a category per request
 
 
 def html_to_text(html: str | None) -> str:
@@ -95,6 +96,7 @@ async def run_analysis_batch(
                 job.is_internship = result.is_internship
             if job.is_tech is None:
                 job.is_tech = result.is_tech
+            job.category = result.category  # read from the posting: beats a title guess
             job.analysis_state = "done"
             s.commit()
             done.append(job.id)
@@ -148,5 +150,57 @@ async def triage_titles(
                 job.is_internship = intern
             if job.is_tech is None:
                 job.is_tech = tech
+        s.commit()
+        return [j.id for j in jobs]
+
+
+def uncategorised(session: Session, limit: int) -> list[Job]:
+    """Open tech internships with no category yet, newest first."""
+    return list(
+        session.scalars(
+            select(Job)
+            .where(
+                Job.state == "open",
+                Job.is_internship.is_(True),
+                Job.is_tech.is_(True),
+                Job.category.is_(None),
+            )
+            .order_by(Job.first_seen_at.desc(), Job.id.desc())
+            .limit(limit)
+        )
+    )
+
+
+async def categorize_titles(
+    session_factory: sessionmaker[Session],
+    provider: LlmProvider,
+    pacer: Pacer,
+    batch: int = CATEGORY_BATCH,
+) -> list[int]:
+    """One request gives up to `batch` tech internships a category from title and company,
+    so the whole list is sorted long before Gemini has read every posting. A later full
+    read replaces the guess."""
+    from app.core.models import Company  # noqa: PLC0415
+
+    with session_factory() as s:
+        jobs = uncategorised(s, batch)
+        if not jobs or not await pacer.acquire():
+            return []
+        names = dict(s.execute(select(Company.id, Company.name)).all())
+        try:
+            cats = await provider.categorize_titles(
+                [(j.title, names.get(j.company_id, "")) for j in jobs]
+            )
+        except RateLimited:
+            pacer.on_rate_limited()
+            return []
+        except Busy:
+            pacer.on_busy()
+            return []
+        except Exception:  # noqa: BLE001 - tried again next minute; full reads set it too
+            log.exception("title categorisation failed")
+            return []
+        for job, cat in zip(jobs, cats, strict=True):
+            job.category = cat
         s.commit()
         return [j.id for j in jobs]

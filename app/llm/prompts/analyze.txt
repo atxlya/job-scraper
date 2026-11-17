@@ -20,3 +20,6 @@ Tasks:
    restriction). If such a line exists,
    set eligibility to warn and put that one sentence, copied exactly, in
    eligibility_quote.
+5. category: the one kind of role this is, for choosing which resume to send. Pick the
+   closest; use "other" only when none fits.
+{CATEGORIES}

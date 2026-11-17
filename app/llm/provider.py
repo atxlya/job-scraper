@@ -5,6 +5,8 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel
 
+from app.core.categories import Category
+
 
 class Sections(BaseModel):
     about: str
@@ -18,6 +20,7 @@ class Analysis(BaseModel):
     sections: Sections
     is_internship: bool
     is_tech: bool
+    category: Category
     eligibility: Literal["ok", "warn", "unknown"]
     eligibility_quote: str | None = None
 
@@ -34,6 +37,8 @@ class LlmProvider(Protocol):
     async def analyze(self, title: str, text: str) -> Analysis: ...
 
     async def classify_titles(self, titles: list[str]) -> list[tuple[bool, bool]]: ...
+
+    async def categorize_titles(self, jobs: list[tuple[str, str]]) -> list[Category]: ...
 
 
 def _squash(text: str) -> str:

@@ -493,7 +493,7 @@ async def test_applied_job_gone_on_recheck_sends_closed_message(ctx):
     ]
 
 
-async def test_analysis_tick_sorts_titles_then_reads_within_the_minute_budget(ctx):
+async def test_analysis_tick_sorts_titles_categorises_then_reads_within_the_minute_budget(ctx):
     from types import SimpleNamespace  # noqa: PLC0415
 
     from app.llm.pacer import Pacer  # noqa: PLC0415
@@ -504,10 +504,15 @@ async def test_analysis_tick_sorts_titles_then_reads_within_the_minute_budget(ct
         def __init__(self):
             self.analyzed: list[str] = []
             self.classified: list[list[str]] = []
+            self.categorized: list[list[str]] = []
 
         async def classify_titles(self, titles):
             self.classified.append(list(titles))
             return [(True, "HR" not in t) for t in titles]
+
+        async def categorize_titles(self, jobs):
+            self.categorized.append([t for t, _ in jobs])
+            return ["swe"] * len(jobs)
 
         async def analyze(self, title, text):
             self.analyzed.append(title)
@@ -517,6 +522,7 @@ async def test_analysis_tick_sorts_titles_then_reads_within_the_minute_budget(ct
                 ),
                 is_internship=True,
                 is_tech=True,
+                category="swe",
                 eligibility="ok",
             )
 
@@ -542,7 +548,9 @@ async def test_analysis_tick_sorts_titles_then_reads_within_the_minute_budget(ct
     ctx.settings = SimpleNamespace(gemini_rpm=3, gemini_model="m", dashboard_url=None)
     await analysis_tick(ctx)
     assert prov.classified == [["HR Thing", "Odd Title"]]  # newest first
-    assert len(prov.analyzed) == 2  # 3 a minute: 1 for the titles, 2 reads
+    # Odd Title came back a tech internship, so it's categorised with the two clear ones
+    assert sorted(prov.categorized[0]) == ["Clear Intern 1", "Clear Intern 2", "Odd Title"]
+    assert len(prov.analyzed) == 1  # 3 a minute: titles, categories, then 1 read
     with ctx.session_factory() as s:
         hr = s.scalars(select(Job).where(Job.title == "HR Thing")).one()
         assert hr.is_tech is False  # left the queue without a full read

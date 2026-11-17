@@ -11,6 +11,7 @@ from tests.api.conftest import DAY, T0, make_app, seed_job
 HEADER = [
     "Company",
     "Title",
+    "Category",
     "Locations",
     "Apply URL",
     "Dashboard URL",
@@ -49,6 +50,7 @@ def test_header_and_one_row(client, app, db):
     assert row == [
         "Google",
         "Software Engineering Intern",
+        "",  # not sorted yet
         "Bengaluru, India; Pune, India",
         j.apply_url,
         f"http://testserver/jobs/{j.id}",
@@ -91,7 +93,7 @@ def test_dashboard_url_setting_wins(tmp_path):
         j = seed_job(s)
     with TestClient(app) as c:
         c.post("/api/login", json={"password": PASSWORD})
-        assert rows(c.get("/api/jobs.csv"))[1][4] == f"http://pi:8000/jobs/{j.id}"
+        assert rows(c.get("/api/jobs.csv"))[1][5] == f"http://pi:8000/jobs/{j.id}"
 
 
 # Text a spreadsheet would run as a formula (OWASP's list: = + - @ tab, carriage return).
@@ -107,13 +109,13 @@ def test_cells_that_look_like_formulas_are_neutralised(client, db):
     ):
         seed_job(db, title=title, locations=["=1+1"])
     for r in rows(client.get("/api/jobs.csv?view=all"))[1:]:
-        assert r[1][0] == "'" and r[2] == "'=1+1", r
+        assert r[1][0] == "'" and r[3] == "'=1+1", r
 
 
 def test_ordinary_cells_are_left_alone(client, db):
     seed_job(db, title="C++ / Embedded Intern - 2027", locations=["São Paulo, Brazil"])
     r = rows(client.get("/api/jobs.csv"))[1]
-    assert r[1:3] == ["C++ / Embedded Intern - 2027", "São Paulo, Brazil"]
+    assert [r[1], r[3]] == ["C++ / Embedded Intern - 2027", "São Paulo, Brazil"]
 
 
 def test_streamed_in_batches(client, db, monkeypatch):
@@ -163,7 +165,7 @@ def test_description_and_gemini_sections(client, db):
         ),
     )
     row = rows(client.get("/api/jobs.csv"))[1]
-    about, resp, req, pref, desc = row[5:]
+    about, resp, req, pref, desc = row[6:]
     assert about == "Train models."
     assert resp == "• Write code\n• Run experiments"
     assert req == "• Python\n• -Linear algebra"
@@ -174,7 +176,7 @@ def test_description_and_gemini_sections(client, db):
 def test_not_yet_read_by_gemini_still_has_the_description(client, db):
     seed_job(db, description="<p>Hello</p>")
     row = rows(client.get("/api/jobs.csv"))[1]
-    assert row[5:] == ["", "", "", "", "Hello"]
+    assert row[6:] == ["", "", "", "", "Hello"]
 
 
 def test_posting_is_plain_text_a_line_per_paragraph(client, db):
@@ -185,18 +187,30 @@ def test_posting_is_plain_text_a_line_per_paragraph(client, db):
             "<ul><li>Python</li><li>PyTorch</li></ul><p>Line<br>break</p>"
         ),
     )
-    desc = rows(client.get("/api/jobs.csv"))[1][9]
+    desc = rows(client.get("/api/jobs.csv"))[1][10]
     assert desc == "About\nWe build models.\n• Python\n• PyTorch\nLine\nbreak"
 
 
 def test_read_but_empty_summary_keeps_the_posting(client, db):
     seed_job(db, analysis="ok", sections={}, description="<p>Hello</p>")
-    assert rows(client.get("/api/jobs.csv"))[1][9] == "Hello"
+    assert rows(client.get("/api/jobs.csv"))[1][10] == "Hello"
 
 
 def test_description_is_guarded_and_cut_to_fit_a_cell(client, db):
     seed_job(db, title="A Intern", description="<p>=cmd()</p>")
     seed_job(db, title="B Intern", description="<p>" + "y" * 40_000 + "</p>", first_seen=T0 - DAY)
-    got = {r[1]: r[9] for r in rows(client.get("/api/jobs.csv"))[1:]}
+    got = {r[1]: r[10] for r in rows(client.get("/api/jobs.csv"))[1:]}
     assert got["A Intern"] == "'=cmd()"
     assert len(got["B Intern"]) == jobs_api.CELL_MAX and got["B Intern"].endswith("…")
+
+
+def test_category_column_and_filter(client, db):
+    a = seed_job(db, title="ML Intern")
+    b = seed_job(db, title="Quant Intern", first_seen=T0 - DAY)
+    seed_job(db, title="Unsorted Intern", first_seen=T0 - 2 * DAY)
+    a.category, b.category = "ml", "quant"
+    db.commit()
+    got = {r[1]: r[2] for r in rows(client.get("/api/jobs.csv"))[1:]}
+    assert got == {"ML Intern": "ML / AI", "Quant Intern": "Quant", "Unsorted Intern": ""}
+    only = rows(client.get("/api/jobs.csv?category=ml&category=quant"))[1:]
+    assert sorted(r[1] for r in only) == ["ML Intern", "Quant Intern"]

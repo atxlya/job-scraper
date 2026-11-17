@@ -107,3 +107,14 @@ it("otherwise shows initials on the company's own color", () => {
   const icon = screen.getByText("G");
   expect(icon.style.getPropertyValue("--hue")).toMatch(/^\d+$/);
 });
+
+it("shows the category once the job has one", () => {
+  show({ category: "ml" });
+  expect(screen.getByText("ML / AI")).toBeInTheDocument();
+});
+
+it("shows no category label before the job is sorted", () => {
+  show({ category: null });
+  expect(screen.queryByText("ML / AI")).not.toBeInTheDocument();
+  expect(screen.queryByText("Other tech")).not.toBeInTheDocument();
+});

@@ -55,6 +55,7 @@ from app.api.schemas import (
     TagEvent,
 )
 from app.core import tags
+from app.core.categories import LABEL as CATEGORY_LABEL
 from app.core.eligibility import eligibility
 from app.core.models import (
     Company,
@@ -150,6 +151,8 @@ def _filtered(f: JobFilters, at: datetime) -> Select:
         if "untagged" in f.tag:
             conds.append(JobUserState.tag.is_(None))
         stmt = stmt.where(or_(*conds))
+    if f.category:
+        stmt = stmt.where(Job.category.in_(f.category))
     if f.q:
         match = fts_query(f.q)
         if match is None:
@@ -189,6 +192,7 @@ def card(job: Job, company: Company, analysis: JobAnalysis | None, us: JobUserSt
         tag=us.tag if us else None,
         stage=us.stage if us and us.tag == "applied" else None,
         closed=job.state == "closed",
+        category=job.category if job.category in CATEGORY_LABEL else None,
     )
 
 
@@ -215,6 +219,7 @@ EXPORT_BATCH = 500  # rows read from SQLite, and written out, at a time
 EXPORT_HEADER = [
     "Company",
     "Title",
+    "Category",
     "Locations",
     "Apply URL",
     "Dashboard URL",
@@ -288,6 +293,7 @@ def _csv_rows(sf, stmt: Select, dashboard: str) -> Iterator[bytes]:
                     [
                         _cell(company.name),
                         _cell(job.title),
+                        CATEGORY_LABEL.get(job.category or "", ""),
                         _cell("; ".join(job.locations or [])),
                         _cell(job.apply_url or job.url),
                         f"{dashboard}/jobs/{job.id}",
@@ -331,6 +337,11 @@ def filter_options(s: Sess, view: Annotated[str, Query(pattern="^(tech|all)$")] 
         .group_by(Company.id)
     )
     code = func.json_each(Job.country_codes).table_valued("value")
+    category_rows = s.execute(
+        select(Job.category, func.count(Job.id))
+        .where(Job.id.in_(ids), Job.category.is_not(None))
+        .group_by(Job.category)
+    )
     country_rows = s.execute(
         select(code.c.value, func.count(func.distinct(Job.id)))
         .select_from(Job)
@@ -346,6 +357,11 @@ def filter_options(s: Sess, view: Annotated[str, Query(pattern="^(tech|all)$")] 
         countries=[
             Option(value=c, label=_country_name(c), count=n)
             for c, n in sorted(country_rows, key=lambda r: (-r[1], r[0]))
+        ],
+        categories=[
+            Option(value=c, label=CATEGORY_LABEL[c], count=n)
+            for c, n in sorted(category_rows, key=lambda r: (-r[1], r[0]))
+            if c in CATEGORY_LABEL
         ],
     )
 

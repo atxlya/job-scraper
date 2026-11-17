@@ -42,6 +42,7 @@ def test_card_fields(client, db):
         "tag": None,
         "stage": None,
         "closed": False,
+        "category": None,
     }
 
 
@@ -223,3 +224,23 @@ def test_seen_and_tag_at_the_same_moment_both_succeed(app, db, monkeypatch):
     db.expire_all()
     us = db.get(JobUserState, j.id)
     assert us.seen_at is not None and us.tag == "liked"
+
+
+def test_category_filter_card_and_counts(client, db):
+    a = seed_job(db, title="ML Intern")
+    b = seed_job(db, title="Data Intern")
+    c = seed_job(db, title="Other ML Intern")
+    seed_job(db, title="Unsorted Intern")
+    a.category, b.category, c.category = "ml", "data", "ml"
+    db.commit()
+    items = client.get("/api/jobs?category=ml").json()["items"]
+    assert sorted(i["title"] for i in items) == ["ML Intern", "Other ML Intern"]
+    assert {i["category"] for i in items} == {"ml"}
+    both = client.get("/api/jobs?category=ml&category=data").json()["total"]
+    assert both == 3
+    assert client.get("/api/jobs?category=nope").status_code == 422
+    opts = client.get("/api/filters").json()["categories"]
+    assert opts == [
+        {"value": "ml", "label": "ML / AI", "count": 2},
+        {"value": "data", "label": "Data", "count": 1},
+    ]

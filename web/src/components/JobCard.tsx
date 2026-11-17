@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { ago, companyHue, flag, initials, STAGE_LABEL, TAG_LABEL } from "../format";
+import { ago, CATEGORY_LABEL, companyHue, flag, initials, STAGE_LABEL, TAG_LABEL } from "../format";
 import { logoFor } from "../logos";
 import type { JobCard as Card } from "../types";
 import { EligBadge } from "./ui";
@@ -38,6 +38,7 @@ export function JobCard({ job, to, selected, now }: Props) {
           </span>
           {job.india && <Mark india>India</Mark>}
           {job.remote && <Mark>Remote</Mark>}
+          {job.category && <Mark>{CATEGORY_LABEL[job.category]}</Mark>}
         </div>
       </div>
       <Badges job={job} />

@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router";
-import type { Elig } from "./types";
+import { CATEGORY_LABEL } from "./format";
+import type { Category, Elig } from "./types";
 
 export type TagFilter = "liked" | "applied" | "untagged";
 export type Posted = "1d" | "7d" | "30d" | "any";
@@ -12,6 +13,7 @@ export type Filters = {
   elig: Elig[];
   posted: Posted;
   tag: TagFilter[];
+  category: Category[];
   dismissed: boolean;
   /** First seen since midnight IST: the "New today" stat. */
   newToday: boolean;
@@ -26,6 +28,7 @@ export const DEFAULTS: Filters = {
   elig: [],
   posted: "any",
   tag: [],
+  category: [],
   dismissed: false,
   newToday: false,
   q: "",
@@ -34,7 +37,8 @@ export const DEFAULTS: Filters = {
 const ELIG: readonly Elig[] = ["ok", "warn", "pending"];
 const TAGS: readonly TagFilter[] = ["liked", "applied", "untagged"];
 const POSTED: readonly Posted[] = ["1d", "7d", "30d", "any"];
-const KEYS = ["view", "company", "loc", "elig", "posted", "tag", "dismissed", "new", "q"] as const;
+const CATEGORIES = Object.keys(CATEGORY_LABEL) as Category[];
+const KEYS = ["view", "company", "loc", "elig", "posted", "tag", "category", "dismissed", "new", "q"] as const;
 const STORE = "filters";
 
 /** Only values that differ from DEFAULTS; list values repeat, as the API expects. */
@@ -46,6 +50,7 @@ export function toParams(f: Filters): URLSearchParams {
   f.elig.forEach((e) => p.append("elig", e));
   if (f.posted !== DEFAULTS.posted) p.set("posted", f.posted);
   f.tag.forEach((t) => p.append("tag", t));
+  f.category.forEach((c) => p.append("category", c));
   if (f.dismissed) p.set("dismissed", "true");
   if (f.newToday) p.set("new", "today");
   if (f.q.trim()) p.set("q", f.q.trim());
@@ -65,6 +70,7 @@ export function fromParams(p: URLSearchParams): Filters {
     elig: p.getAll("elig").filter((e): e is Elig => (ELIG as readonly string[]).includes(e)),
     posted: oneOf(p.get("posted"), POSTED, DEFAULTS.posted),
     tag: p.getAll("tag").filter((t): t is TagFilter => (TAGS as readonly string[]).includes(t)),
+    category: p.getAll("category").filter((c): c is Category => (CATEGORIES as string[]).includes(c)),
     dismissed: p.get("dismissed") === "true",
     newToday: p.get("new") === "today",
     q: p.get("q") ?? "",
@@ -78,6 +84,7 @@ export function activeCount(f: Filters): number {
     f.elig.length +
     (f.posted !== DEFAULTS.posted ? 1 : 0) +
     f.tag.length +
+    f.category.length +
     (f.dismissed ? 1 : 0) +
     (f.newToday ? 1 : 0)
   );

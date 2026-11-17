@@ -1,3 +1,5 @@
+import type { Category } from "./types";
+
 const IST = "Asia/Kolkata";
 
 /** "just now", "5m ago", "2h ago", "3d ago", then a date. */
@@ -32,6 +34,20 @@ export function initials(company: string): string {
   if (words.length > 1) return (words[0][0] + words[1][0]).toUpperCase();
   return (words[0]?.[0] ?? "?").toUpperCase();
 }
+
+export const CATEGORY_LABEL: Record<Category, string> = {
+  swe: "Software Engineering",
+  ml: "ML / AI",
+  data: "Data",
+  hardware: "Hardware / Embedded",
+  cloud: "Cloud / DevOps",
+  security: "Security",
+  quant: "Quant",
+  qa: "QA / Test",
+  research: "Research",
+  it: "IT / Support",
+  other: "Other tech",
+};
 
 export const ELIG_LABEL = { ok: "Eligible", warn: "Check needed", pending: "Not checked" } as const;
 export const TAG_LABEL = { liked: "Liked", applied: "Applied", dismissed: "Dismissed" } as const;

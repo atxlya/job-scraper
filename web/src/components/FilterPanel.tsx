@@ -3,7 +3,7 @@ import { type ReactNode, useState } from "react";
 import { api } from "../api";
 import { activeCount, DEFAULTS, type Filters, type Posted, type TagFilter } from "../filters";
 import { ELIG_LABEL } from "../format";
-import type { Elig, FilterOptions } from "../types";
+import type { Category, Elig, FilterOptions } from "../types";
 import { Chip, card, label } from "./ui";
 
 const TOP_COMPANIES = 8;
@@ -23,6 +23,7 @@ export function FilterPanel({ f, set, children }: Props) {
     queryFn: () => api<FilterOptions>(`/api/filters?view=${f.view}`),
   });
   const companies = data?.companies ?? [];
+  const categories = data?.categories ?? [];
   // Keep ticked companies visible even when they're outside the top list.
   const shown = allCompanies
     ? companies
@@ -63,6 +64,23 @@ export function FilterPanel({ f, set, children }: Props) {
           )}
           {companies.length === 0 && <p className="text-[13px] text-muted">No companies yet</p>}
         </fieldset>
+
+        {categories.length > 0 && (
+          <fieldset>
+            <legend className={label}>Category</legend>
+            <div className="flex flex-wrap gap-1.5">
+              {categories.map((c) => (
+                <Chip
+                  key={c.value}
+                  on={f.category.includes(c.value as Category)}
+                  onClick={() => set({ category: toggle(f.category, c.value as Category) })}
+                >
+                  {c.label} <span className="text-xs opacity-70">{c.count}</span>
+                </Chip>
+              ))}
+            </div>
+          </fieldset>
+        )}
 
         <div>
           <label htmlFor="loc" className={label}>

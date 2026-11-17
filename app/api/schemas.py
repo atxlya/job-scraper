@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.core.categories import Category
+
 EligStatus = Literal["ok", "warn", "pending"]
 Tag = Literal["liked", "applied", "dismissed"]
 Stage = Literal["oa", "interview", "offer", "rejected"]  # after Applied (app/core/tags.py)
@@ -17,6 +19,7 @@ class JobFilters(BaseModel):
     elig: list[EligStatus] = Field(default_factory=list)
     posted: Literal["1d", "7d", "30d", "any"] = "any"
     tag: list[Literal["liked", "applied", "untagged"]] = Field(default_factory=list)
+    category: list[Category] = Field(default_factory=list)
     dismissed: bool = False
     new: Literal["today"] | None = None  # first seen since midnight IST, like the stats tile
     q: str | None = None
@@ -40,6 +43,7 @@ class JobCard(BaseModel):
     tag: Tag | None
     stage: Stage | None  # only while tag is "applied"
     closed: bool
+    category: Category | None = None  # app/core/categories.py; None until sorted
 
 
 class JobPage(BaseModel):
@@ -58,6 +62,7 @@ class Option(BaseModel):
 class FilterOptions(BaseModel):
     companies: list[Option]
     countries: list[Option]
+    categories: list[Option] = Field(default_factory=list)
 
 
 class Change(BaseModel):

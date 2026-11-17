@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULTS, type Filters, fromParams, isPreset, PRESETS, toParams } from "./filters";
+import { activeCount, DEFAULTS, type Filters, fromParams, isPreset, PRESETS, toParams } from "./filters";
 
 const sets: Filters[] = [
   DEFAULTS,
@@ -52,4 +52,11 @@ describe("filters", () => {
     expect(isPreset({ ...PRESETS.liked, company: ["google"] }, PRESETS.liked)).toBe(false);
     expect(isPreset({ ...DEFAULTS, q: "ml" }, PRESETS.open)).toBe(false);
   });
+});
+
+it("keeps known categories from the URL and drops the rest", () => {
+  const f = fromParams(new URLSearchParams("category=ml&category=bogus&category=quant"));
+  expect(f.category).toEqual(["ml", "quant"]);
+  expect(toParams(f).getAll("category")).toEqual(["ml", "quant"]);
+  expect(activeCount(f)).toBe(2);
 });
