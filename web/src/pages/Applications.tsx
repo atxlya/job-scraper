@@ -40,7 +40,7 @@ function Closed() {
   return <span className="ml-1.5 rounded border border-warn-bd bg-warn-bg px-1.5 py-px text-[11px] font-semibold text-warn-fg">Closed</span>;
 }
 
-/** Every applied job, grouped by stage. Closed and rejected ones too: applied jobs are never hidden. */
+/** Every applied job, grouped by stage, closed ones too. The only place rejected ones are listed. */
 export function Applications() {
   const navigate = useNavigate();
   const wide = useMedia(WIDE);
@@ -49,7 +49,7 @@ export function Applications() {
   const groups = ORDER.map((g) => ({ g, items: rows.filter((a) => (a.stage ?? "applied") === g) })).filter((x) => x.items.length);
   const count = (g: Group) => rows.filter((a) => (a.stage ?? "applied") === g).length;
   const summary = [
-    `${rows.length} applied`,
+    `${rows.length} application${rows.length > 1 ? "s" : ""}`,
     count("offer") && `${count("offer")} offer${count("offer") > 1 ? "s" : ""}`,
     count("interview") && `${count("interview")} interviewing`,
     count("rejected") && `${count("rejected")} rejected`,
@@ -86,6 +86,12 @@ export function Applications() {
             <h2 className={`m-0 mb-1.5 text-[13px] font-semibold ${TONE[g]}`}>
               {STAGE_LABEL[g]} · {items.length}
             </h2>
+            {g === "rejected" && (
+              <p className="m-0 mb-1.5 text-xs text-muted">
+                Your rejection history, newest first. These jobs are hidden from the job list; open one to see its steps
+                and notes, or move it to another stage if it was a mistake.
+              </p>
+            )}
             {wide ? <Table items={items} /> : <Cards items={items} />}
           </section>
         ))}

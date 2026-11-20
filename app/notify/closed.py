@@ -13,7 +13,7 @@ import html
 import logging
 from datetime import datetime
 
-from sqlalchemy import exists, select
+from sqlalchemy import exists, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.models import ClosedAlert, Company, Job, JobUserState, TagHistory
@@ -60,6 +60,8 @@ def _owed(session: Session) -> list[tuple[Job, Company]]:
         .where(
             Job.state == "closed",
             JobUserState.tag.in_(["liked", "applied"]),
+            # A rejection already closed it for you; a "closed" message would be noise.
+            or_(JobUserState.stage.is_(None), JobUserState.stage != "rejected"),
             Job.id.not_in(select(ClosedAlert.job_id)),
             ~tagged_after_close,
         )

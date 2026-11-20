@@ -4,6 +4,13 @@ import { type Filters, isPreset, type Preset, PRESETS } from "../filters";
 import { day } from "../format";
 import type { Stats } from "../types";
 
+function appliedSub(s: Stats | undefined): string {
+  if (!s) return "";
+  const parts = [s.last_applied_at ? `last on ${day(s.last_applied_at)}` : "none yet"];
+  if (s.rejected) parts.push(`${s.rejected} rejected`);
+  return parts.join(" · ");
+}
+
 type Props = { f: Filters; set: (patch: Partial<Filters>) => void };
 
 /**
@@ -27,7 +34,7 @@ export function StatsStrip({ f, set }: Props) {
       label: "Applied",
       short: "Applied",
       value: data?.applied,
-      sub: data?.last_applied_at ? `last on ${day(data.last_applied_at)}` : "none yet",
+      sub: appliedSub(data),
     },
   ];
   return (

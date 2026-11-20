@@ -70,7 +70,7 @@ function serve(items: JobCard[] = cards) {
     }
     const one = path.match(/^\/api\/jobs\/(\d+)$/);
     if (one) return detail(cards.find((c) => c.id === Number(one[1]))!);
-    if (path === "/api/stats") return { new_today: 0, open_tech: 2, companies: 1, liked: 0, applied: 0, last_applied_at: null };
+    if (path === "/api/stats") return { new_today: 0, open_tech: 2, companies: 1, liked: 0, applied: 0, rejected: 0, last_applied_at: null };
     if (path.startsWith("/api/filters")) return { companies: [], countries: [] };
     if (path === "/api/sources") return [];
     return undefined;

@@ -66,7 +66,7 @@ it("groups every applied job by stage, most advanced first, Rejected last", asyn
   show();
   const groups = await screen.findAllByRole("region");
   expect(groups.map((g) => g.getAttribute("aria-label"))).toEqual(["Offer · 1", "Interview · 2", "Applied · 1", "Rejected · 1"]);
-  expect(screen.getByText("5 applied · 1 offer · 2 interviewing · 1 rejected")).toBeInTheDocument();
+  expect(screen.getByText("5 applications · 1 offer · 2 interviewing · 1 rejected")).toBeInTheDocument();
 });
 
 it("on a laptop, each row shows the date of each step and the time since the last one", async () => {
@@ -109,4 +109,10 @@ it("says what to do when there are no applications", async () => {
   width(true);
   show([]);
   expect(await screen.findByText(/No applications yet/)).toBeInTheDocument();
+});
+
+it("explains the rejected section is the rejection history", async () => {
+  show();
+  const rejected = await screen.findByRole("region", { name: "Rejected · 1" });
+  expect(within(rejected).getByText(/Your rejection history, newest first/)).toBeInTheDocument();
 });

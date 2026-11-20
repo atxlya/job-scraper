@@ -52,6 +52,9 @@ def _tech():
 def stats(s: Sess, at: Now) -> Stats:
     midnight = ist_midnight(at)
     tags = dict(s.execute(select(JobUserState.tag, func.count()).group_by(JobUserState.tag)).all())
+    rejected = s.scalar(
+        select(func.count()).where(JobUserState.tag == "applied", JobUserState.stage == "rejected")
+    )
     return Stats(
         new_today=s.scalar(select(func.count()).where(*_tech(), Job.first_seen_at >= midnight)),
         open_tech=s.scalar(select(func.count()).where(*_tech())),
@@ -59,7 +62,8 @@ def stats(s: Sess, at: Now) -> Stats:
             select(func.count(func.distinct(Source.company_id))).where(Source.enabled.is_(True))
         ),
         liked=tags.get("liked", 0),
-        applied=tags.get("applied", 0),
+        applied=tags.get("applied", 0) - (rejected or 0),
+        rejected=rejected or 0,
         last_applied_at=s.scalar(
             # The move into Applied, not a later stage step (from_tag = to_tag = "applied").
             select(func.max(TagHistory.at)).where(

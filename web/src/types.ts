@@ -135,7 +135,9 @@ export interface Stats {
   open_tech: number;
   companies: number;
   liked: number;
+  /** Still in play. Rejected applications are counted apart and left out of the job list. */
   applied: number;
+  rejected: number;
   last_applied_at: string | null;
 }
 

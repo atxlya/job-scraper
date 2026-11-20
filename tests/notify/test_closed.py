@@ -177,3 +177,16 @@ async def test_long_group_is_cut_short(session, tg, channel):
     assert text.splitlines()[0] == "🔒 <b>35 jobs you liked or applied to have closed</b>"
     assert text.splitlines()[-1] == "…and 5 more in the dashboard"
     assert len(session.scalars(select(ClosedAlert)).all()) == 35
+
+
+async def test_rejected_applications_get_no_closed_message(session, tg, channel):
+    from app.core.tags import set_stage  # noqa: PLC0415
+
+    rejected = job(session, "applied", title="Rejected Intern")
+    set_stage(session, rejected.id, "rejected", T0)
+    live = job(session, "applied", title="Interviewing Intern")
+    set_stage(session, live.id, "interview", T0)
+    close(rejected)
+    close(live)
+    await notify_closed(session, channel, LATER, None)
+    assert len(texts(tg)) == 1 and "Interviewing Intern" in texts(tg)[0]

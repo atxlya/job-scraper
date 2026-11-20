@@ -17,6 +17,7 @@ const stats: Stats = {
   companies: 61,
   liked: 8,
   applied: 0,
+  rejected: 0,
   last_applied_at: null,
 };
 
@@ -87,4 +88,16 @@ it("no tile is active once another filter is added", async () => {
   show("/?view=all&tag=liked&company=google");
   await screen.findByRole("button", { name: /New today\s*3/ });
   for (const b of screen.getAllByRole("button")) expect(b).toHaveAttribute("aria-pressed", "false");
+});
+
+it("shows how many applications ended in a rejection under Applied", async () => {
+  mockApi.mockResolvedValue({ ...stats, applied: 4, rejected: 2, last_applied_at: "2026-11-10T08:00:00Z" });
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter>
+        <Page />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  expect(await screen.findByRole("button", { name: /Applied\s*4\s*last on .*· 2 rejected/ })).toBeInTheDocument();
 });

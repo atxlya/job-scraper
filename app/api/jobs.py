@@ -117,7 +117,8 @@ def _elig_condition(status: str):
 
 
 def _base(view: str, dismissed: bool) -> Select:
-    """Jobs in a view, with closed and dismissed jobs hidden per plan D6."""
+    """Jobs in a view, with closed and dismissed jobs hidden per plan D6, and applications
+    that ended in a rejection: those live on the Applications page, as a history."""
     stmt = (
         select(Job, Company, JobAnalysis, JobUserState)
         .join(Company, Company.id == Job.company_id)
@@ -129,7 +130,7 @@ def _base(view: str, dismissed: bool) -> Select:
         stmt = stmt.where(Job.is_tech.is_(True), Job.is_internship.is_(True))
     if not dismissed:
         stmt = stmt.where(or_(JobUserState.tag.is_(None), JobUserState.tag != "dismissed"))
-    return stmt
+    return stmt.where(or_(JobUserState.stage.is_(None), JobUserState.stage != "rejected"))
 
 
 def _filtered(f: JobFilters, at: datetime) -> Select:

@@ -57,18 +57,39 @@ def test_card_carries_the_stage(client, db):
     assert (card["tag"], card["stage"]) == ("applied", "offer")
 
 
-def test_rejected_and_closed_applied_job_is_never_hidden(client, db):
+def test_closed_applied_job_is_never_hidden(client, db):
     j = seed_job(db, state="closed")
     apply(client, j)
-    stage(client, j, "rejected")
+    stage(client, j, "interview")
     items = client.get("/api/jobs", params={"view": "all"}).json()["items"]
     assert [i["id"] for i in items] == [j.id]
     applied = client.get("/api/jobs", params={"view": "all", "tag": "applied"}).json()["items"]
     assert [i["id"] for i in applied] == [j.id]
-    assert [a["id"] for a in client.get("/api/applications").json()] == [j.id]
 
 
-def test_stats_applied_counts_every_stage_and_dates_the_apply(client, app, db):
+def test_rejected_leaves_the_job_lists_but_stays_in_applications(client, db):
+    j = seed_job(db, title="Rejected Intern")
+    other = seed_job(db, title="Live Intern")
+    apply(client, j)
+    apply(client, other)
+    stage(client, j, "rejected")
+    for params in ({}, {"view": "all"}, {"tag": "applied"}, {"view": "all", "tag": "applied"}):
+        titles = [i["title"] for i in client.get("/api/jobs", params=params).json()["items"]]
+        assert titles == ["Live Intern"], params
+    csv_text = client.get("/api/jobs.csv", params={"view": "all"}).text
+    assert "Rejected Intern" not in csv_text
+    apps = client.get("/api/applications").json()
+    assert {(a["title"], a["stage"]) for a in apps} == {
+        ("Rejected Intern", "rejected"),
+        ("Live Intern", None),
+    }
+    assert client.get(f"/api/jobs/{j.id}").json()["stage"] == "rejected"  # still openable
+    stage(client, j, "interview")  # a rejection undone: back in the lists
+    titles = {i["title"] for i in client.get("/api/jobs").json()["items"]}
+    assert titles == {"Live Intern", "Rejected Intern"}
+
+
+def test_stats_counts_rejections_apart_and_dates_the_apply(client, app, db):
     app.dependency_overrides[now] = lambda: T0 + DAY
     a, b, c = seed_job(db), seed_job(db, company="NVIDIA"), seed_job(db, company="Barclays")
     for j in (a, b, c):
@@ -77,7 +98,7 @@ def test_stats_applied_counts_every_stage_and_dates_the_apply(client, app, db):
     stage(client, b, "interview")
     stage(client, c, "rejected")
     st = client.get("/api/stats").json()
-    assert st["applied"] == 3
+    assert (st["applied"], st["rejected"]) == (2, 1)  # matches the Applied list
     assert st["last_applied_at"] == "2026-11-11T08:00:00Z"  # the apply, not the stage step
 
 

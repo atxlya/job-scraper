@@ -30,6 +30,7 @@ def test_stats_counts(client, app, db):
         "companies": 2,
         "liked": 1,
         "applied": 1,
+        "rejected": 0,
         "last_applied_at": "2026-11-11T04:30:00Z",
     }
 

@@ -74,9 +74,9 @@ The three can be changed on the dashboard's Sources page (**Schedule › Edit**)
 
 **Changes:** a change in `content_hash` updates the row and adds a `job_changes` entry.
 
-**Closed jobs:** never deleted. A job tagged Applied is never hidden, whatever its stage (Rejected included) and whether or not it has closed.
+**Closed jobs:** never deleted. A job tagged Applied is never hidden, whatever its stage and whether or not it has closed, **except Rejected**: a rejected application leaves the job lists and the CSV, and gets no "closed" message. It stays on the Applications page, whose Rejected section is the rejection history, and the Applied tile says how many ("· 2 rejected") while its own number counts only applications still in play. Moving it to another stage brings it back.
 
-**Stages after Applied:** a separate field next to the tag, not more tag values, so every rule about applied jobs (never hidden, the Applied count, the daily re-check, "closed" messages) holds at every stage. Leaving Applied clears the stage; its history stays. See [stages-notes.md](history/stages-notes.md).
+**Stages after Applied:** a separate field next to the tag, not more tag values, so every rule about applied jobs (never hidden, the Applied count, the daily re-check, "closed" messages) holds at every stage but Rejected, which is hidden from the lists and counted apart (above). Leaving Applied clears the stage; its history stays. See [stages-notes.md](history/stages-notes.md).
 
 ## 5. Classification and Gemini
 

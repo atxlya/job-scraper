@@ -150,7 +150,8 @@ class Stats(BaseModel):
     open_tech: int
     companies: int
     liked: int
-    applied: int
+    applied: int  # still in play: rejected ones are counted apart
+    rejected: int
     last_applied_at: datetime | None
 
 
